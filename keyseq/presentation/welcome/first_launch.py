@@ -2,13 +2,15 @@ import os
 
 from keyseq.shared.i18n import current_language
 
-from .welcome_result import WelcomeResult, estimate_layout_id
+from .welcome_result import WelcomeResult
+from .welcome_window import WelcomeWindow
 
 
 def run_first_launch_welcome(app) -> WelcomeResult:
-    """Return defaults without a window; replacement point for the Welcome UI."""
-    language = current_language()
-    return WelcomeResult(language, estimate_layout_id(language), "sample")
+    """Wait for the first-launch window and return the confirmed choices."""
+    window = WelcomeWindow(app, language=current_language())
+    app.wait_window(window)
+    return window.result
 
 
 def is_first_launch(paths) -> bool:

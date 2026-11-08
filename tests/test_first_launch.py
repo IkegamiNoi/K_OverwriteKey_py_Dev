@@ -29,12 +29,31 @@ class FirstLaunchTest(unittest.TestCase):
                     target.touch()
                 self.assertEqual(is_first_launch(paths), existing is None)
 
-    def test_default_result_uses_current_language_without_a_window(self):
+    def test_run_waits_for_window_opened_in_current_language(self):
+        # 窓（Tk）は作らずに、窓を今の言語で開き、閉じるまで待って結果を返すことを確かめる。
         for language in ("ja", "en"):
+            expected = WelcomeResult(language, estimate_layout_id(language), "sample")
+            opened = []
+
+            class FakeWindow:
+                def __init__(self, app, *, language):
+                    opened.append((app, language))
+                    self.result = expected
+
+            class FakeApp:
+                def __init__(self):
+                    self.waited = []
+
+                def wait_window(self, window):
+                    self.waited.append(window)
+
+            app = FakeApp()
             with self.subTest(language=language), patch(
                 "keyseq.presentation.welcome.first_launch.current_language", return_value=language,
-            ):
-                result = run_first_launch_welcome(object())
-                self.assertEqual(result, WelcomeResult(language, estimate_layout_id(language), "sample"))
+            ), patch("keyseq.presentation.welcome.first_launch.WelcomeWindow", FakeWindow):
+                result = run_first_launch_welcome(app)
+                self.assertEqual(opened, [(app, language)])
+                self.assertEqual(len(app.waited), 1)
+                self.assertIs(result, expected)
                 with self.assertRaises(FrozenInstanceError):
                     result.start = "empty"

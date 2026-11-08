@@ -4,35 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T02:30:00
+last_updated: 2026-11-09T04:00:00
 phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.4・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
 last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜05 完了（minus・全キーの JIS・既定データ＝サンプル・サンプルの書き出し・初回の判定と起動の流れ）・次は task_06（Welcome の窓）。
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜06 完了（〜 Welcome の窓）・次は task_07（ヘルプからの再表示）。
 mode: implementing
 
 ## last_action
-ts: 2026-11-09T02:30:00
+ts: 2026-11-09T04:00:00
 who: main
 summary: |
-  task_05 完了: `main.py` が `App(first_launch_welcome=True)`（暫定 56 v0.5・ユーザー判断 2026-11-09 = 環境変数をやめ引数で渡す・既定は出さない＝tests_ui / smoke 不変）。
-  `app.py`: パス決定直後に初回の判定と withdraw・テーマの後に `_prepare_first_launch`（差し替え口 `run_first_launch_welcome` の結果で言語・サンプルの書き出し）・読込の後に `_finish_first_launch`（空で始める `keymap_set_io.start_empty`・write_startup・失敗の警告・deiconify）。新規 `presentation/welcome/`（WelcomeResult・estimate_layout_id・is_first_launch・差し替え口）。locales に `welcome.sample_failed.*`。
-  実装 = codex-delegating-implementer（Sol medium・サブエージェントなし）。reviewer = 採用（参考: app.py の肥大・JIS の式の重複）。新しいテストに `fix_language("ja")` をメインが追加。
+  task_06 完了: 新規 `presentation/welcome/welcome_window.py`（Language〔窓の中だけ tr_in で作り直し・全体の言語は変えない〕・配列 US TKL / JIS〔触るまで言語に追従〕・使い方 3 行・始め方〔サンプル入り既定 / 空〕と説明・ヘルプを開く〔Welcome の子の HelpWindow・guide タブ・1 つ・閉じたら閉じる〕/ はじめる・× / Esc = 確定・transient なし・grab_modal）。`run_first_launch_welcome` を窓を待つ実装へ。locales に `welcome.*`。
+  「フック開始」は既存のボタン表記「開始（フックON）」/ Start (Hook On) に合わせた。
+  実装 = codex-delegating-implementer（Sol medium・サブエージェントなし）。reviewer = 修正して採用（英語の説明文のキーマップ名をサンプルのラベルへ＝メインが修正）。test_first_launch の旧差し替え口のテストを書き換え・test_nested_modal_grab の許可フォルダに welcome を追加（メイン）。
 result_files:
-  - main.py / keyseq/presentation/app.py / keyseq/presentation/welcome/{__init__,welcome_result,first_launch}.py / keyseq/presentation/controllers/config_io/keymap_set_io.py / keyseq/shared/i18n/locales/{ja,en}.json
-  - tests/{test_first_launch,test_main_restart}.py / tests_ui/test_first_launch_flow.py
-  - instructions/history/56_welcome_first_launch.md（v0.5）/ instructions/phase/73_welcome_first_launch/{phase.md,tasks/task_05_first_launch_flow.md} / .claude_data/state/decisions.md
+  - keyseq/presentation/welcome/{welcome_window,first_launch}.py / keyseq/shared/i18n/locales/{ja,en}.json
+  - tests_ui/{test_welcome_window,test_nested_modal_grab}.py / tests/test_first_launch.py
+  - instructions/phase/73_welcome_first_launch/tasks/task_06_welcome_window.md
 verified:
   compile: pass
   tests: pass（1934・skip 7）
-  tests_ui: pass（1249）
+  tests_ui: pass（1257 中 1 件 = 許可フォルダの検査 → 修正後に当該ファイル単独 pass）
   smoke: pass
 
 ## next_action
-- task_06 を `/task_new` で起票（暫定 56 §4: Welcome の窓 = Language〔その場で set_language・窓の文言を作り直す〕・キーボード配列 US TKL / JIS〔言語への追従・触ったら止める〕・基本的な使い方 3〜4 行・始め方〔サンプル入り = 既定 / 空〕とサンプルの説明・「ヘルプを開く」〔Welcome の子・閉じたら閉じる〕/「はじめる」・× / Esc = 確定。`presentation/welcome/first_launch.py` の差し替え口 `run_first_launch_welcome` を窓に替える。文言は ja / en。参考: app.py の `_prepare/_finish_first_launch` を welcome 側へ寄せる余地）→ codex → verifier → reviewer
+- task_07 を `/task_new` で起票（暫定 56 §7: ヘルプのメニューに「Welcome を表示」・始め方と配列を除く・全体の言語は変えず tr_in・言語を変えて閉じたら今の言語の切り替えと同じ「今すぐ再起動 / あとで」・ヘルプは Welcome の子〔open_for_dialog〕・通常のモーダルの作法〔フックの停止・再開〕・サンプルの復元の案内の一文）→ codex → verifier → reviewer。目視の要点: Welcome の言語切替で Combobox を作り直す動き（reviewer 参考）
 - 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
 - main へのマージはユーザー（PR は作らない）
 
