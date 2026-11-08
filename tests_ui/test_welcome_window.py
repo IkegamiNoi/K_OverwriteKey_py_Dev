@@ -41,9 +41,9 @@ class WelcomeWindowUiTest(unittest.TestCase):
         window.layout_combo.event_generate("<<ComboboxSelected>>")
         self.root.update()
 
-    def _reopen(self):
+    def _reopen(self, language="ja"):
         self.root.deiconify()
-        window = WelcomeWindow(self.root, language="ja", reopen=True)
+        window = WelcomeWindow(self.root, language=language, reopen=True)
         self.root.update()
         self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
         return window
@@ -179,11 +179,14 @@ class WelcomeWindowUiTest(unittest.TestCase):
         self.assertTrue(window.winfo_viewable())
         self.assertIs(window.grab_current(), window)
         self.assertFalse(hasattr(window, "layout_section"))
+        self.assertFalse(hasattr(window, "language_combo"))
         self.assertFalse(hasattr(window, "start_section"))
         self.assertTrue(window.usage_section.winfo_exists())
         self.assertFalse(hasattr(window, "sample_restore_notice"))
+        window.destroy()
         for language in ("ja", "en"):
-            self._language(window, language)
+            window = self._reopen(language)
+            self.assertEqual(window.start_button.cget("text"), tr_in(language, "welcome.close"))
             self.assertEqual(window.usage_section.cget("text"), tr_in(language, "welcome.usage"))
             self.assertEqual(window.sample_settings_section.cget("text"),
                              tr_in(language, "welcome.sample_settings"))
@@ -192,9 +195,9 @@ class WelcomeWindowUiTest(unittest.TestCase):
             self.assertEqual(window.sample_description.cget("wraplength"), 520)
             self.assertEqual(window.restore_sample_button.cget("text"),
                              tr_in(language, "menu.file.restore_sample"))
-        self._language(window, "ja")
-        self.assertEqual(window.start_button.cget("text"), tr_in("ja", "welcome.close"))
+            window.destroy()
         initial = self._window("ja")
+        self.assertTrue(hasattr(initial, "language_combo"))
         self.assertTrue(hasattr(initial, "layout_section"))
         self.assertTrue(hasattr(initial, "start_section"))
 
@@ -245,7 +248,7 @@ class WelcomeWindowUiTest(unittest.TestCase):
         help_controller.open_for_dialog.assert_called_once_with(window, "guide", "")
 
     @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")
-    def test_open_welcome_again_resumes_hook_and_only_saves_changed_language(self, _window_class):
+    def test_open_welcome_again_never_saves_language_and_resumes_hook(self, _window_class):
         from keyseq.presentation.welcome.first_launch import open_welcome_again
 
         app = unittest.mock.Mock()
@@ -259,19 +262,6 @@ class WelcomeWindowUiTest(unittest.TestCase):
             open_welcome_again(app)
         app.hook.suspend_hook_for_dialog.assert_called_once_with()
         app.hook.resume_hook_after_dialog.assert_called_once_with()
-        app.set_ui_language.assert_called_once_with("en")
-
-    @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")
-    def test_open_welcome_again_does_not_save_unchanged_language(self, _window_class):
-        from keyseq.presentation.welcome.first_launch import open_welcome_again
-
-        app = unittest.mock.Mock()
-        app.hook = unittest.mock.Mock()
-        app.wait_window.side_effect = lambda window: setattr(
-            window, "result", WelcomeResult("ja", "jis", "empty"),
-        )
-        with patch("keyseq.presentation.welcome.first_launch.current_language", return_value="ja"):
-            open_welcome_again(app)
         app.set_ui_language.assert_not_called()
 
     @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")

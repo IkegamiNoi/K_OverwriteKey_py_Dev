@@ -43,15 +43,16 @@ class WelcomeWindow(tk.Toplevel):
         self.title(self._text("title"))
         self._body = ttk.Frame(self, padding=16)
         self._body.pack(fill="both", expand=True)
-        language_row = ttk.Frame(self._body)
-        language_row.pack(fill="x")
-        ttk.Label(language_row, text="Language").pack(side="left", padx=(0, 12))
-        self.language_combo = ttk.Combobox(
-            language_row, state="readonly", values=[name for _, name in self._languages],
-        )
-        self.language_combo.current([code for code, _ in self._languages].index(self.language))
-        self.language_combo.pack(side="left")
-        self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
+        if not self.reopen:
+            language_row = ttk.Frame(self._body)
+            language_row.pack(fill="x")
+            ttk.Label(language_row, text="Language").pack(side="left", padx=(0, 12))
+            self.language_combo = ttk.Combobox(
+                language_row, state="readonly", values=[name for _, name in self._languages],
+            )
+            self.language_combo.current([code for code, _ in self._languages].index(self.language))
+            self.language_combo.pack(side="left")
+            self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
         if self.reopen:
             self._build_usage()
             self._build_sample_settings()
