@@ -20,7 +20,12 @@ import tkinter
 import unittest
 from unittest.mock import patch
 
-from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_owner
+from keyseq.domain.keymap_triggers import (
+    INTERNAL_TRIGGER_SET_DIRTY,
+    get_active_triggers,
+    iter_trigger_sets,
+    trigger_set_owner,
+)
 from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
     compose_sequence_key,
@@ -1279,6 +1284,25 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         )
         self.assertTrue(self.app.dirty_tracker.trigger_set_dirty)
         self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
+
+    def test_restore_default_marks_every_default_trigger_set_and_sequence_dirty(self):
+        self._legacy_default_patch.stop()
+        data = self.app.config_service.new_default_data()
+        self._legacy_default_patch.start()
+        patches = self._silence_refresh()
+        with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False), patch.object(
+            tkinter.messagebox, "askyesno", return_value=True
+        ), patch.object(self.app.config_service, "new_default_data", return_value=data), patch.object(
+            self.app, "_set_flash_message"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).restore_default()
+
+        self.assertEqual(len(self.app.data["keymaps"]), 3)
+        for _, members, triggers in iter_trigger_sets(self.app.data):
+            for member in members:
+                self.assertTrue(member[INTERNAL_TRIGGER_SET_DIRTY])
+            for trigger in triggers:
+                self.assertTrue(trigger[self.app.config_service.INTERNAL_SEQUENCE_DIRTY])
 
     def test_new_config_trigger_set_save_does_not_write_previous_source(self):
         with tempfile.TemporaryDirectory() as directory:

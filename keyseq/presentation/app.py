@@ -402,6 +402,7 @@ class App(tk.Tk):
             startup["keymap_set_path"] = self._startup_settings["keymap_set_path"]
         self.startup_io.write_startup(startup)
         if self._welcome_sample_error is not None:
+            self.deiconify()
             messagebox.showwarning(
                 tr("welcome.sample_failed.title"),
                 tr(
@@ -410,7 +411,8 @@ class App(tk.Tk):
                     error=self._welcome_sample_error.error,
                 ),
             )
-        self.deiconify()
+        else:
+            self.deiconify()
 
     @contextmanager
     def repeat_suppressed(self):

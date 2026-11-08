@@ -698,9 +698,11 @@ class KeymapSetIo:
         self._app.data.update(layout_settings)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
-        for trigger in get_active_triggers(self._app.data):
-            self._app.dirty_tracker.mark_sequence_dirty(trigger)
-        self._app.dirty_tracker.mark_trigger_set_dirty()
+        for owner, members, triggers in iter_trigger_sets(self._app.data):
+            for member in members:
+                self._app.dirty_tracker.mark_trigger_set_dirty(member.get("id"))
+            for trigger in triggers:
+                self._app.dirty_tracker.mark_sequence_dirty(trigger)
         for keymap in self._app.data.get("keymaps", []):
             self._app.dirty_tracker.mark_keymap_dirty(keymap)
         self._app.discard_retained_hook_keys()

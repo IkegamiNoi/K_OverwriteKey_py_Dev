@@ -119,6 +119,9 @@ class FirstLaunchFlowUiTest(unittest.TestCase):
         self.warning.assert_not_called()
 
     def _assert_sample_failure(self, status):
+        calls = []
+        self.deiconify.side_effect = lambda _app: calls.append("deiconify")
+        self.warning.side_effect = lambda *_args: calls.append("warning")
         self.welcome.return_value = WelcomeResult("ja", "jis", "sample")
         self.install_sample.return_value = SampleInstallResult(status, "unused", "disk error")
         app = self._create_app(first_launch_welcome=True)
@@ -131,6 +134,7 @@ class FirstLaunchFlowUiTest(unittest.TestCase):
             tr_in("ja", "welcome.sample_failed.title"),
             tr_in("ja", "welcome.sample_failed.body", status=status, error="disk error"),
         )
+        self.assertEqual(calls, ["deiconify", "warning"])
 
     def test_failed_sample_starts_empty_and_warns(self):
         self._assert_sample_failure("failed")
