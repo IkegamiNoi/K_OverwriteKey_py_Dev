@@ -4,10 +4,10 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T12:00:00
+last_updated: 2026-11-09T01:13:00
 phase: なし（アクティブなフェーズなし）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
-last_commit_location: `claude/welcome-popup-first-launch-2b70d9`。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/cool-perlman-b117fd`（phase 73 の実装は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current

@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 72 = 画面の文言の多言語対応は 2026-11-04 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
-   次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 73 = 初回起動の Welcome とサンプルの作り直しは 2026-11-09 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
+   次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜55）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 完了（2026-11-04）。** 日英の切り替え（メニュー「Language」・次回起動から反映・「今すぐ再起動」）・全層の文言のキー化・英語の表記 E1〜E7・一覧の行頭の印の統一まで入り、正本反映・暫定 55 凍結・refactor_check 不要。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-ブランチ `claude/ui-text-length-english-style-f5ba4e`（task_11b〜12。それ以前の phase 72 は `claude/multilingual-support-ff44eb`）。main へのマージはユーザー（PR は作らない）。
+**phase 73 完了後の単発の不具合「プリセットが編集画面を開くまで表示されない」= 原因特定済み・スペックフラグのユーザー判断待ち（コード・正本は未変更）。** アクティブなフェーズなし。
+ブランチ `claude/cool-perlman-b117fd`（phase 73 の実装は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 完了時 = 2026-11-04**）:
-compile **clean** / tests **1909 pass**（skip 7）/ tests_ui **1238 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1909 / tests_ui: 1210 → 1238）。
+直近の実測（**phase 73 完了時 = 2026-11-09**）:
+compile **clean** / tests **1940 pass**（skip 7）/ tests_ui **1266 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1909〔phase 72〕→ 1940 / tests_ui: 1238 → 1266）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,15 +55,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
+- **【ユーザー判断待ち】空データ起動（E4）でも既定プリセットを出すよう正本を改訂して直すか。** 原因 = `startup_io.py:39` → `config_service/__init__.py:88` の `[]` → 共通プリセットが読めないと `:588` で置き換えない（`action_dialog.py:618` は 0 件、編集画面だけ既定 8 件 `preset_manager.py:185,257`）。正本 `data_schema/5_10_04_constraints.md:7-11` に明記の挙動。A（推奨）= `[]` をやめ E4 も既定プリセットに・正本改訂（`/spec_update`）・テスト追加 / B = 仕様のまま / C = 初回起動で共通プリセットを生成（非推奨）
+- A なら: 正本改訂 → `codex-implementer` で修正とテスト追加 → `verifier` で実測 → `reviewer` → コミット（詳細は session.md の next_action）
 - 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 
-## 直前のフェーズ（phase 72 = 画面の文言の多言語対応・判断は `decisions_archive/72_multilingual_ui.md`）
-- 正本 = `features.md` §4.6「言語」「一覧の表示形式」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1〜§3 / `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」
-- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
-- **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
-- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
-- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
+## 直前のフェーズ（phase 73 = 初回起動の Welcome とサンプルの作り直し・判断は `decisions_archive/73_welcome_first_launch.md`）
+- 正本 = `features.md` §4.6 Welcome / `data_schema.md` §5.14 / `ui_terms.md` / 地図 = `codebase_map.md`
+- **tests_ui の App() は worktree の `config/config.json`（手元の設定・gitignore）を読む**ので結果が手元の設定に左右される
+- 画面の文言は `tr` を使い `ja.json` / `en.json` の両方へ（詳細は session.md の resume_hints）
 
 ## 運用インフラ
 
@@ -145,7 +145,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 72_multilingual_ui / 71_taskbar_status_icon / 70_help_window）。
+  （直近 3 件: 73_welcome_first_launch / 72_multilingual_ui / 71_taskbar_status_icon）。
 - 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（カーソルグリッドの配色・題は旧称「画面の枠」のまま＝着手時に直す）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
