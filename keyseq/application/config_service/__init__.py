@@ -29,7 +29,7 @@ from keyseq.domain.keymap_triggers import (
     ensure_active_triggers,
     migrate_single_json_triggers,
 )
-from . import child_file_io, hotkey_presets_files, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import child_file_io, hotkey_presets_files, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, sample_install, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -65,6 +65,21 @@ class ConfigService:
 
     def new_base_data(self) -> dict[str, Any]:
         return build_base_config()
+
+    def install_sample(
+        self, *, config_root: str, keyboard_layout_id: str,
+        external_layout_path: str = "",
+    ) -> sample_install.SampleInstallResult:
+        return sample_install.install_sample(
+            self, config_root=config_root, keyboard_layout_id=keyboard_layout_id,
+            external_layout_path=external_layout_path,
+        )
+
+    def check_sample_complete(self, *, config_root: str) -> bool:
+        return sample_install.check_sample_complete(self, config_root=config_root)
+
+    def sample_keymap_set_path(self, config_root: str) -> str:
+        return sample_install.sample_keymap_set_path(config_root)
 
     def new_empty_data(self) -> dict[str, Any]:
         data = self.new_base_data()
@@ -317,6 +332,7 @@ class ConfigService:
         migration_source_keymap_set_path: str = "",
         post_save_warnings: list[str] | None = None,
         save_plan: SavePlan | None = None,
+        write_startup_entry: bool = True,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         return save_plan_execution.save_runtime_data(
             self, keymap_set_path, data, config_root=config_root, startup_data=startup_data,
@@ -325,6 +341,7 @@ class ConfigService:
             split_base_dir=split_base_dir,
             migration_source_keymap_set_path=migration_source_keymap_set_path,
             post_save_warnings=post_save_warnings, save_plan=save_plan,
+            write_startup_entry=write_startup_entry,
         )
 
     def resolve_child_save_targets(

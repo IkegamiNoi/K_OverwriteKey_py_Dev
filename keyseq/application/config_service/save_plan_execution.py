@@ -126,6 +126,7 @@ def _write_runtime_payloads(
     service: Any, payloads: dict[str, Any], resolved_config_root: str,
     resolved_keymap_set_path: str, *,
     keep_legacy_copy: bool, legacy_path: str, sanitized_legacy: Any,
+    write_startup_entry: bool = True,
 ) -> None:
     service.ensure_split_config_dirs(resolved_config_root)
     for item in payloads["sequences"]:
@@ -146,7 +147,8 @@ def _write_runtime_payloads(
             item["payload"],
         )
     service.repository.save_json(resolved_keymap_set_path, payloads["keymap_set"])
-    service.repository.save_json(service._startup_entry_path(resolved_config_root), payloads["startup"])
+    if write_startup_entry:
+        service.repository.save_json(service._startup_entry_path(resolved_config_root), payloads["startup"])
 
     if keep_legacy_copy:
         target_legacy_path = legacy_path or service._default_legacy_config_path(resolved_config_root)
@@ -182,6 +184,7 @@ def save_runtime_data(service,
     migration_source_keymap_set_path: str = "",
     post_save_warnings: list[str] | None = None,
     save_plan: SavePlan | None = None,
+    write_startup_entry: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     normalized, normalized_keymaps = _restore_input_parent_refs(service, data)
     sanitized_legacy = service._sanitize_runtime_for_storage(normalized)
@@ -207,6 +210,7 @@ def save_runtime_data(service,
         keep_legacy_copy=keep_legacy_copy,
         legacy_path=legacy_path,
         sanitized_legacy=sanitized_legacy,
+        write_startup_entry=write_startup_entry,
     )
 
     cleanup_warning = _cleanup_migrated_trigger_set_parent_ref(
