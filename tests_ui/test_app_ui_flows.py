@@ -2534,7 +2534,7 @@ class AppUiFlowsTest(unittest.TestCase):
             / "user"
             / "keylayout"
         )
-        jis_layout = load_layout_from_json(str(layout_dir / "jis.json"))
+        jis_layout = load_layout_from_json(str(layout_dir / "jis_test.json"))
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window
         self.addCleanup(window._handle_close)
@@ -2790,7 +2790,7 @@ class AppUiFlowsTest(unittest.TestCase):
             / "user"
             / "keylayout"
         )
-        layout_a = load_layout_from_json(str(layout_dir / "jis.json"))
+        layout_a = load_layout_from_json(str(layout_dir / "jis_test.json"))
         layout_b = load_layout_from_json(str(layout_dir / "us_tkl.json"))
         old_settings = self.app._startup_settings
         self.app._startup_settings = {
@@ -2879,7 +2879,7 @@ class AppUiFlowsTest(unittest.TestCase):
             / "user"
             / "keylayout"
         )
-        layout_a = load_layout_from_json(str(layout_dir / "jis.json"))
+        layout_a = load_layout_from_json(str(layout_dir / "jis_test.json"))
         layout_b = load_layout_from_json(str(layout_dir / "us_tkl.json"))
         old_settings = self.app._startup_settings
         self.app._startup_settings = {
@@ -2969,7 +2969,7 @@ class AppUiFlowsTest(unittest.TestCase):
             / "user"
             / "keylayout"
         )
-        jis_layout = load_layout_from_json(str(layout_dir / "jis.json"))
+        jis_layout = load_layout_from_json(str(layout_dir / "jis_test.json"))
         us_layout = load_layout_from_json(str(layout_dir / "us_tkl.json"))
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window

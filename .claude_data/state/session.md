@@ -11,29 +11,27 @@ last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01（minus のキー名）完了・次は task_02（JIS の配列ファイル）。
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01（minus のキー名）・task_02（全キーの JIS）完了・次は task_03（既定データ＝新しいサンプル）。
 mode: implementing
 
 ## last_action
-ts: 2026-11-08T18:00:00
+ts: 2026-11-08T19:30:00
 who: main
 summary: |
-  task_01 完了: `minus` を `keyboard` が解決できない（Unicode の − に読み替える）ため、domain の `normalize_key_name` で `minus` → `-`（表は 1 か所・ホットキーのトークンにも適用）・Tk の変換表に `minus` → `-`。domain + presentation のみ・スキーマ不変。
-  実装 = codex-implementer（Luna high）。reviewer = 採用（293 か所の利用者への影響なし・循環 import なし）。
-  検証: 1 回目の tests_ui で 2 件 fail（窓の大きさの `pending` の assert・名前は未取得）→ 再実行で全件 OK（時間・環境依存と判断）。
-  気づいた事実（未対応）: `-` / `+` / `*` / `/` は `keyboard` がテンキーの走査コードを先に返す。
+  task_02 完了: 見本 `config/user/keylayout/jis.json` を `jis_test.json`（layout_id jis_test・中身は同じ）へ写し、`jis.json` を全キーの JIS（TKL・92 キー・記号は文字の id・yen 125 / ro 115・特殊キーは旧見本と同じ scan_code）に書き直し。tests_ui の寸法依存 4 件を jis_test へ。データとテストのみ。
+  実装 = codex-delegating-implementer（Sol medium・Luna high のサブエージェント使用あり）。reviewer = 採用（任意 1: `caps lock` を scan_code 無しの検査に追加＝残す）。
 result_files:
-  - keyseq/domain/config.py / keyseq/domain/hotkey.py / keyseq/presentation/tk_keys.py
-  - tests/test_domain_config.py / tests/test_hotkey.py / tests/test_tk_keys.py
-  - instructions/phase/73_welcome_first_launch/tasks/task_01_minus_key_name.md
+  - config/user/keylayout/jis.json / config/user/keylayout/jis_test.json（gitignore のため add -f）
+  - tests/test_keyboard_layout_files.py / tests_ui/test_app_ui_flows.py
+  - instructions/phase/73_welcome_first_launch/tasks/task_02_jis_full_layout.md
 verified:
   compile: pass
-  tests: pass（1912・skip 7）
-  tests_ui: pass（1238・再実行）
+  tests: pass（1915・skip 7）
+  tests_ui: pass（1238）
   smoke: pass
 
 ## next_action
-- task_02 を `/task_new` で起票（見本 `config/user/keylayout/jis.json` → `jis_test.json`〔`layout_id` 変更・参照テスト 18 か所とヘルプの本文 help_ja / help_en を追従〕・全キーの JIS を `jis.json`〔`layout_id: "jis"`〕で新規）→ codex-implementer → verifier → reviewer
+- task_03 を `/task_new` で起票（暫定 56 §5.1・§5.3・§6: `domain/config.py` の既定データを呼び出しごとに今の言語で組み立てる関数へ〔ラベル・案内文は locales のキー・num の q = `-`・hook_keys_individual true・停止 F12・トグル F1・最初に shortcut〕・メニュー「新規」を直接の組み立てへ・復元でサンプルのフックのキーが残る・F1/F2 前提のテスト修正）→ codex → verifier → reviewer
 - 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
 - main へのマージはユーザー（PR は作らない）
 

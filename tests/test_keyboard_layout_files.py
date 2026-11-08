@@ -16,6 +16,7 @@ LAYOUT_DIR = Path(__file__).resolve().parents[1] / "config" / "user" / "keylayou
 LAYOUT_PATHS = {
     "de": LAYOUT_DIR / "de.json",
     "jis": LAYOUT_DIR / "jis.json",
+    "jis_test": LAYOUT_DIR / "jis_test.json",
     "us_tkl": LAYOUT_DIR / "us_tkl.json",
 }
 _NO_SCAN_CODE_IDS = (
@@ -259,6 +260,55 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
         self.assertEqual(layout.key_display_name("zenkaku_hankaku"), "半角\n全角")
         self.assertEqual(key.label, "半角\n全角")
 
+    def test_jis_full_layout_loads_and_contains_all_tkl_keys(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+        key_ids = {key.id for key in layout.keys}
+        builtin_ids = {key.id for key in resolve_keyboard_layout().keys}
+        expected_ids = (builtin_ids - {"`", "=", "\\", "'"}) | {
+            "zenkaku_hankaku", "^", "@", ":", "yen", "ro",
+            "muhenkan", "henkan", "kana",
+        }
+
+        self.assertEqual(layout.layout_id, "jis")
+        self.assertEqual(layout.display_name, "JIS")
+        self.assertEqual(key_ids, expected_ids)
+        welcome_keys = {
+            "1", "2", "3", "q", "w", "e", "r", "t", "a", "s", "d",
+            "f", "g", "z", "x", "c", "v", "b", "h", "f1", "f12",
+        }
+        self.assertTrue(welcome_keys <= key_ids)
+
+    def test_jis_scan_codes_preserve_sample_and_identify_yen_and_ro(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+        sample = load_layout_from_json(str(LAYOUT_PATHS["jis_test"]))
+        self.assertEqual(layout.key_display_names, sample.key_display_names)
+        keys = {key.id: key for key in layout.keys}
+        sample_keys = {key.id: key for key in sample.keys}
+        expected_codes = {
+            "zenkaku_hankaku": (41, ()), "muhenkan": (123, (241,)),
+            "henkan": (121, (242,)), "kana": (112, ()),
+            "yen": (125, ()), "ro": (115, ()),
+        }
+        for key_id, codes in expected_codes.items():
+            with self.subTest(key_id=key_id):
+                key = keys[key_id]
+                self.assertEqual((key.scan_code, key.extra_scan_codes), codes)
+                if key_id in sample_keys:
+                    original = sample_keys[key_id]
+                    self.assertEqual((original.scan_code, original.extra_scan_codes), codes)
+                    self.assertEqual(key.label, original.label)
+        for key in layout.keys:
+            if key.id not in expected_codes:
+                with self.subTest(key_id=key.id):
+                    self.assertIsNone(key.scan_code)
+                    self.assertEqual(key.extra_scan_codes, ())
+
+    def test_jis_test_layout_loads_with_distinct_identity(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis_test"]))
+
+        self.assertEqual(layout.layout_id, "jis_test")
+        self.assertEqual(layout.display_name, "JIS（テスト用）")
+
     def test_layouts_have_unique_non_overlapping_keys(self):
         for name, path in LAYOUT_PATHS.items():
             with self.subTest(layout=name):
@@ -276,7 +326,9 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
             with self.subTest(layout=name):
                 layout = load_layout_from_json(str(path))
                 for key in layout.keys:
-                    if key.id.startswith(_NO_SCAN_CODE_IDS) or key.id in {"caps_lock", "alt_gr"}:
+                    if key.id.startswith(_NO_SCAN_CODE_IDS) or key.id in {
+                        "caps_lock", "caps lock", "alt_gr",
+                    }:
                         self.assertIsNone(key.scan_code, key.id)
 
     def test_jis_layout_contains_modifier_ids(self):
