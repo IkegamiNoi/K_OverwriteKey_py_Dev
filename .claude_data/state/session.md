@@ -4,34 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-04T12:00:00
-phase: なし（アクティブなフェーズなし）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
+last_updated: 2026-11-08T18:00:00
+phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.4・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
-last_commit_location: `claude/ui-text-length-english-style-f5ba4e`（phase 72 task_11b〜12）。それ以前の phase 72 は `claude/multilingual-support-ff44eb`、phase 71 一式は `claude/taskbar-app-status-indicator-f73d28`。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 完了（2026-11-04）。** 日英の切り替え（メニュー「Language」・次回起動から反映・「今すぐ再起動」）・全層の文言のキー化・英語の表記 E1〜E7・一覧の行頭の印の統一まで入り、正本反映・暫定 55 凍結・refactor_check 不要。次フェーズはユーザー判断（予定 = Mac 対応）。
-mode: completed
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01（minus のキー名）完了・次は task_02（JIS の配列ファイル）。
+mode: implementing
 
 ## last_action
-ts: 2026-11-04T12:00:00
+ts: 2026-11-08T18:00:00
 who: main
 summary: |
-  ユーザー報告: task_11d の実機目視 OK → task_12（正本反映）を実施。features §4.6「言語」「一覧の表示形式」「ヘルプの窓」/ data_schema §5.4 ui_language / ui_terms §1〜§3（多言語の扱い・英語の列・表示名・E1〜E7）/ architecture §3.2 shared / codebase_map「画面の文言の多言語対応」。暫定 55 凍結・decisions_archive/72・current.md 完了記載。
-  完了判定前レビュー: Codex 敵対的 needs-attention 1・deep-reviewer 修正して完了可 11 件 → ユーザー = 推奨どおり反映（保留 1 = 一覧に無い言語が保存されているときの比較）。refactor_check = 不要（境界 2 件を別タスク化候補へ）。
+  task_01 完了: `minus` を `keyboard` が解決できない（Unicode の − に読み替える）ため、domain の `normalize_key_name` で `minus` → `-`（表は 1 か所・ホットキーのトークンにも適用）・Tk の変換表に `minus` → `-`。domain + presentation のみ・スキーマ不変。
+  実装 = codex-implementer（Luna high）。reviewer = 採用（293 か所の利用者への影響なし・循環 import なし）。
+  検証: 1 回目の tests_ui で 2 件 fail（窓の大きさの `pending` の assert・名前は未取得）→ 再実行で全件 OK（時間・環境依存と判断）。
+  気づいた事実（未対応）: `-` / `+` / `*` / `/` は `keyboard` がテンキーの走査コードを先に返す。
 result_files:
-  - instructions/common/spec_detail/{features,data_schema,ui_terms,architecture}.md / instructions/common/codebase_map.md
-  - instructions/history/55_multilingual_ui.md / instructions/phase/current.md / instructions/phase/72_multilingual_ui/phase.md
-  - .claude_data/state/decisions.md / .claude_data/state/decisions_archive/72_multilingual_ui.md
+  - keyseq/domain/config.py / keyseq/domain/hotkey.py / keyseq/presentation/tk_keys.py
+  - tests/test_domain_config.py / tests/test_hotkey.py / tests/test_tk_keys.py
+  - instructions/phase/73_welcome_first_launch/tasks/task_01_minus_key_name.md
 verified:
-  compile: pass（HEAD 18cf3f7・以後は文書のみ）
-  tests: pass（1909・skip 7）
-  tests_ui: pass（1238）
+  compile: pass
+  tests: pass（1912・skip 7）
+  tests_ui: pass（1238・再実行）
   smoke: pass
 
 ## next_action
-- 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
+- task_02 を `/task_new` で起票（見本 `config/user/keylayout/jis.json` → `jis_test.json`〔`layout_id` 変更・参照テスト 18 か所とヘルプの本文 help_ja / help_en を追従〕・全キーの JIS を `jis.json`〔`layout_id: "jis"`〕で新規）→ codex-implementer → verifier → reviewer
+- 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers
@@ -41,6 +44,7 @@ verified:
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
 - **画面の文言（phase 72 以降）**: 新しい文言は `keyseq/shared/i18n/locales/ja.json` と `en.json` の両方にキーを足し、ソースに日本語を書かない（静的テスト）。`tr` はモジュール定数・import 時に評価しない。`App(` を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`。英語は `ui_terms.md` §2・§3（E1〜E7）に従う。
+- **phase 73**: 報告された不具合 2 件（プリセットが編集で開くまで表示されない / キー名の記号表記）は別セッションの提案カードに出してある（本フェーズ外）。tests_ui の窓の大きさのテスト（`test_compact_window.py:298`・`test_pane_window_width_persistence.py:236,275` の `pending`）が負荷で落ちることがある。
 - **phase 71**: タスクバーのアイコンは AppUserModelID（`main.py`）が無いと出ない。`App()` を直接作る tests_ui / smoke では設定されない。
 - **`__version__`** はユーザーが直接またはユーザーの指示でだけ変更する（Claude が独断で上げない）。
 - **Codex は Python で既存ファイルを編集しようとして失敗することがある** → 依頼文に「apply_patch で編集・Python を使わない」と書く（phase 71）。

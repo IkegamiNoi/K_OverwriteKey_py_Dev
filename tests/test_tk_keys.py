@@ -79,6 +79,7 @@ class TkKeysTest(unittest.TestCase):
             "left shift",
         )
         self.assertEqual(normalize_tk_keysym("Return"), "enter")
+        self.assertEqual(normalize_tk_keysym("minus"), "-")
         self.assertEqual(normalize_key_hold_tk_keysym("Shift_L"), "left shift")
 
 

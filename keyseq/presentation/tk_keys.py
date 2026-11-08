@@ -66,6 +66,7 @@ TK_KEYSYM_TO_KEYBOARD_NAME = {
     "backspace": "backspace",
     "prior": "page up",
     "next": "page down",
+    "minus": "-",
 }
 
 

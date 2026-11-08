@@ -23,6 +23,23 @@ class NormalizeKeyNameTest(unittest.TestCase):
     def test_none_returns_empty(self):
         self.assertEqual(normalize_key_name(None), "")
 
+    def test_minus_alias(self):
+        for value in ("minus", "MINUS"):
+            with self.subTest(value=value):
+                self.assertEqual(normalize_key_name(value), "-")
+        self.assertEqual(normalize_key_name("-"), "-")
+        self.assertEqual(normalize_key_name("equal"), "equal")
+
+    def test_legacy_keymap_minus_names_are_normalized(self):
+        config = ensure_config_compatibility({
+            "keymaps": [{"id": "km1", "mappings": {"minus": "MINUS"},
+                         "triggers": [{"key": "minus", "actions": []}]}],
+            "active_keymap_id": "km1",
+        })
+        keymap = config["keymaps"][0]
+        self.assertEqual(keymap["mappings"], {"-": "-"})
+        self.assertEqual(keymap["triggers"][0]["key"], "-")
+
 
 class CoerceStringFieldsTest(unittest.TestCase):
     def test_non_strings_and_empty_string_return_empty(self):

@@ -12,6 +12,7 @@ DEFAULT_RUN_TO_END_DELAY_MS = 300
 DEFAULT_DRAG_SPEED_PX_PER_SEC = 1000
 DEFAULT_KEYBOARD_LAYOUT_ID = "us_tkl"
 ACTION_LIST_TAGS = {"mouse_click": "click"}
+_KEY_NAME_ALIASES = {"minus": "-"}
 
 
 def coerce_nonnegative_int(value: Any, default: int) -> int:
@@ -85,7 +86,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 
 def normalize_key_name(value: str) -> str:
-    return (value or "").strip().lower()
+    normalized = (value or "").strip().lower()
+    return _KEY_NAME_ALIASES.get(normalized, normalized)
 
 
 def coerce_key_name(value: Any) -> str:

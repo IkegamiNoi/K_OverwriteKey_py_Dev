@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from keyseq.shared.i18n import tr
+from .config import normalize_key_name
 
 
 def validate_hotkey_syntax(hotkey: str) -> tuple[str, str, list[str]]:
@@ -14,7 +15,7 @@ def validate_hotkey_syntax(hotkey: str) -> tuple[str, str, list[str]]:
 
     # split結果を保持して空要素を検出する（ctrl++c / +ctrl+c / ctrl+c+ を弾く）
     raw = s.split("+")
-    parts = [p.strip().lower() for p in raw]
+    parts = [normalize_key_name(p) for p in raw]
 
     if any(p == "" for p in parts):
         return tr("domain.hotkey.empty_part"), "", []

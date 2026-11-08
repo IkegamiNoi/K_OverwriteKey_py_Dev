@@ -41,6 +41,9 @@ class HotkeySyntaxTest(unittest.TestCase):
     def test_single_key(self):
         self.assertEqual(validate_hotkey_syntax("f12"), ("", "f12", ["f12"]))
 
+    def test_minus_alias_in_hotkey_token(self):
+        self.assertEqual(validate_hotkey_syntax("ctrl+MINUS"), ("", "ctrl+-", ["ctrl", "-"]))
+
     def test_unknown_key_name_is_valid_syntax(self):
         self.assertEqual(validate_hotkey_syntax("notakey"), ("", "notakey", ["notakey"]))
 
