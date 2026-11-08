@@ -8,8 +8,10 @@ from keyseq.presentation.help.help_content import HelpContent, HelpLoadResult
 from keyseq.presentation.welcome.first_launch import run_first_launch_welcome
 from keyseq.presentation.welcome.welcome_result import WelcomeResult, estimate_layout_id
 from keyseq.presentation.welcome.welcome_window import WelcomeWindow
-from keyseq.shared.i18n import catalog, current_language, tr_in
+from keyseq.shared.i18n import catalog, current_language, fix_language, tr_in
 from tests_ui.escape_delivery import send_escape
+
+fix_language("ja")
 
 
 class WelcomeWindowUiTest(unittest.TestCase):
@@ -150,6 +152,69 @@ class WelcomeWindowUiTest(unittest.TestCase):
         result = run_first_launch_welcome(self.root)
         self.assertEqual(failures, [])
         self.assertEqual(result, WelcomeResult("ja", "us_tkl", "empty"))
+
+    def test_reopen_window_hides_first_launch_sections(self):
+        window = WelcomeWindow(self.root, language="ja", reopen=True)
+        self.root.update()
+        self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+        self.assertFalse(hasattr(window, "layout_section"))
+        self.assertFalse(hasattr(window, "start_section"))
+        self.assertIn(tr_in("ja", "menu.file.restore_sample"),
+                      window.sample_restore_notice.cget("text"))
+        self.assertIn(tr_in("ja", "menu.file.title"),
+                      window.sample_restore_notice.cget("text"))
+        self.assertEqual(window.start_button.cget("text"), tr_in("ja", "welcome.close"))
+        initial = self._window("ja")
+        self.assertTrue(hasattr(initial, "layout_section"))
+        self.assertTrue(hasattr(initial, "start_section"))
+
+    def test_reopen_help_uses_app_controller(self):
+        window = WelcomeWindow(self.root, language="ja", reopen=True)
+        with patch.object(self.root, "help", create=True) as help_controller:
+            window._open_help()
+        help_controller.open_for_dialog.assert_called_once_with(window, "guide", "")
+
+    @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")
+    def test_open_welcome_again_resumes_hook_and_only_saves_changed_language(self, _window_class):
+        from keyseq.presentation.welcome.first_launch import open_welcome_again
+
+        app = unittest.mock.Mock()
+        app.hook = unittest.mock.Mock()
+
+        def wait_window(window):
+            window.result = WelcomeResult("en", "jis", "empty")
+
+        app.wait_window.side_effect = wait_window
+        with patch("keyseq.presentation.welcome.first_launch.current_language", return_value="ja"):
+            open_welcome_again(app)
+        app.hook.suspend_hook_for_dialog.assert_called_once_with()
+        app.hook.resume_hook_after_dialog.assert_called_once_with()
+        app.set_ui_language.assert_called_once_with("en")
+
+    @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")
+    def test_open_welcome_again_does_not_save_unchanged_language(self, _window_class):
+        from keyseq.presentation.welcome.first_launch import open_welcome_again
+
+        app = unittest.mock.Mock()
+        app.hook = unittest.mock.Mock()
+        app.wait_window.side_effect = lambda window: setattr(
+            window, "result", WelcomeResult("ja", "jis", "empty"),
+        )
+        with patch("keyseq.presentation.welcome.first_launch.current_language", return_value="ja"):
+            open_welcome_again(app)
+        app.set_ui_language.assert_not_called()
+
+    @patch("keyseq.presentation.welcome.first_launch.WelcomeWindow")
+    def test_open_welcome_again_resumes_hook_after_window_error(self, _window_class):
+        from keyseq.presentation.welcome.first_launch import open_welcome_again
+
+        app = unittest.mock.Mock()
+        app.hook = unittest.mock.Mock()
+        app.wait_window.side_effect = RuntimeError("window failure")
+        with patch("keyseq.presentation.welcome.first_launch.current_language", return_value="ja"):
+            with self.assertRaises(RuntimeError):
+                open_welcome_again(app)
+        app.hook.resume_hook_after_dialog.assert_called_once_with()
 
     def test_usage_terms_match_existing_catalog_labels(self):
         for language in ("ja", "en"):

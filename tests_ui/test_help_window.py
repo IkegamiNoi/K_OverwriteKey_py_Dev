@@ -140,7 +140,7 @@ class HelpWindowTest(unittest.TestCase):
         self.fail("ヘルプ menu is missing")
 
     def test_help_menu_survives_font_menu_rebuild(self) -> None:
-        expected = ["使い方", "よくある質問", "separator", "バージョン情報", "ライセンス"]
+        expected = ["使い方", "よくある質問", "Welcome を表示", "separator", "バージョン情報", "ライセンス"]
         self.assertEqual(self._menu_labels(self._help_menu()), expected)
         menu = self._help_menu()
         menu.invoke(0)
@@ -162,10 +162,10 @@ class HelpWindowTest(unittest.TestCase):
     def test_help_menu_commands_use_dynamic_window_entry_points(self) -> None:
         menu = self._help_menu()
         with patch.object(version_dialog, "open_version_dialog") as version_spy:
-            menu.invoke(3)
+            menu.invoke(4)
             version_spy.assert_called_once_with(self.app)
         with patch.object(self.app.license, "open") as license_spy:
-            menu.invoke(4)
+            menu.invoke(5)
             license_spy.assert_called_once_with()
 
     def test_version_dialog_content_and_modal_hook_pause(self) -> None:

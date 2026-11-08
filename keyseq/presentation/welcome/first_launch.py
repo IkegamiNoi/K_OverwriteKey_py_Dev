@@ -13,6 +13,19 @@ def run_first_launch_welcome(app) -> WelcomeResult:
     return window.result
 
 
+def open_welcome_again(app) -> None:
+    """Show the welcome window without applying first-launch choices."""
+    saved_language = current_language()
+    app.hook.suspend_hook_for_dialog()
+    try:
+        window = WelcomeWindow(app, language=saved_language, reopen=True)
+        app.wait_window(window)
+    finally:
+        app.hook.resume_hook_after_dialog()
+    if window.result.language != saved_language:
+        app.set_ui_language(window.result.language)
+
+
 def is_first_launch(paths) -> bool:
     return not (
         os.path.exists(paths.preferred_startup_path())

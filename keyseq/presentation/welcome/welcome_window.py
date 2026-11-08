@@ -12,8 +12,9 @@ from .welcome_result import WelcomeResult, estimate_layout_id
 
 
 class WelcomeWindow(tk.Toplevel):
-    def __init__(self, master: tk.Misc, *, language: str) -> None:
+    def __init__(self, master: tk.Misc, *, language: str, reopen: bool = False) -> None:
         super().__init__(master)
+        self.reopen = reopen
         self.language = language
         self._languages = available_languages()
         self._layout_touched = False
@@ -47,9 +48,20 @@ class WelcomeWindow(tk.Toplevel):
         self.language_combo.current([code for code, _ in self._languages].index(self.language))
         self.language_combo.pack(side="left")
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
-        self._build_layout()
-        self._build_usage()
-        self._build_start()
+        if self.reopen:
+            self.sample_restore_notice = ttk.Label(
+                self._body,
+                text=self._text("reopen.sample_restore").format(
+                    menu=tr_in(self.language, "menu.file.title"),
+                    menu_item=tr_in(self.language, "menu.file.restore_sample"),
+                ),
+                wraplength=520, justify="left",
+            )
+            self.sample_restore_notice.pack(fill="x", pady=(12, 0))
+        else:
+            self._build_layout()
+            self._build_usage()
+            self._build_start()
         self._build_buttons()
         self._fit_and_center()
 
@@ -103,7 +115,7 @@ class WelcomeWindow(tk.Toplevel):
         )
         self.help_button.pack(side="left")
         self.start_button = ttk.Button(
-            buttons, text=self._text("begin"), command=self._finish,
+            buttons, text=self._text("close" if self.reopen else "begin"), command=self._finish,
         )
         self.start_button.pack(side="right")
 
@@ -126,6 +138,9 @@ class WelcomeWindow(tk.Toplevel):
         self._layout_touched = True
 
     def _open_help(self) -> None:
+        if self.reopen:
+            self.master.help.open_for_dialog(self, "guide", "")
+            return
         if self._help_window is None or not self._help_window.winfo_exists():
             self._help_window = HelpWindow(
                 self, load_help_content(), suspend_hook=lambda: None, resume_hook=lambda: None,

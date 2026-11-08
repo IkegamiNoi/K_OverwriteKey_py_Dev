@@ -4,35 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T04:00:00
+last_updated: 2026-11-09T06:00:00
 phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.4・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
 last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜06 完了（〜 Welcome の窓）・次は task_07（ヘルプからの再表示）。
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜07 完了（実装は全部入った）・次は task_08（統合確認）→ task_09（実機目視・正本反映）。
 mode: implementing
 
 ## last_action
-ts: 2026-11-09T04:00:00
+ts: 2026-11-09T06:00:00
 who: main
 summary: |
-  task_06 完了: 新規 `presentation/welcome/welcome_window.py`（Language〔窓の中だけ tr_in で作り直し・全体の言語は変えない〕・配列 US TKL / JIS〔触るまで言語に追従〕・使い方 3 行・始め方〔サンプル入り既定 / 空〕と説明・ヘルプを開く〔Welcome の子の HelpWindow・guide タブ・1 つ・閉じたら閉じる〕/ はじめる・× / Esc = 確定・transient なし・grab_modal）。`run_first_launch_welcome` を窓を待つ実装へ。locales に `welcome.*`。
-  「フック開始」は既存のボタン表記「開始（フックON）」/ Start (Hook On) に合わせた。
-  実装 = codex-delegating-implementer（Sol medium・サブエージェントなし）。reviewer = 修正して採用（英語の説明文のキーマップ名をサンプルのラベルへ＝メインが修正）。test_first_launch の旧差し替え口のテストを書き換え・test_nested_modal_grab の許可フォルダに welcome を追加（メイン）。
+  task_07 完了: ヘルプのメニューに「Welcome を表示」（`open_welcome_again`: フックの停止・再開を try/finally・窓は reopen=True〔配列と始め方なし・サンプル設定の案内・閉じる〕・ヘルプは open_for_dialog・言語が変わったら set_ui_language〔再起動の知らせ〕・全体の言語は変えない）。
+  実装 = codex-implementer（Luna high）。reviewer = 修正要（案内の一文にメニュー名「ファイル」を入れる・重複 import）→ メインが修正。テスト 2 か所（open_welcome_again の窓の差し替え・ヘルプのメニューの並び）をメインが追従。
 result_files:
-  - keyseq/presentation/welcome/{welcome_window,first_launch}.py / keyseq/shared/i18n/locales/{ja,en}.json
-  - tests_ui/{test_welcome_window,test_nested_modal_grab}.py / tests/test_first_launch.py
-  - instructions/phase/73_welcome_first_launch/tasks/task_06_welcome_window.md
+  - keyseq/presentation/welcome/{welcome_window,first_launch}.py / keyseq/presentation/views/menu_bar.py / keyseq/shared/i18n/locales/{ja,en}.json
+  - tests_ui/{test_welcome_window,test_help_window}.py
+  - instructions/phase/73_welcome_first_launch/tasks/task_07_welcome_reopen.md
 verified:
   compile: pass
   tests: pass（1934・skip 7）
-  tests_ui: pass（1257 中 1 件 = 許可フォルダの検査 → 修正後に当該ファイル単独 pass）
-  smoke: pass
+  tests_ui: pass（1262）
+  smoke: pass（修正前の実行）
 
 ## next_action
-- task_07 を `/task_new` で起票（暫定 56 §7: ヘルプのメニューに「Welcome を表示」・始め方と配列を除く・全体の言語は変えず tr_in・言語を変えて閉じたら今の言語の切り替えと同じ「今すぐ再起動 / あとで」・ヘルプは Welcome の子〔open_for_dialog〕・通常のモーダルの作法〔フックの停止・再開〕・サンプルの復元の案内の一文）→ codex → verifier → reviewer。目視の要点: Welcome の言語切替で Combobox を作り直す動き（reviewer 参考）
+- task_08（統合確認）: verifier で tests / tests_ui / smoke 一式・二次レビュー（deep-reviewer + codex-reviewer。phase 73 の task_01〜07 の差分 = `git diff 108bbe7..HEAD`）→ 指摘の採否はユーザー → task_09（実機目視 → 正本反映）
 - 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
 - main へのマージはユーザー（PR は作らない）
 

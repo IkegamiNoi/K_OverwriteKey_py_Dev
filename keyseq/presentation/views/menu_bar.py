@@ -1,5 +1,6 @@
 import tkinter as tk
 from keyseq.shared.i18n import available_languages, tr
+from keyseq.presentation.welcome.first_launch import open_welcome_again
 
 
 def build_menu_bar(app):
@@ -65,6 +66,9 @@ def build_menu_bar(app):
     help_menu = tk.Menu(menubar, tearoff=False)
     help_menu.add_command(label=tr("menu.help.guide"), command=lambda: app.help.open("guide"))
     help_menu.add_command(label=tr("menu.help.faq"), command=lambda: app.help.open("faq"))
+    help_menu.add_command(
+        label=tr("menu.help.show_welcome"), command=lambda: open_welcome_again(app),
+    )
     help_menu.add_separator()
     help_menu.add_command(
         label=tr("menu.help.version"),
