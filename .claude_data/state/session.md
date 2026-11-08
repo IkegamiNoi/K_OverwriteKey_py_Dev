@@ -11,21 +11,26 @@ last_commit_location: `claude/cool-perlman-b117fd`（phase 73 の実装は `clau
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73 完了（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-mode: completed
+focus: **phase 73 完了後の単発の不具合「プリセットが編集画面を開くまで表示されない」= 原因特定済み・スペックフラグのユーザー判断待ち（コード・正本は未変更）。** アクティブなフェーズなし。
+mode: blocked
+presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-09T12:00:00
+ts: 2026-11-09T01:13:00
 who: main
 summary: |
-  task_08d（完了前レビューの採用分）と task_09（実機目視 OK・正本反映・暫定 56 凍結・decisions_archive/73・current.md）完了。deep-reviewer 修正要（軽微・反映済）/ codex-adversarial-reviewer 指摘なし / reviewer 採用。refactor_check = 不要。
+  原因 = 空データ起動（E4・`startup_io.py:39`）で `new_empty_data()` がプリセットを `[]` にし（`config_service/__init__.py:88`）、共通プリセットが読めないと `apply_global_defaults` が置き換えない（同 `:588`）。アクション編集のボタン（`action_dialog.py:618`）は 0 件、編集画面だけ既定 8 件を表示し（`preset_manager.py:185,257`）OK で保存されて直る。
+  再現 = 一時フォルダで本体 0 件 / 編集画面 8 件（報告時の環境そのものは未確認。メインの config では起きない経路）。
+  この挙動は正本 `data_schema/5_10_04_constraints.md:7-11` に明記のためスペックフラグ B として停止。
 verified:
-  compile: pass
-  tests: pass（1940・skip 7）
-  tests_ui: pass（1266）
-  smoke: pass
+  compile: not_run（コード変更なし）
+  tests: not_run（コード変更なし。phase 73 完了時 = 1940 pass・skip 7）
+  tests_ui: not_run（コード変更なし。phase 73 完了時 = 1266 pass）
+  smoke: not_run（コード変更なし）
 
 ## next_action
+- **【ユーザー判断待ち】空データ起動（E4）でも既定プリセットを出すよう正本を改訂して直すか。** A（推奨）= `config_service/__init__.py:88` の `[]` をやめ E4 も既定プリセットに・`data_schema/5_10_04_constraints.md:7-11` を改訂（`/spec_update`）・テスト追加 / B = 仕様のまま変更しない / C = 初回起動で共通プリセットのファイルを生成（起動時の書き込みが増え §5.10.2 と関わるので非推奨）。A の影響 = 共通プリセットが読めないときの E4 だけ（空で保存した共通プリセットは「読めた」扱いで空のまま）
+- A なら: 正本改訂 → `codex-implementer` で修正とテスト追加 → `verifier` で実測（`new_empty_data` を使う `tests/test_sample_config.py:118`・`tests/test_per_keymap_triggers_load.py:115`・`tests_ui/test_first_launch_flow.py:41` への影響を確認）→ `reviewer` → コミット
 - ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 
