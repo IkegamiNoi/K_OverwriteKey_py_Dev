@@ -53,6 +53,7 @@
 | A21 | 今効いているキーマップ | **アクティブなキーマップ** | Active Keymap | アクティブキーマップ |
 | A22 | キーボードで画面上のカーソルを運んでクリックする機能（`screen_grid`）/ その中の 1 つの区画 | 機能・全体 = **カーソルグリッド** / 区画 = **マス** | Cursor Grid / Cell | 画面の枠 / 枠（この意味で）/ グリッド（単独）/ セル |
 | — | ディレクトリ | **フォルダ** | Folder | ディレクトリ |
+| — | 初回の案内の窓（phase 73）| 機能の呼び名 **Welcome** / 窓の題名 **ようこそ** / メニューの項目 **Welcome を表示** / 再表示のボタン **閉じる** | Welcome / Welcome / Show Welcome / Close | — |
 | — | トリガー / アクション / フック / キーボードUI / 参照元の掃除 | （そのまま） | Trigger / Action / Hook / Keyboard UI / Clean up references | — |
 
 #### アクションの種類の表示名（phase 72）

@@ -4,34 +4,30 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T10:00:00
-phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.7・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
-直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
-last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
+last_updated: 2026-11-09T12:00:00
+phase: なし（アクティブなフェーズなし）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
+直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
+last_commit_location: `claude/welcome-popup-first-launch-2b70d9`。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜08c 完了（実機目視の指摘の修正まで）・次は task_09（修正箇所の再目視 → 正本反映）。
-mode: pending_review
+focus: **phase 73 完了（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
+mode: completed
 
 ## last_action
-ts: 2026-11-09T10:00:00
+ts: 2026-11-09T12:00:00
 who: main
 summary: |
-  再目視（ユーザー 2026-11-09）: task_08b の修正は問題なし。再表示の Language（閉じて適用する違和感・ボタンと確認の文の言語の食い違い）→ ユーザー判断「Language を外す」→ 暫定 56 v0.7。
-  task_08c 完了: 再表示から Language を外し、閉じた後の set_ui_language を削除。実装 = codex-implementer。reviewer = 採用。tests_ui の 1 件（再表示の窓で言語の combo を操作していたテスト）はメインで修正。
-result_files:
-  - instructions/history/56_welcome_first_launch.md / instructions/phase/73_welcome_first_launch/{phase.md,tasks/task_08c_reopen_without_language.md}
-  - keyseq/presentation/welcome/{welcome_window,first_launch}.py / tests_ui/test_welcome_window.py
+  task_08d（完了前レビューの採用分）と task_09（実機目視 OK・正本反映・暫定 56 凍結・decisions_archive/73・current.md）完了。deep-reviewer 修正要（軽微・反映済）/ codex-adversarial-reviewer 指摘なし / reviewer 採用。refactor_check = 不要。
 verified:
   compile: pass
   tests: pass（1940・skip 7）
-  tests_ui: 全体 1265 件中 error 1（上記のテスト）→ テスト修正後 test_welcome_window 15 件 pass（全体の再実行はしていない）
+  tests_ui: pass（1266）
   smoke: pass
 
 ## next_action
-- task_09: ユーザーの再目視（再表示に Language が無いこと）→ 正本反映（暫定 56 §12 + v0.6 / v0.7 の項目 + decisions「task_08 二次レビュー」の受容項目）・暫定 56 凍結・decisions_archive/73・current.md 完了記載（次採番 phase 74 / 暫定 57 / decisions 74）・`/refactor_check`・完了前レビュー（deep-reviewer + codex-adversarial-reviewer）
-- main へのマージはユーザー（PR は作らない）
+- ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
+- 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: `~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が失敗）。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

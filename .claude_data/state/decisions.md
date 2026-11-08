@@ -82,6 +82,7 @@
 | 70_help_window | [70_help_window.md](decisions_archive/70_help_window.md) | ヘルプの作成（2026-10-29 完了・暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変）。メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓（タブ・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止）・ダイアログ 12 か所の「?」（下端の左寄せ）・バージョン情報（`__version__` 0.1.0）・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス（`ui_terms.md` A22）。refactor_check: 推奨（`app.py` の同型 try/except 5 個・M3）→ 提案書 27（保留） |
 | 71_taskbar_status_icon | [71_taskbar_status_icon.md](decisions_archive/71_taskbar_status_icon.md) | タスクバーのアイコンで状態を表示（2026-11-01 完了・暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・新規依存なし）。窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID（設定しないとタスクバーに出ない）。refactor_check: 不要（M4・M6 の境界事例を別タスク化候補へ） |
 | 72_multilingual_ui | [72_multilingual_ui.md](decisions_archive/72_multilingual_ui.md) | 画面の文言の多言語対応（2026-11-04 完了・暫定仕様先行モード〔暫定 55 v0.7 凍結〕・JSON スキーマ = config.json の任意キー `ui_language`〔無いときは英語〕・新規依存なし）。日英・メニュー「Language」で選び次回起動から反映（「今すぐ再起動」可）・`keyseq/shared/i18n/` の文言ファイル・訳不足は英語・一覧は置いたファイルから・全層の約 1,330 リテラルをキー化（日本語は不変）・英語の表記 E1〜E7（機能名は大文字）・一覧の行頭の印は全言語共通の英語。3 言語目以降は idea_56。保留 D5・D6。refactor_check: 不要（M5 なし / 境界 = `save_keymap_set_to` 80 → 約 90 行・`action_dialog.py` 643 行〔純増 46〕→ current.md「別タスク化候補」）|
+| 73_welcome_first_launch | [73_welcome_first_launch.md](decisions_archive/73_welcome_first_launch.md) | 初回起動の Welcome とサンプルの作り直し（2026-11-09 完了・暫定 56 v0.7 凍結） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -636,23 +637,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 2026-10-24 の「多言語化で吸収（保留）」をユーザー指示で取り消し、項目 1 のみ実施。子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ集約（文言不変・既存テスト無変更）。
 - `child_save_dialog._kind_label` は tests_ui が参照するため import 別名で残す。orphan_sweep_text の「構成セット専用プリセット」は同ファイルに残す（提案書どおり）。
 - 多言語化のフェーズではこの表を辞書へ移す。参考の choice_dialog / hotkey_presets_io.confirm_overwrite の重複は対象外のまま。
-
-## phase 73（初回起動の Welcome とサンプルの作り直し・暫定 56）
-
-### 【task_03】起動直後の仮のデータを土台へ（2026-11-08・メイン判断・修正して採用）
-- 既定データ＝サンプルにしたため、`app.py:139` の仮のデータもサンプルになり、読込を止めた tests_ui でサンプルのフックのキーがキーの取得の検査に効いた。仮のデータは読込で上書きされるので `new_base_data()` へ（動作不変・タスク定義に追記）。
-
-### 【task_05 前】Welcome を出さない入口 = main.py の引数（2026-11-09・ユーザー判断・暫定 56 v0.5）
-- 暫定 56 §3 の「環境変数」を、`main.py` から `App(first_launch_welcome=True)` で渡す形へ（既定は出さない）。`App()` を直接作る 56 の tests_ui ファイルと smoke を変えずに済み、手元の `config/config.json` の有無にも左右されないため。
-
-### 【task_08 二次レビュー】deep-reviewer 修正要（高 1・中 6・低 6）/ codex-reviewer P2 1 件 → ユーザー 2026-11-09「推奨どおり」
-- 修正（task_08a）: 復元で配列（keyboard_layout・external_keyboard_layouts）を保つ / 再表示の Welcome は本体を親にした modal / minus の読み替えをキーの名前だけに絞る（id・ファイル名・event_type に効かせない・Codex P2）/ 書き出し → 読込の通しのテスト / 孤児の掃除の参照元に `config/sample/keymap_sets/` / phase.md の古い記述。
-- 目視（task_09）: 送ったキーの拾い直し（num の c → 2 等・案内文の F1 / F12 の数字。拾うなら案内文から数字を除く）/ JIS の記号キーの名前。
-- 受容（正本に明記）: 空で始めた配列は保存しないと次の起動で US TKL / 初回の Welcome のヘルプは元の言語 / 書き出したサンプルの読込失敗は知らせない / 用語 = メニュー「Welcome を表示」・窓の題名「ようこそ」・再表示のボタン「閉じる」。
-- 対応しない（参考）: app.py のサンプルのパスの直書き・open_welcome_again の置き場・警告に status の生の値。
-
-### 【task_09 実機目視】ユーザー 2026-11-08 → 暫定 56 v0.6・task_08b
-- 修正して採用: 配列の選択をドロップダウンに / 日本語の折り返す文から半角空白を除く / h の案内文は「「表示」の欄の「キーボードUI」」と書く / 再表示に基本的な使い方と「サンプル設定に戻す」ボタン
-- ユーザー判断: 再表示の言語の確認（今すぐ再起動 / あとで）は**閉じたときのまま** / 「サンプル設定に戻す」は **Welcome を開いたまま**実行（確認の親 = Welcome）
-- 問題なし（対処不要）: 送ったキーの拾い直し（案内文の数字・テンキーの 1/2/3）・JIS の記号キーの名前
-- ユーザー 2026-11-09（再目視）: 再表示の Language は**外す**（暫定 56 v0.7・task_08c。上の「閉じたときのまま」を置き換える）。言語の変更はメニュー「Language」

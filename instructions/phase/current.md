@@ -7,14 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 73](73_welcome_first_launch/phase.md)（初回起動の Welcome とサンプルの作り直し）**（2026-11-08 起票）。
-  初回だけ Welcome の窓（Language・キーボード配列 US TKL / JIS・基本的な使い方・始め方〔サンプル入り = 既定 / 空〕）を出し、ヘルプのメニューから再表示できる。
-  コードの既定データを新しいサンプル（shortcut / right key / num・停止キー F12・一時停止/再開キー F1）に作り直し、`config/sample/` へ書き出す。
-  見本 `jis.json` → `jis_test.json`・全キーの JIS を `jis.json` に。minus のキー置換エラーの修正。JSON スキーマ不変。
-  主入力 = [暫定 56](../history/56_welcome_first_launch.md)（v0.4・ユーザー確定済）・暫定仕様先行モード・起票元 = ユーザー要望（idea なし）。番号対応: phase 73 / 暫定 56 / decisions 73。
-  進捗: task_01〜08c 完了（2026-11-09・08b / 08c = 実機目視の指摘の修正・暫定 56 v0.7）・次 = task_09（再目視 → 正本反映）。
-  **次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。その後の予定 = Mac 対応。
-- 直前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
+- **アクティブなフェーズ = なし**。次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）。
+  **次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
+- 直近の一連の作業の領域 = 初回の案内とサンプル設定（Welcome・`config/sample/`）。残件 = 報告された不具合 2 件（プリセットが編集で開くまで表示されない / キー名の記号表記）は phase 73 の対象外。
+- 直前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
+- その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
 - その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
   [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。
   [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
@@ -135,7 +132,7 @@
   **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
-  次フェーズは **`73_<topic>`**・decisions も **73** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  次フェーズは **`74_<topic>`**・decisions も **74** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -185,7 +182,8 @@
   53 = ヘルプの作成〔**v0.7・凍結**・phase 70 の主入力〕 /
   54 = タスクバーのアイコンで状態を表示〔**v0.4・凍結**・phase 71 の主入力〕 /
   55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
-  次採番は **`56_<topic>`**。
+  56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
+  次採番は **`57_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

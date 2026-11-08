@@ -140,6 +140,7 @@ keyseq/presentation/
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     child_kind_labels.py       # 子ファイルの種別の文言キーの表 + 親の種類名。kind_label / parent_kind_label の呼出時に shared.i18n.tr で表示名を解決
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳）
+    welcome/                   # 初回の Welcome と再表示（phase 73・下の「Welcome とサンプル」）
     help/                      # ヘルプ・バージョン情報・ライセンス（phase 70・下の「ヘルプ」節）
       help_window_controller.py # HelpWindowController: ヘルプの単一性・前面化・ダイアログの子として開く入口
       help_window.py           # HelpWindow: 絞り込み欄・タブ・入力欄のフォーカス中だけフックを一時停止
@@ -579,7 +580,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - **hook キー名の定義元も `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
   対のタプル `HOOK_KEY_FIELDS` / 対の正規化 `normalize_hook_key_pair`）。application / presentation は
   リテラルを書かずこれを参照する。**例外はキーの並び自体が契約になる 3 箇所**
-  （`DEFAULT_CONFIG` の既定値表 / `split_payloads` の保存 payload の dict キー / `startup_io` の保存 dict キー）で、
+  （`build_base_config` の既定値表 / `split_payloads` の保存 payload の dict キー / `startup_io` の保存 dict キー）で、
   ここは**明示列挙のまま**にする（保存 JSON のキー順が変わらないことの担保）
 - **子ファイルの保存計画（`application/save_plan.py` の `SavePlan`）を実行する**
   （仕様は `spec_detail/data_schema.md` §5.8）:
@@ -832,7 +833,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 59（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー。仕様 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4。判断 = `decisions_archive/59_keyboard_ui_left_right_modifiers.md`）:
   - 左右の修飾キー: `presentation/keyboard_window.py` の `_LOOKUP_KEY_BY_ID` だけで決まる（`redraw` で引いたキー名が表示・色・`_key_bounds`・編集・右クリック・タイトルへ渡る）
   - 禁止の判定: `domain/key_identifiers.py` の `PROHIBITED_ASSIGN_KEY_NAMES` / `is_prohibited_assign_key(name)`。使う側 = `keyboard_window.py`（色・左クリック）/ `KeymapPanelController.assign_keymap_from_keyboard_ui`（割り当ての入口で拒否）・`validate_keymap_switch_assignment`（`exclude_switch_key` = 今の切替キーと違うときだけ拒否）/ `application/keymap_switch_batch.validate_switch_batch`（`_current_switches` で今の切替キーを逆引き）/ 2 つの切替キーのダイアログの取得
-  - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`・`us_tkl.json`（phase 69）（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
+  - レイアウトの見本: `config/user/keylayout/jis.json`（全キーの JIS）・`jis_test.json`・`de.json`・`us_tkl.json`（phase 69）（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
   - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
 - phase 60（キーの記録中は IME を OFF にする。仕様 = `key_input.md` §7.4「記録の入口」「記録中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
   - 口: `infrastructure/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `ime_control.py` とは別物で状態も共有しない
@@ -913,6 +914,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `triggers[].key` / `triggers[].label` / `keymaps[].id` / `keymaps[].label` / `mappings` の target、
   `normalize_actions` の `label`、`config_service` の `_generate_keymap_id` / `load_keymap_file` /
   `_normalize_sequence_payload`、`split_loading` の `load_triggers_from_trigger_set` / `load_keymap_entry`）。
+  phase 73: `keymaps[].id`・`event_type`・ファイル名由来の id は `normalize_identifier`（trim + 小文字化のみ・`minus` → `-` の読み替えなし）。
   **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが 158 箇所あり、Any 受けにすると
   全経路の意味が変わるため）。規定は `data_schema.md` §5.1「型不正の共通規則」。
 - **パス系・キー名系にも同じ関数を適用する**（phase 25）。**使い分けは
@@ -957,6 +959,15 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ---
 
+## Welcome とサンプル（phase 73）
+
+仕様は `spec_detail/features.md` §4.6「Welcome」/ `data_schema.md` §5.14。
+
+- `main.py` → `App(first_launch_welcome=True)`。`app.py` の `_prepare_first_launch`（テーマの後・Welcome の結果の適用とサンプルの書き出し）/ `_finish_first_launch`（読込の後・空で始める・起動設定の書き出し・`deiconify`）
+- `presentation/welcome/`: `welcome_window.py`（`WelcomeWindow`。`reopen` で初回 / 再表示を切り替え・文言は `tr_in`）/ `first_launch.py`（`is_first_launch` / `run_first_launch_welcome` / `open_welcome_again`〔フックの停止・再開〕）/ `welcome_result.py`（`WelcomeResult`・`estimate_layout_id`）
+- `application/config_service/sample_install.py`: `install_sample`（`SampleInstallResult.status` = written / existing / incomplete / failed）/ `check_sample_complete` / `sample_keymap_set_path`。保存は `save_runtime_data(..., write_startup_entry=False)`。`orphan_scan.py` は `config/sample/keymap_sets` を参照元に含める
+- `domain/config.py`: `build_base_config` / `build_sample_config` / `normalize_identifier`。`keymap_set_io.py`: `start_empty`・`restore_default(parent=None)`（配列を保つ）
+
 ## カーソルグリッド（phase 56・57）
 
 仕様は `spec_detail/features.md` §4.7（挙動・窓・ダイアログ・編集の窓）/ `data_schema.md` §5.6.1（`grid`）/ `key_input.md` §7.3・§7.4（振り分け・予約キー・取り込みの名前）/ `nonfunctional.md`「カーソルグリッドの座標系」。判断は `decisions_archive/56_screen_grid_cursor.md`・`decisions_archive/57_grid_crosshair_nudge.md`。
@@ -996,7 +1007,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   **presentation は runtime の `"triggers"` を直接書かない**（`tests/test_keymap_triggers.py` の静的テストで固定）。
 - **runtime の形**: 各 `keymaps[]` 要素が `triggers` とトリガーセットの内部キー（`_trigger_set_source_path` / `_parent_refs` / `_dirty` / `_imported`）を持つ。
   トップレベル `triggers` は `[]`。移行状態はトップレベル `_legacy_trigger_set`（状態・旧値・移行先キーマップ ID・`auto_created`）。
-  `DEFAULT_CONFIG` は新形式（`keymaps[0].triggers` に例）。`KeymapService.ensure_active_keymap` は `keymap_1` / label 空へ統一。
+  既定データ `build_sample_config()` は新形式（`keymaps[].triggers`）。`KeymapService.ensure_active_keymap` は `keymap_1` / label 空へ統一。
 - **読込** `config_service/split_loading.py`: キーマップファイルの `trigger_set_path` を `attach_trigger_set`（同じ解決先は同一 list を共有）で読む。
   旧形式の移行（項目の無いキーマップのみ・同ファイル参照なら same・移行できなければ「旧トリガーセット（<stem>）」を自動作成。既存ラベルは変更しない）もここ。
  キーマップの個別読込（`config_service.load_keymap_file` / `keymap_file_io`）も同じ `attach_trigger_set` を使う。
