@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 74 = 記号キーのキー名の表示は 2026-11-09 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
-   次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.5）を読む。
+   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 74 完了（2026-11-09）。** 記号キーのキー名の表示（表 36 個）・キーボードUIの置換先の Shift+¥ / Shift+ろ の保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-ブランチ `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
+**phase 75（macOS 対応）起票済・実装未着手。次は Windows で段階 ①（task_01〜04）。**
+ブランチ `claude/mac-support-4f08b3`。push と main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -55,8 +55,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ブランチ `claude/gracious-brahmagupta-2e05b1` の main へのマージ（ユーザー）
-- 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
+- Windows で `phase.md` の task_01 を `/task_new` で起票し、task_01〜04 を実装エージェントへ委任する（暫定 57 §3）。**タスクごとに verifier で Windows の標準検証 4 種をゲートにする。件数を減らさない**
+- 段階 ① の完了後、state を更新して push し、Mac に戻って task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）
+- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
+- 3 言語目以降は idea_56
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 
 ## 直前のフェーズ（phase 74 = 記号キーのキー名の表示・判断は `decisions_archive/74_key_symbol_display.md`。以下は phase 72 までの罠）
@@ -74,6 +76,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
+- **【phase 75】`.venv` のパスは OS で違う**（本書の `Scripts/python.exe` は Windows。Mac は `bin/python`）。Mac の `.venv` は Python 3.15 で Tk が使えない（task_05 で作り直す）。
 - **blockers: 【回避中】Codex の書き込み実行の不具合**（2026-10-14 18:24 の Codex 更新〔0.162.x〕以降、書き込みのサンドボックス準備が `setup refresh had errors`〔node_repl.exe の ACL 更新が「使用中」で失敗〕・`~/.codex/.sandbox/sandbox.2026-10-14.log`）。
   **ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更して回避中**（Codex の更新で直ったら `elevated` に戻す = ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
   companion は作業フォルダごとに broker + app-server を常駐させる（呼び出し後も残る設計・worktree ごとに増える）。Codex 不可時の実装代替はユーザー許可が必須。

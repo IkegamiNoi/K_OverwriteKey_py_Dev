@@ -4,33 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T12:00:00
-phase: なし（phase 74 完了）。次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57
+last_updated: 2026-11-10T00:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-support-4f08b3`。push はユーザー）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 74 完了（2026-11-09）。アクティブなフェーズなし。**
-mode: idle
+focus: **phase 75（macOS 対応）起票済・実装未着手。次は Windows で段階 ①（task_01〜04）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-09T01:13:00
+ts: 2026-11-10T00:00:00
 who: main
 summary: |
-  phase 74 完了。task_01〜01d（表示・置換先の記録・送信の Shift・修飾キーの条件）。実機目視 OK・deep-reviewer + Codex 敵対的レビューの採否はユーザー判断どおり・refactor_check 不要。
+  実施: phase 75 と暫定 57 を起票（文書のみ・コードは無変更・コミット 0daa767）。
+  ユーザー判断: §8 Q0〜Q8 はすべて提案どおり。Codex 敵対的レビューの 4 件はすべて反映。段階 ① は実装も検証も Windows で行う。
+  レビュー: deep-reviewer「修正して採用」→ v0.2 反映 / codex-adversarial-reviewer 2 回 → v0.4・v0.5 反映（v0.5 の修正は再レビューなし）/ phase.md の整合チェック reviewer「修正して採用」→ 反映。
+result_files:
+  - instructions/history/57_mac_support.md
+  - instructions/phase/75_mac_support/phase.md
+  - instructions/phase/current.md
 verified:
-  compile: pass
-  tests: pass（1951・skip 7）
-  tests_ui: pass（1270）
-  smoke: pass
+  compile: not_run（文書のみの変更）
+  tests: not_run（基準線 = Windows 1951 pass・skip 7）
+  tests_ui: not_run（基準線 = Windows 1270 pass）
+  smoke: not_run
 
 ## next_action
-- phase 74 は完了。ブランチ `claude/gracious-brahmagupta-2e05b1` の main へのマージ（ユーザー）
-- ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
-- 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
+- ユーザーが Mac でブランチ `claude/mac-support-4f08b3` を push し、Windows で取得する
+- Windows で `instructions/phase/75_mac_support/phase.md` の task_01 を `/task_new` で起票する（暫定 57 §3・段階 ①）。`keyseq/infrastructure/os_backend/` の骨格・契約・import 境界の AST テスト・公開シンボルと Protocol の一致テスト・IME の移動
+- task_01〜04 を実装エージェントへ委任し、タスクごとに verifier で Windows の標準検証 4 種（compile / tests / tests_ui / smoke）をゲートにする。件数を減らさない
+- 段階 ① の完了後、state を更新して push し、Mac に戻って task_05 から再開する
+- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 
 ## blockers
+- **Mac の `.venv` は Python 3.15 で Tk が使えない**。task_05 で python.org 版の 3.13 に作り直す（段階 ① には影響しない）
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: `~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が失敗）。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints
