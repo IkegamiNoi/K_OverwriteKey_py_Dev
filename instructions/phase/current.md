@@ -7,9 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
-  **次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = キーの記号の表示とキー置換の送信（`domain/key_symbols.py`・`InputGateway.send_mapped_key`）。残件 = プリセットが編集で開くまで表示されない不具合は別セッション。
+- **アクティブなフェーズ = [phase 75](75_mac_support/phase.md)（macOS 対応）**。暫定仕様先行モード・主入力 = [暫定 57](../history/57_mac_support.md)（v0.5・ユーザー確定済）・起票元 = ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。
+  **次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
+- 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`）。その前 = キーの記号の表示とキー置換の送信（`domain/key_symbols.py`・`InputGateway.send_mapped_key`。残件 = プリセットが編集で開くまで表示されない不具合は別セッション）。
 - 直前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
 - その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
@@ -133,7 +133,7 @@
   **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
-  次フェーズは **`74_<topic>`**・decisions も **74** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  次フェーズは **`76_<topic>`**・decisions も **76** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -184,7 +184,8 @@
   54 = タスクバーのアイコンで状態を表示〔**v0.4・凍結**・phase 71 の主入力〕 /
   55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
   56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
-  次採番は **`57_<topic>`**。
+  57 = macOS 対応〔**v0.5・未凍結**・phase 75 の主入力〕 /
+  次採番は **`58_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
