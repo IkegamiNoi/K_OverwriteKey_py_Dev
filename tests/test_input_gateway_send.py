@@ -90,6 +90,70 @@ class InputGatewaySendTests(unittest.TestCase):
         self.gateway.release_send(send)
         self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
 
+    def test_mapped_key_adds_shift_for_shifted_keyboard_key(self) -> None:
+        send = input_gateway.KeySend("keyboard", (1,), "exclam")
+        with patch.object(self.gateway, "resolve_send", return_value=send), \
+             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(input_gateway.win32_window, "is_shift_down", return_value=False):
+            self.gateway.send_mapped_key("exclam")
+        self.assertEqual(self.events.mock_calls, [
+            call.press("shift"), call.press("exclam"), call.release("exclam"),
+            call.release("shift"),
+        ])
+
+    def test_mapped_key_does_not_add_shift_when_already_down_or_unneeded(self) -> None:
+        send = input_gateway.KeySend("keyboard", (1,), "a")
+        with patch.object(self.gateway, "resolve_send", return_value=send), \
+             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(input_gateway.win32_window, "is_shift_down", return_value=True):
+            self.gateway.send_mapped_key("a")
+        self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
+
+    def test_mapped_key_non_keyboard_send_does_not_add_shift(self) -> None:
+        send = input_gateway.KeySend("extended", (1, 2), "right")
+        with patch.object(self.gateway, "resolve_send", return_value=send), \
+             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(input_gateway.win32_window, "is_shift_down", return_value=False):
+            self.gateway.send_mapped_key("right")
+        self.assertEqual(self.events.mock_calls, [
+            call.ext(1, 2, key_up=False), call.ext(1, 2, key_up=True),
+        ])
+
+    def test_mapped_key_releases_added_shift_after_send_error(self) -> None:
+        send = input_gateway.KeySend("keyboard", (1,), "exclam")
+        def fail_on_target(key: str) -> None:
+            if key == "exclam":
+                raise RuntimeError("send failed")
+
+        self.events.press.side_effect = fail_on_target
+        with patch.object(self.gateway, "resolve_send", return_value=send), \
+             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(input_gateway.win32_window, "is_shift_down", return_value=False):
+            with self.assertRaises(RuntimeError):
+                self.gateway.send_mapped_key("exclam")
+        self.assertEqual(self.events.mock_calls, [
+            call.press("shift"), call.press("exclam"), call.release("shift"),
+        ])
+
+    def test_needs_shift_reads_first_entry_of_generator(self) -> None:
+        cases = (
+            ([(125, ("shift",)), (125, ("shift", "caps lock"))], True),
+            ([(78, ()), (78, ("shift",))], False),
+        )
+        for entries, expected in cases:
+            with self.subTest(entries=entries), patch.object(
+                input_gateway.keyboard, "normalize_name", side_effect=lambda name: name
+            ), patch.object(
+                input_gateway.keyboard._os_keyboard,
+                "map_name",
+                side_effect=lambda _name: iter(entries),
+            ):
+                self.assertIs(input_gateway._needs_shift("bar"), expected)
+
+    def test_needs_shift_returns_false_on_mapping_error(self) -> None:
+        with patch.object(input_gateway.keyboard, "normalize_name", side_effect=RuntimeError):
+            self.assertFalse(input_gateway._needs_shift("unknown"))
+
     def test_resolved_special_sends_preserve_their_original_routes(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda _key: 123)
         layout_send = gateway.resolve_send("muhenkan")

@@ -17,6 +17,7 @@ from keyseq.domain.numpad_keys import (
     numpad_key_spec,
 )
 from keyseq.infrastructure import ime_control
+from keyseq.infrastructure import win32_window
 from keyseq.shared.i18n import tr
 
 
@@ -54,6 +55,15 @@ _SPI_GETKEYBOARDSPEED = 0x000A
 _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
+
+
+def _needs_shift(key: str) -> bool:
+    try:
+        name = keyboard.normalize_name(key)
+        _scan_code, modifiers = next(iter(keyboard._os_keyboard.map_name(name)))
+        return tuple(modifiers) == ("shift",)
+    except Exception:
+        return False
 
 
 class _KEYBDINPUT(ctypes.Structure):
@@ -322,6 +332,23 @@ class InputGateway:
 
     def press_key(self, key: str) -> None:
         self.press_send(self.resolve_send(key))
+
+    def send_mapped_key(self, key: str) -> None:
+        send = self.resolve_send(key)
+        if (
+            send.kind == "keyboard"
+            and _needs_shift(key)
+            and not win32_window.is_shift_down()
+        ):
+            keyboard.press("shift")
+            try:
+                self.press_send(send)
+                self.release_send(send)
+            finally:
+                keyboard.release("shift")
+            return
+        self.press_send(send)
+        self.release_send(send)
 
     def resolve_send(self, key: str) -> KeySend:
         kind, values = self._resolve_key(key)

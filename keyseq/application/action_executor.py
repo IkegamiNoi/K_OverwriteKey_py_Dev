@@ -327,8 +327,7 @@ class ActionExecutor:
         self._enter_send_guard()
         try:
             self.held_inputs.stop_repeat_for_keys((key,))
-            self.input_gateway.press_key(key)
-            self.input_gateway.release_key(key)
+            self.input_gateway.send_mapped_key(key)
         except Exception as e:
             self._on_runtime_error(tr("application.action_executor.key_send_title"), tr("application.action_executor.key_send_failed", error_type=type(e).__name__, error=e))
         finally:

@@ -11,7 +11,7 @@ last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 74（記号キーのキー名の表示）task_01・task_01b 完了・task_02（ユーザーの実機目視と記録）待ち。** 直接改訂モード・JSON スキーマ不変。
+focus: **phase 74（記号キーのキー名の表示）task_01・01b・01c 完了・task_02（ユーザーの実機目視と記録）待ち。** 直接改訂モード・JSON スキーマ不変。
 mode: implementing
 
 ## last_action
@@ -21,7 +21,7 @@ summary: |
   phase 74 を起票し正本 features.md §4.6 を直接改訂。task_01 = domain/key_symbols.py と 3 箇所への適用（codex-implementer・key_display_names の値を表に通していた 1 行はメインで修正）。reviewer 採用。
 verified:
   compile: pass
-  tests: pass（1944・skip 7）
+  tests: pass（1950・skip 7）
   tests_ui: pass（1270）
   smoke: pass
 

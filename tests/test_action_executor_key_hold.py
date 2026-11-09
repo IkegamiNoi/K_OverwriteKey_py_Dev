@@ -65,9 +65,14 @@ class FakeGateway:
             self.events.append(("guard_count", self.guard_probe()))
         if key in self.fail_release:
             raise RuntimeError(f"release failed: {key}")
+
         if key in self.fail_release_once:
             self.fail_release_once.remove(key)
             raise RuntimeError(f"release failed once: {key}")
+
+    def send_mapped_key(self, key: str) -> None:
+        self.press_key(key)
+        self.release_key(key)
 
     def mouse_down(self, button: str, x: int | None = None, y: int | None = None) -> None:
         self.events.append(("mouse_down", button, x, y))
