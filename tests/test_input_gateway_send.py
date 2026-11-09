@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from keyseq.infrastructure import input_gateway
@@ -304,14 +305,17 @@ class InputGatewaySendTests(unittest.TestCase):
     def test_write_text_disables_ime_writes_then_schedules_restore(self) -> None:
         reservation = object()
         calls = []
+        ime = Mock()
         with patch.object(
-            input_gateway.ime_control, "disable_for_text",
+            input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime),
+        ), patch.object(
+            ime, "disable_for_text",
             side_effect=lambda: calls.append("disable") or reservation,
         ), patch.object(
             input_gateway.keyboard, "write",
             side_effect=lambda text, **kwargs: calls.append(("write", text, kwargs)),
         ), patch.object(
-            input_gateway.ime_control, "restore_after_text",
+            ime, "restore_after_text",
             side_effect=lambda value, count: calls.append(("restore", value, count)),
         ):
             self.gateway.write_text("abc")
@@ -323,38 +327,44 @@ class InputGatewaySendTests(unittest.TestCase):
     def test_write_text_schedules_restore_when_keyboard_write_raises(self) -> None:
         reservation = object()
         send_error = RuntimeError("keyboard write failed")
-        with patch.object(input_gateway.ime_control, "disable_for_text", return_value=reservation), \
+        ime = Mock()
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+             patch.object(ime, "disable_for_text", return_value=reservation), \
              patch.object(input_gateway.keyboard, "write", side_effect=send_error) as write, \
-             patch.object(input_gateway.ime_control, "restore_after_text") as restore:
+             patch.object(ime, "restore_after_text") as restore:
             with self.assertRaisesRegex(RuntimeError, "keyboard write failed"):
                 self.gateway.write_text("text")
             write.assert_called_once_with("text", restore_state_after=False)
         restore.assert_called_once_with(reservation, 4)
 
     def test_write_text_continues_after_ime_timeout_fallback(self) -> None:
-        with patch.object(input_gateway.ime_control, "disable_for_text", return_value=None), \
+        ime = Mock()
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+             patch.object(ime, "disable_for_text", return_value=None), \
              patch.object(input_gateway.keyboard, "write") as write, \
-             patch.object(input_gateway.ime_control, "restore_after_text") as restore:
+             patch.object(ime, "restore_after_text") as restore:
             self.gateway.write_text("text")
         write.assert_called_once_with("text", restore_state_after=False)
         restore.assert_called_once_with(None, 4)
 
     def test_empty_write_does_not_touch_ime(self) -> None:
-        with patch.object(input_gateway.ime_control, "disable_for_text") as disable, \
-             patch.object(input_gateway.ime_control, "restore_after_text") as restore, \
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=Mock())) as get_backend, \
              patch.object(input_gateway.keyboard, "write") as write:
             self.gateway.write_text("")
         write.assert_called_once_with("", restore_state_after=False)
-        disable.assert_not_called()
-        restore.assert_not_called()
+        get_backend.assert_not_called()
 
     def test_restore_ime_now_delegates(self) -> None:
-        with patch.object(input_gateway.ime_control, "restore_ime_now") as restore:
+        ime = Mock()
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+             patch.object(ime, "restore_ime_now") as restore:
             self.gateway.restore_ime_now()
         restore.assert_called_once_with()
 
     def test_restore_ime_now_logs_failure(self) -> None:
-        with patch.object(input_gateway.ime_control, "restore_ime_now",
+        ime = Mock()
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+             patch.object(ime, "restore_ime_now",
                           side_effect=OSError("restore failed")), self.assertLogs(
             "keyseq.infrastructure.input_gateway", level="ERROR",
         ):

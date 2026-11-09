@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ctypes
 import logging
-import sys
 import threading
 import time
 from dataclasses import dataclass, field
@@ -37,7 +36,7 @@ class _GuiThreadInfo(ctypes.Structure):
 class _Win32ImeApi:
     def __init__(self) -> None:
         win_dll = getattr(ctypes, "WinDLL", None)
-        if not sys.platform.startswith("win") or win_dll is None:
+        if win_dll is None:
             raise OSError("Win32 IME APIs are unavailable")
         self._user32 = win_dll("user32", use_last_error=True)
         self._imm32 = win_dll("imm32", use_last_error=True)

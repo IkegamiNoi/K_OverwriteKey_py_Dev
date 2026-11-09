@@ -51,17 +51,17 @@ class FakeWindow:
 class KeyCaptureImeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.is_open = True
-        self.get_calls: list[int] = []
-        self.set_calls: list[tuple[int, bool]] = []
+        self.get_calls: list[FakeWindow] = []
+        self.set_calls: list[tuple[FakeWindow, bool]] = []
         self.get_none = False
         self.set_result = True
 
-        def get_open(hwnd: int) -> bool | None:
-            self.get_calls.append(hwnd)
+        def get_open(window: FakeWindow) -> bool | None:
+            self.get_calls.append(window)
             return None if self.get_none else self.is_open
 
-        def set_open(hwnd: int, value: bool) -> bool:
-            self.set_calls.append((hwnd, value))
+        def set_open(window: FakeWindow, value: bool) -> bool:
+            self.set_calls.append((window, value))
             if self.set_result:
                 self.is_open = value
             return self.set_result
@@ -137,7 +137,7 @@ class KeyCaptureImeTests(unittest.TestCase):
         self.assertFalse(self.is_open)
         self.tracker.end("a")
         self.assertTrue(self.is_open)
-        self.assertEqual(self.set_calls, [(100, False), (100, True)])
+        self.assertEqual(self.set_calls, [(window, False), (window, True)])
 
         self.is_open = False
         self.set_calls.clear()
@@ -145,13 +145,13 @@ class KeyCaptureImeTests(unittest.TestCase):
         self.tracker.end("b")
         self.assertEqual(self.set_calls, [])
 
-    def test_uses_root_window_hwnd_not_capturing_window_hwnd(self) -> None:
+    def test_passes_root_window_object_not_capturing_window(self) -> None:
         root = FakeWindow(hwnd=100)
         child = FakeWindow(hwnd=200, root=root)
         self.tracker.begin("a", child)
         self.tracker.end("a")
-        self.assertEqual(self.get_calls, [100, 100])
-        self.assertEqual(self.set_calls, [(100, False), (100, True)])
+        self.assertEqual(self.get_calls, [root, root])
+        self.assertEqual(self.set_calls, [(root, False), (root, True)])
         self.assertEqual(child.unbound, [("<Destroy>", "1")])
 
     def test_begin_and_end_are_idempotent(self) -> None:
@@ -172,17 +172,17 @@ class KeyCaptureImeTests(unittest.TestCase):
         self.tracker.begin("b", window)
         self.tracker.end("a")
         self.assertFalse(self.is_open)
-        self.assertEqual(self.set_calls, [(100, False)])
+        self.assertEqual(self.set_calls, [(window, False)])
         self.tracker.end("b")
         self.assertTrue(self.is_open)
-        self.assertEqual(self.set_calls[-1], (100, True))
+        self.assertEqual(self.set_calls[-1], (window, True))
 
     def test_later_begin_turns_ime_off_again_if_user_turned_it_on(self) -> None:
         window = FakeWindow()
         self.tracker.begin("a", window)
         self.is_open = True
         self.tracker.begin("b", window)
-        self.assertEqual(self.set_calls, [(100, False), (100, False)])
+        self.assertEqual(self.set_calls, [(window, False), (window, False)])
         self.tracker.end("a")
         self.tracker.end("b")
         self.assertTrue(self.is_open)
@@ -192,7 +192,7 @@ class KeyCaptureImeTests(unittest.TestCase):
         self.tracker.begin("a", window)
         self.is_open = True
         self.tracker.end("a")
-        self.assertEqual(self.set_calls, [(100, False)])
+        self.assertEqual(self.set_calls, [(window, False)])
 
     def test_destroy_handler_ends_only_when_bound_window_is_destroyed(self) -> None:
         root = FakeWindow()
@@ -216,7 +216,7 @@ class KeyCaptureImeTests(unittest.TestCase):
         self.set_result = False
         self.tracker.begin("b", window)
         self.tracker.end("b")
-        self.assertEqual(self.set_calls, [(100, False)])
+        self.assertEqual(self.set_calls, [(window, False)])
 
 
 if __name__ == "__main__":

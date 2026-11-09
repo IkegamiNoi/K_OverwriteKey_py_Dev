@@ -5,8 +5,8 @@ import ctypes
 import threading
 from unittest.mock import Mock, patch
 
-from keyseq.infrastructure import ime_control
-from keyseq.infrastructure.ime_control import ImeController
+from keyseq.infrastructure.os_backend.windows import ime_control
+from keyseq.infrastructure.os_backend.windows.ime_control import ImeController
 
 
 class FakeTimer:
@@ -155,7 +155,7 @@ class ImeControllerTests(unittest.TestCase):
         first = self.controller.before_send()
         self.controller.after_send(first, 1)
         self.api.get_status_error = OSError("timed out")
-        with self.assertLogs("keyseq.infrastructure.ime_control", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.ime_control", level="ERROR"):
             second = self.controller.before_send()
         self.assertIsNotNone(second)
         self.assertTrue(self.timers[0].cancelled)
@@ -175,7 +175,7 @@ class ImeControllerTests(unittest.TestCase):
         reservation = self.controller.before_send()
         self.controller.after_send(reservation, 1)
         self.api.get_status_error = OSError("timed out")
-        with self.assertLogs("keyseq.infrastructure.ime_control", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.ime_control", level="ERROR"):
             self.timers[0].fire()
         self.assertEqual(self.api.events[-1], ("get", 10))
 
@@ -220,7 +220,7 @@ class ImeControllerTests(unittest.TestCase):
 
     def test_query_timeout_still_allows_no_ime_reservation(self) -> None:
         self.api.get_status_error = OSError("timed out")
-        with self.assertLogs("keyseq.infrastructure.ime_control", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.ime_control", level="ERROR"):
             reservation = self.controller.before_send()
         self.assertIsNone(reservation)
         self.assertEqual(self.timers, [])
@@ -277,7 +277,7 @@ class ImeControllerTests(unittest.TestCase):
                 controller = ImeController(api, timer_factory=factory)
                 reservation = controller.before_send()
                 with self.assertLogs(
-                    "keyseq.infrastructure.ime_control", level="ERROR"
+                    "keyseq.infrastructure.os_backend.windows.ime_control", level="ERROR"
                 ):
                     controller.after_send(reservation, 1)
                 self.assertTrue(api.open_status[10])
@@ -328,7 +328,7 @@ class ImeControllerTests(unittest.TestCase):
         reservation = self.controller.before_send()
         self.controller.after_send(reservation, 1)
         self.api.set_status_error = RuntimeError("restore failed")
-        with self.assertLogs("keyseq.infrastructure.ime_control", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.ime_control", level="ERROR"):
             self.timers[0].fire()
 
 
@@ -337,7 +337,7 @@ class Win32ImeApiTests(unittest.TestCase):
         user32 = Mock()
         imm32 = Mock()
         user32.SendMessageTimeoutW.return_value = 0
-        with patch.object(ime_control.sys, "platform", "win32"), patch.object(
+        with patch.object(
             ime_control.ctypes, "WinDLL", side_effect=[user32, imm32], create=True,
         ):
             api = ime_control._Win32ImeApi()
@@ -350,8 +350,8 @@ class Win32ImeApiTests(unittest.TestCase):
         self.assertEqual(user32.SendMessageTimeoutW.call_args.args[4:6], (0x0002, 200))
 
     def test_non_windows_unavailable_api_warns_without_traceback(self) -> None:
-        with patch.object(ime_control.sys, "platform", "linux"), self.assertLogs(
-            "keyseq.infrastructure.ime_control", level="WARNING",
+        with patch.object(ime_control.ctypes, "WinDLL", None, create=True), self.assertLogs(
+            "keyseq.infrastructure.os_backend.windows.ime_control", level="WARNING",
         ) as logs:
             controller = ime_control._create_default_controller()
         self.assertIsNone(controller.before_send())

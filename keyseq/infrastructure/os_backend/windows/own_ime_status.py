@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import ctypes
 import logging
-import sys
 from typing import cast
 
 
@@ -16,7 +15,7 @@ class _Win32OwnImeApi:
 
     def __init__(self) -> None:
         win_dll = getattr(ctypes, "WinDLL", None)
-        if not sys.platform.startswith("win") or win_dll is None:
+        if win_dll is None:
             raise OSError("Win32 IME APIs are unavailable")
         self._imm32 = win_dll("imm32", use_last_error=True)
         self._imm32.ImmGetContext.argtypes = [ctypes.c_void_p]

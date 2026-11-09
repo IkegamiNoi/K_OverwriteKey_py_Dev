@@ -5,11 +5,11 @@ import tkinter
 from dataclasses import dataclass
 from typing import Callable, Protocol
 
-from keyseq.infrastructure import own_ime_status
+from keyseq.infrastructure.os_backend import get_backend
 
 
-GetOpen = Callable[[int], bool | None]
-SetOpen = Callable[[int, bool], bool]
+GetOpen = Callable[[object], bool | None]
+SetOpen = Callable[[object, bool], bool]
 
 
 class CaptureHook(Protocol):
@@ -33,14 +33,15 @@ class _CaptureBinding:
 class KeyCaptureImeTracker:
     def __init__(
         self,
-        get_open: GetOpen = own_ime_status.get_open_status,
-        set_open: SetOpen = own_ime_status.set_open_status,
+        get_open: GetOpen | None = None,
+        set_open: SetOpen | None = None,
     ) -> None:
-        self._get_open = get_open
-        self._set_open = set_open
+        ime = get_backend().ime if get_open is None or set_open is None else None
+        self._get_open = get_open if get_open is not None else ime.get_own_open_status
+        self._set_open = set_open if set_open is not None else ime.set_own_open_status
         self._owners: dict[object, _CaptureBinding] = {}
         self._turned_off_by_app = False
-        self._hwnd: int | None = None
+        self._root: object | None = None
         self._generation = 0
         self._capture_hook: CaptureHook | None = None
         self._logger = logging.getLogger(__name__)
@@ -59,9 +60,8 @@ class KeyCaptureImeTracker:
             return
         was_empty = not self._owners
         root = window.nametowidget(".")
-        hwnd = int(root.winfo_id())
-        self._hwnd = hwnd
-        if self._get_open(hwnd) is True and self._set_open(hwnd, False):
+        self._root = root
+        if self._get_open(root) is True and self._set_open(root, False):
             self._turned_off_by_app = True
 
         def on_destroy(event: object) -> None:
@@ -94,8 +94,8 @@ class KeyCaptureImeTracker:
                 self._logger.exception("Could not deactivate key capture hook")
         if not self._turned_off_by_app:
             return
-        if self._hwnd is not None and self._get_open(self._hwnd) is False:
-            self._set_open(self._hwnd, True)
+        if self._root is not None and self._get_open(self._root) is False:
+            self._set_open(self._root, True)
         self._turned_off_by_app = False
 
     def is_capturing(self, owner: object) -> bool:

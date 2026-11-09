@@ -35,7 +35,8 @@ infrastructure
 - JSON入出力
 - `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）
 - `keyseq/infrastructure/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）
-- `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの記録中・phase 60）
+- `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `Capabilities` / `OsBackend` を定義。`windows/` に Windows 実装を配置
+- `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
 
@@ -836,8 +837,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - レイアウトの見本: `config/user/keylayout/jis.json`（全キーの JIS）・`jis_test.json`・`de.json`・`us_tkl.json`（phase 69）（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
   - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
 - phase 60（キーの記録中は IME を OFF にする。仕様 = `key_input.md` §7.4「記録の入口」「記録中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
-  - 口: `infrastructure/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `ime_control.py` とは別物で状態も共有しない
-  - 部品: `presentation/key_capture_ime.py` の `KeyCaptureImeTracker`（hwnd はルートの窓の `winfo_id()`・取得した窓が破棄された後も戻せるため）。`own_ime_status` を presentation から直接 import する（application は経由しない・自アプリの IME は UI の都合で業務の状態ではない）。入口は既存の開始 / 停止の関数から `begin_key_capture(owner, window)` / `end_key_capture(owner)` を呼ぶ:
+  - 口: `infrastructure/os_backend/windows/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `windows/ime_control.py` とは別物で状態も共有しない
+  - 部品: `presentation/key_capture_ime.py` の `KeyCaptureImeTracker`（ルート窓オブジェクトを backend に渡す）。`os_backend` の公開面を通して利用する。入口は既存の開始 / 停止の関数から `begin_key_capture(owner, window)` / `end_key_capture(owner)` を呼ぶ:
     #1 `controllers/key_capture.py`（`start` / `stop`・window = App）/ #2 `dialogs/trigger_dialog.py` / #3 `dialogs/keymap_edit_dialog.py` / #4 `dialogs/keymap_switch_batch_dialog.py`（`_start_capture` / `_stop_capture`）/
     #5 `dialogs/action_dialog.py`（`_start_recording` / `_stop_recording`）/ #6 `dialogs/action_key_hold_fields.py`（`start_recording` / `stop_recording`・owner = 欄・window = ダイアログ）/
     #7 `keyboard_window.py`（`_begin_edit` の編集中でないときだけ / `_cancel_edit`）/ #8 `dialogs/grid_editor_window.py`（`__init__` の `grab_modal` の直前・終了は `<Destroy>` のみ）
@@ -880,7 +881,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - `send_hotkey`: 要素に拡張キーもテンキーの名前（`key_input.md` §7.8・phase 54）も無ければ従来どおり `keyboard.send(hotkey)`。含む場合は要素を記述順に押して逆順に離し、途中の例外でも押したキーを逆順に離してから再送出する。
 - text（`keyboard.write`）・マウス（`pyautogui`）は対象外（マウスは下記「マウス操作」節）。
 - **文字の入力中は送り先の IME をオフにする**（phase 41・仕様 = `spec_detail/key_input.md` §7.7）: `write_text`（text・file_line 共通）が
-  `infrastructure/ime_control.py` の `disable_for_text()` → `keyboard.write` → `finally` で `restore_after_text(reservation, len(text))`。空文字は IME に触らない。
+  `os_backend.get_backend().ime` の `disable_for_text()` → `keyboard.write` → `finally` で `restore_after_text(reservation, len(text))`。空文字は IME に触らない。
   `ImeController` が送り先（`GetGUIThreadInfo` のフォーカスの窓 → `ImmGetDefaultIMEWnd`）の状態を `WM_IME_CONTROL` で読み、オンならオフにして IME 窓ごとに予約（世代つき・`threading.Lock`・送信中の数）。
   Win32 は `SendMessageTimeoutW`（200 ms・`SMTO_ABORTIFHUNG`）を**ロックの外**で呼び、呼び出しの後に世代を再検証する（task_03a）。
   戻すのは非デーモンの `threading.Timer`。戻す時刻 = max(前の時刻, 今 + 200 ms + 40 ms × 文字数)・最後の送信が終わってから張る。戻すときは問い合わせてオフのときだけオン。

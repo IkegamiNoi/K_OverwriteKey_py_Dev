@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from keyseq.infrastructure import own_ime_status
+from keyseq.infrastructure.os_backend.windows import own_ime_status
 
 
 class FakeApi:
@@ -73,11 +73,11 @@ class OwnImeStatusTests(unittest.TestCase):
 
 class OwnImeStatusUnavailableApiTests(unittest.TestCase):
     def test_non_windows_api_construction_fails(self) -> None:
-        with patch.object(own_ime_status.sys, "platform", "linux"):
+        with patch.object(own_ime_status.ctypes, "WinDLL", None, create=True):
             with self.assertRaises(OSError):
                 own_ime_status._Win32OwnImeApi()
         with patch.object(own_ime_status, "_api", own_ime_status._UNINITIALIZED):
-            with patch.object(own_ime_status.sys, "platform", "linux"):
+            with patch.object(own_ime_status.ctypes, "WinDLL", None, create=True):
                 self.assertIsNone(own_ime_status.get_open_status(11))
                 self.assertFalse(own_ime_status.set_open_status(11, False))
 

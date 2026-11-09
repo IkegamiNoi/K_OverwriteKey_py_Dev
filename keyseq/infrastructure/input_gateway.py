@@ -16,7 +16,7 @@ from keyseq.domain.numpad_keys import (
     is_reserved_numpad_name,
     numpad_key_spec,
 )
-from keyseq.infrastructure import ime_control
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.infrastructure import win32_window
 from keyseq.shared.i18n import tr
 
@@ -420,11 +420,12 @@ class InputGateway:
         if not text:
             keyboard.write(text, restore_state_after=False)
             return
-        reservation = ime_control.disable_for_text()
+        ime = get_backend().ime
+        reservation = ime.disable_for_text()
         try:
             keyboard.write(text, restore_state_after=False)
         finally:
-            ime_control.restore_after_text(reservation, len(text))
+            ime.restore_after_text(reservation, len(text))
 
     def key_identity(self, key: str) -> tuple[int, bool]:
         return self.identity_of(self.resolve_send(key))
@@ -446,7 +447,7 @@ class InputGateway:
 
     def restore_ime_now(self) -> None:
         try:
-            ime_control.restore_ime_now()
+            get_backend().ime.restore_ime_now()
         except Exception:
             _logger.exception("Failed to restore destination IME during shutdown")
 
