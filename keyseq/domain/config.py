@@ -5,6 +5,7 @@ from typing import Any, Callable, Mapping
 from keyseq.shared.i18n import tr
 
 from . import key_hold, mouse_scroll, sequence_control
+from .key_symbols import display_key_name
 from .screen_grid import normalize_grid
 
 
@@ -458,7 +459,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
 
 def format_trigger_list_item(index: int, trigger: dict[str, Any]) -> str:
-    key = normalize_key_name(trigger.get("key", ""))
+    key = display_key_name(normalize_key_name(trigger.get("key", "")))
     label = (trigger.get("label") or "").strip()
     if label:
         return f"{index + 1:02d}. {key}: {label}"

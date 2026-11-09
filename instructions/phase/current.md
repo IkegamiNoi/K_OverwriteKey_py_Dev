@@ -7,8 +7,8 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**。次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）。
-  **次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 74](74_key_symbol_display/phase.md)**（記号キーのキー名の表示〔`bar` → `|`・保存値は不変・主 = キーボードUIのキー置換の枠〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 = ユーザー要望 2026-11-08・番号対応 phase 74 / decisions 74）。
+  **次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
 - 直近の一連の作業の領域 = 初回の案内とサンプル設定（Welcome・`config/sample/`）。残件 = 報告された不具合 2 件（プリセットが編集で開くまで表示されない / キー名の記号表記）は phase 73 の対象外。
 - 直前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
 - その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。

@@ -94,15 +94,34 @@ class KeyboardKeyTextUiTest(unittest.TestCase):
             "active_keymap_id": "default",
             "keymaps": [{
                 "id": "default",
-                "mappings": {"1": "zenkaku_hankaku", "2": "not_in_table"},
+                "mappings": {"1": "zenkaku_hankaku", "2": "not_in_table", "3": "bar"},
             }],
         })
         self._redraw_at_unit(window, 27)
 
         mapped_text = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "1")]
         fallback_text = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "2")]
+        symbol_text = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "3")]
         self.assertIn("半角\n全角", mapped_text)
         self.assertIn("not_in_table", fallback_text)
+        self.assertIn("|", symbol_text)
+
+    def test_key_display_name_takes_priority_over_common_symbol(self):
+        layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
+        with patch.object(
+            type(layout),
+            "key_display_name",
+            autospec=True,
+            side_effect=lambda _layout, name: "plus" if name == "bar" else None,
+        ):
+            window = self._window(layout)
+            window.update_from_config({
+                "active_keymap_id": "default",
+                "keymaps": [{"id": "default", "mappings": {"3": "bar"}}],
+            })
+            self._redraw_at_unit(window, 27)
+        text = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "3")]
+        self.assertIn("plus", text)
 
     def test_home_label_stays_on_one_line_at_unit_27(self):
         window = self._window(resolve_keyboard_layout())

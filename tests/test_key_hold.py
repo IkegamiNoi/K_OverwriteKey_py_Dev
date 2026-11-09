@@ -162,6 +162,14 @@ class FormatKeyHoldTests(unittest.TestCase):
             "[press] マウス左 (100, 200)",
         )
 
+    def test_symbol_key_rows(self):
+        self.assertEqual(format_key_hold_value({"edge": "down", "value": "bar"}), "[press] |")
+        self.assertEqual(
+            format_key_hold_value({"edge": "down", "value": "bar", "repeat": True}),
+            "[press] |（リピート）",
+        )
+        self.assertEqual(format_key_hold_value({"edge": "up", "value": "bar"}), "[release] |")
+
     def test_repeat_marker_is_shown_only_for_repeat_enabled_rows(self):
         self.assertEqual(
             format_key_hold_value({"edge": "down", "value": "a", "repeat": True}),

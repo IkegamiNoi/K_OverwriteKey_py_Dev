@@ -595,6 +595,10 @@ class FormatListItemTest(unittest.TestCase):
     def test_trigger_without_label(self):
         self.assertEqual(format_trigger_list_item(9, {"key": "f2"}), "10. f2")
 
+    def test_trigger_symbol_and_regular_key(self):
+        self.assertEqual(format_trigger_list_item(0, {"key": "bar", "label": "label"}), "01. |: label")
+        self.assertEqual(format_trigger_list_item(0, {"key": "f1", "label": "label"}), "01. f1: label")
+
     def test_action_hotkey(self):
         self.assertEqual(
             format_action_list_item(0, {"type": "hotkey", "value": "ctrl+c"}),
