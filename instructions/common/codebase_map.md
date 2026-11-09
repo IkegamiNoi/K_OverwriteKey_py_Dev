@@ -35,7 +35,7 @@ infrastructure
 - JSON入出力
 - `keyseq/infrastructure/os_backend/windows/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）。`WindowsWindowBackend` / `WindowsTkKeyTranslator` / `WindowsAppIdentity` がモジュール属性経由で委譲する
 - `keyseq/infrastructure/os_backend/windows/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）。`WindowsAppIdentity.relaunch` が委譲する
-- `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
+- `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換・テンキー判定）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
@@ -138,7 +138,7 @@ keyseq/presentation/
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
-    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
+    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰・前面判定は get_backend().window に委譲
     child_kind_labels.py       # 子ファイルの種別の文言キーの表 + 親の種類名。kind_label / parent_kind_label の呼出時に shared.i18n.tr で表示名を解決
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳）
     welcome/                   # 初回の Welcome と再表示（phase 73・下の「Welcome とサンプル」）
@@ -180,7 +180,7 @@ keyseq/presentation/
     keymap_set_history_text.py # 読み込み履歴の表示文言キーと、不在ファイルの名前・確認文・失敗理由等の呼出時翻訳。公開定数は dialogs / config_io の表示時に翻訳（phase 72 task_05）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
-    tk_keys.py                 # Tk のキーイベント → キー名（テンキー・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）
+    tk_keys.py                 # Tk のキーイベント → キー名（テンキーは get_backend().tk_keys.numpad_name に委譲・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）
 ```
 
 - **FullView と CompactView で Widget は共通化しない**（部品構成・配置が異なるため View ごとに専用 Widget を持つ）。
@@ -370,6 +370,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
 - TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/出力シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、詳細表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）、トリガー行の追加・改名・削除は `TriggerRowEditFlow`（`trigger_row_edit.py`）へ遅延生成して委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
+  - `HookController(app, dispatch=None)` はフックスレッドの通常入力と make-only の UI 予約を注入された dispatch に渡す。既定は `app.after(0, callback)`。他の UI 予約は従来どおり。
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
     （渡さなければ呼び出し側が解除する＝try/finally 形）。
@@ -391,6 +392,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   **初期キーボードフォーカス**・**破棄時の grab 復元**・**最小化中の grab 預かりと復元時のフォーカス復帰**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
   すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
+  - `_is_app_foreground(app)` は `get_backend().window.foreground_own_window()` と `window_handle(app)` を比較する。Windows の前面窓取得は `windows/win32_window.py` に委譲する。
   - **`focus` = 初期フォーカス先**（**省略時は窓自身**）。`grab_set()` の直後に `_apply_initial_focus` が
     `focus_set()` する（**`focus_force` / `lift` は呼ばない**・破棄中の `TclError` は握る）。
     **入力先を持つダイアログはここへ渡す**（`__init__` 内で別途 `focus_set` しない）。
@@ -821,7 +823,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
   - 名前の表と入力の名前: `domain/numpad_keys.py`（16 名 ↔ スキャンコード + 拡張・`numpad_name_from_event(scan_code, is_keypad)`・予約名 `is_reserved_numpad_name`）。`application/input_router.py` と `key_state_manager.py` の `_extract_key_name` が最初に使い、テンキーでないイベントではレイアウトの表の名前を捨てる
   - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否）→ `os_backend/windows/keyboard_backend.py`（`press_key`・`release_key`・`send_hotkey` の送信先は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕→ レイアウトの `scan_code`〔phase 62〕）
-  - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1キーを記録」・トリガー / 切替キー / 停止キーの記録・`keyboard_window.py` の置換先キーの記録から呼ぶ）
+  - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)` → `get_backend().tk_keys.numpad_name` → `windows/tk_key_translator.py`（Windows の keycode と extended bit の判定・名前の表）。`normalize_tk_key_event` / `normalize_key_hold_tk_key_event` から利用する（hotkey の記録・key_hold の「1キーを記録」・トリガー / 切替キー / 停止キーの記録・`keyboard_window.py` の置換先キーの記録から呼ぶ）
   - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
 - phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
   - タイトル: `presentation/keyboard_window.py` の `keyboard_window_title(layout_name, editing_key)`（純関数）→ `_update_title`（ステータス欄は削除）
@@ -854,7 +856,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 状態機械: `application/make_only_keys.py` の `MakeOnlyKeyFilter`（`handle(event)` は表に無い走査コードなら `None`・ある場合は `MakeOnlyResult`〔accept・routes・generation〕/ `clear()` で世代を上げる / 1 本のロック / 定数 `PAIR_WINDOW_S` = 16 ms・`CONTINUATION_WINDOW_S` = 60 ms / 作るイベント `SyntheticKeyEvent`）。依存は外から注入（`route` = `input_router.handle`・`release_state` = `key_state_manager.handle_event`・`clock` = `time.perf_counter`・`schedule` = `application/delayed_calls.py` の `DelayedCallWorker.schedule`〔1 本のワーカー〕・`get_hook_pause_count`・`get_repeat_delay_ms` = `keyboard_repeat_timing()[0]`・`on_routes`・`trace`）
   - 組み立て: `presentation/app.py`（`self.make_only_keys`・`_make_only_trace` は `debug_jis_special_key_events` が真のときだけ書く）
   - 計測用のデバッグ出力（task_03c・フェーズ後も残す〔ユーザー判断 2026-10-20〕）: `debug_jis_special_key_events` が真のとき標準出力へ `[make-only]`（状態機械の判定の経過・`app._make_only_trace`）/ `[hook]`（**全キー**のイベントの走査コード・名前・accept・actions 数・送信ガード・処理時間・`hook_controller.on_input_event`）/ `[ui]`（予約した actions の実行と世代の照合・`_trace_ui_action`）
-  - 呼び出し口: `controllers/hook_controller.py` の `on_input_event` が先に `make_only_keys.handle` を呼び、`None` なら今の経路。actions は `_schedule_make_only_routes` → `after(0)` で世代つきに予約し `_execute_make_only_action` で世代が違えば捨てる。タイマーの確定は `schedule_make_only_routes`（UI スレッドへ）。消去 = `start_hook` / `stop_hook` で `make_only_keys.clear()`
+  - 呼び出し口: `controllers/hook_controller.py` の `on_input_event` が先に `make_only_keys.handle` を呼び、`None` なら今の経路。actions は `_schedule_make_only_routes` → 注入された dispatch（既定 `after(0)`）で世代つきに予約し `_execute_make_only_action` で世代が違えば捨てる。タイマーの確定は `schedule_make_only_routes`（UI スレッドへ）。消去 = `start_hook` / `stop_hook` で `make_only_keys.clear()`
   - 名前: `keyboard_layouts.py`（`KeySpec.extra_scan_codes`・読込の検証）/ `layout_controller.py`（デバッグ出力の判定で `extra_scan_codes` も見る）/ 見本 `config/user/keylayout/jis.json`
   - テスト: `tests/test_make_only_keys.py`・`test_make_only_keys_integration.py`・`test_keyboard_layout_files.py`・`test_layout_controller_scan_code.py`・`test_hook_coordinator.py` / `tests_ui/test_hook_controller_reserved_actions.py`・`test_hook_controller_teardown.py`・`test_make_only_key_color_ui.py`
 - phase 69（キーボードUIのキー名の表示と最小サイズ。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」〔最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`〕/ `data_schema.md` §5.4 `keyboard_window_widths`。判断 = `decisions_archive/69_keyboard_ui_key_labels.md`）:
@@ -894,6 +896,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
 
 - `InputGateway` のマウス系公開メソッドは `get_backend().mouse` へ委譲する。以下の実体は `os_backend/windows/mouse_backend.py` の `WindowsMouseBackend`（ホイールの `_build_wheel_inputs` も同モジュール）。
+- クリック位置の取得: `ActionDialog._capture_mouse_position` → `get_backend().mouse.capture_next_click(on_capture)`。Windows backend の daemon の `pynput.mouse.Listener` が次の押下で座標を通知して停止する。ダイアログは既存の 4 回の `after(0)` で X/Y・ヒント・ボタン状態を UI スレッドへ反映する。
 
 - 呼び出し元は `ActionExecutor._execute_mouse_click`（`mouse_click` アクション）と、ホイールの `_execute_mouse_scroll`（下の phase 67 の項）。**send guard には入らない**
   （フックはキーボードのみで自己受信しないため。仕様は `spec_detail/data_schema.md` §5.11.2）。

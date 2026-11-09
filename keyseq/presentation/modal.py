@@ -1,10 +1,8 @@
 """モーダルウィンドウの grab 取得と破棄時の復元。"""
 
-import ctypes
-import ctypes.wintypes
-from functools import cache
 import tkinter as tk
-from typing import Callable
+
+from keyseq.infrastructure.os_backend import get_backend
 
 _active_modals: list[tk.Toplevel] = []
 _opened_while_minimized: list[tk.Toplevel] = []
@@ -12,20 +10,12 @@ _custody_window: tk.Toplevel | None = None
 _app_minimized: bool = False
 
 
-@cache
-def _foreground_window_fn() -> Callable[[], int | None]:
-    """共有 windll を変更せず、HWND を返す専用関数を生成する。"""
-    function = ctypes.WinDLL("user32").GetForegroundWindow
-    function.argtypes = []
-    function.restype = ctypes.wintypes.HWND
-    return function
-
-
 def _is_app_foreground(app: tk.Misc) -> bool:
     """OS の前面窓が App のメイン窓である場合だけ真を返す。"""
     try:
-        foreground = _foreground_window_fn()()
-        return foreground is not None and foreground == int(app.wm_frame(), 16)
+        backend = get_backend().window
+        foreground = backend.foreground_own_window()
+        return foreground is not None and foreground == backend.window_handle(app)
     except (AttributeError, OSError, tk.TclError, ValueError):
         # 取得不能（非 Windows を含む）ならフォーカスを強制しない。
         return False

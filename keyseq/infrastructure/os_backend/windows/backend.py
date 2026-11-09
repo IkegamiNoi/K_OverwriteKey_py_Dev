@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from keyseq.infrastructure.os_backend.contracts import Capabilities, OsBackend
-from keyseq.infrastructure.os_backend.windows import app_relaunch, ime_control, own_ime_status, win32_window
+from keyseq.infrastructure.os_backend.windows import app_relaunch, ime_control, own_ime_status, tk_key_translator, win32_window
 from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
 from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
 
@@ -69,6 +69,9 @@ class WindowsWindowBackend:
 
 
 class WindowsTkKeyTranslator:
+    def numpad_name(self, keycode: object, state: object) -> str:
+        return tk_key_translator.numpad_name_from_tk_event(keycode, state)
+
     def vk_to_scan_code(self, vk: int) -> int | None:
         return win32_window.vk_to_scan_code(vk)
 

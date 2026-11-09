@@ -4,6 +4,7 @@ import logging
 import time
 import tkinter as tk
 from tkinter import messagebox
+from typing import Callable
 
 from keyseq.shared.i18n import tr
 
@@ -22,8 +23,15 @@ from keyseq.presentation.hook_button_texts import (
 class HookController:
     """フック開始/停止・サスペンドカウンタ・入力イベント入口という安全機構の中枢。"""
 
-    def __init__(self, app) -> None:
+    def __init__(
+        self,
+        app,
+        dispatch: Callable[[Callable[[], None]], None] | None = None,
+    ) -> None:
         self._app = app
+        self._dispatch = (
+            dispatch if dispatch is not None else lambda callback: app.after(0, callback)
+        )
         self.hook_active = False
         self.custom_input_enabled = True
         self.hook_suspend_count = 0
@@ -304,8 +312,7 @@ class HookController:
         else:
             route = self._app.input_router.handle(event)
             for action in route.actions:
-                self._app.after(
-                    0,
+                self._dispatch(
                     lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
                 )
             accept = route.accept
@@ -330,8 +337,7 @@ class HookController:
     ) -> None:
         for route in routes:
             for action in route.actions:
-                self._app.after(
-                    0,
+                self._dispatch(
                     lambda aa=action, ss=route.shadowed: self._execute_make_only_action(
                         aa, ss, generation,
                     ),

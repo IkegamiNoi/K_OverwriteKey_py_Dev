@@ -34,6 +34,7 @@ class HookControllerReservedActionsTest(unittest.TestCase):
         )
         self.controller = HookController.__new__(HookController)
         self.controller._app = self.app
+        self.controller._dispatch = lambda callback: self.app.after(0, callback)
         self.controller.hook_active = True
         self.controller.custom_input_enabled = True
 

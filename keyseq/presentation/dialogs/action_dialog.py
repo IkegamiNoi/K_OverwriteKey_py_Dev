@@ -4,11 +4,10 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Callable
 
-from pynput import mouse
-
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.domain.key_hold import parse_key_hold
 from keyseq.domain.mouse_scroll import parse_mouse_scroll
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.dialogs.action_control_fields import ActionControlFields
 from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
@@ -397,25 +396,19 @@ class ActionDialog(tk.Toplevel):
         self._set_mouse_capture_state("disabled")
         hint_widget.configure(text=tr("action_dialog.mouse.capture_in_progress"))
 
-        def on_click(x: float, y: float, button: mouse.Button, pressed: bool) -> bool:
-            if pressed:
-                # 1回目の押下で確定
-                try:
-                    self.after(0, lambda: x_var.set(str(int(x))))
-                    self.after(0, lambda: y_var.set(str(int(y))))
-                    captured_x, captured_y = int(x), int(y)
-                    self.after(0, lambda: hint_widget.configure(
-                        text=tr("action_dialog.mouse.capture_completed", x=captured_x, y=captured_y)
-                    ))
-                finally:
-                    self.after(0, lambda: self._set_mouse_capture_state("normal"))
-                return False  # stop listener
-            return True
+        def on_capture(x: float, y: float) -> None:
+            # 1回目の押下で確定
+            try:
+                self.after(0, lambda: x_var.set(str(int(x))))
+                self.after(0, lambda: y_var.set(str(int(y))))
+                captured_x, captured_y = int(x), int(y)
+                self.after(0, lambda: hint_widget.configure(
+                    text=tr("action_dialog.mouse.capture_completed", x=captured_x, y=captured_y)
+                ))
+            finally:
+                self.after(0, lambda: self._set_mouse_capture_state("normal"))
 
-        # listener は別スレッドで動く
-        listener = mouse.Listener(on_click=on_click)
-        listener.daemon = True
-        listener.start()
+        get_backend().mouse.capture_next_click(on_capture)
 
     def _toggle_recording(self):
         t = self._action_type()

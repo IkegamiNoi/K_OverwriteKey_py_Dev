@@ -7,9 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_INIT = "infrastructure/os_backend/__init__.py"
-ALLOWLIST = {
-    ("presentation/modal.py", "windows_import"),
-}
+ALLOWLIST: set[tuple[str, str]] = set()
 WINDOW_IMPORTS = {"ctypes", "winreg", "msvcrt", "keyboard"}
 MAC_IMPORTS = {"objc", "Quartz", "AppKit", "Foundation", "CoreFoundation", "ApplicationServices", "HIServices", "Cocoa"}
 

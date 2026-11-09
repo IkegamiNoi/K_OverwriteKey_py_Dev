@@ -142,16 +142,19 @@ class OsBackendContractTests(unittest.TestCase):
     def test_translator_and_app_identity_delegate_through_modules(self) -> None:
         with patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.vk_to_scan_code", return_value=30) as scan, \
              patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.vk_to_char", return_value="a") as char, \
+             patch("keyseq.infrastructure.os_backend.windows.backend.tk_key_translator.numpad_name_from_tk_event", return_value="num enter") as numpad, \
              patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.set_app_user_model_id", return_value=True) as identity, \
              patch("keyseq.infrastructure.os_backend.windows.backend.app_relaunch.relaunch_app", return_value=None) as relaunch:
             translator = WindowsTkKeyTranslator()
             app = WindowsAppIdentity()
             self.assertEqual(translator.vk_to_scan_code(65), 30)
             self.assertEqual(translator.vk_to_char(65), "a")
+            self.assertEqual(translator.numpad_name(13, 0x40000), "num enter")
             self.assertTrue(app.apply_process_identity("keyseq.app"))
             self.assertIsNone(app.relaunch("C:/work"))
         scan.assert_called_once_with(65)
         char.assert_called_once_with(65)
+        numpad.assert_called_once_with(13, 0x40000)
         identity.assert_called_once_with("keyseq.app")
         relaunch.assert_called_once_with("C:/work")
 

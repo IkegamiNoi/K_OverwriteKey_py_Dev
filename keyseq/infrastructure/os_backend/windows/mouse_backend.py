@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import ctypes
-from typing import Sequence
+from typing import Callable, Sequence
 
 import pyautogui
+from pynput import mouse
 
 from .send_input import _INPUT, _INPUT_MOUSE, _MOUSEINPUT, _send_input_api
 
@@ -27,6 +28,17 @@ def _build_wheel_inputs(vertical: bool, deltas: Sequence[int]) -> tuple[_INPUT, 
 
 
 class WindowsMouseBackend:
+    def capture_next_click(self, on_capture: Callable[[float, float], None]) -> None:
+        def on_click(x: float, y: float, button: mouse.Button, pressed: bool) -> bool:
+            if pressed:
+                on_capture(x, y)
+                return False
+            return True
+
+        listener = mouse.Listener(on_click=on_click)
+        listener.daemon = True
+        listener.start()
+
     def cursor_position(self) -> tuple[int, int]:
         """Return the current cursor position in screen coordinates."""
         position = pyautogui.position()

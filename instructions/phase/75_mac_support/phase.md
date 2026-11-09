@@ -63,7 +63,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
 - task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）
-- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）
+- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）
 - task_10: 権限の案内（§5.2）
 - task_11: §5.4 の残りの機能と無効化の UI
 

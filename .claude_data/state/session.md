@@ -11,7 +11,7 @@ last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-suppor
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75（macOS 対応）段階 ① を実装中。task_01〜03 完了・次は task_04（presentation の切替 = modal.py / tk_keys.py / action_dialog.py / ディスパッチャ）。**
+focus: **phase 75（macOS 対応）段階 ① を実装中。task_01〜04 完了（段階 ① の実装完了）。段階の区切りレビューと実機目視の待ち。**
 mode: implementing
 presence: away（戻る予定 未定）
 

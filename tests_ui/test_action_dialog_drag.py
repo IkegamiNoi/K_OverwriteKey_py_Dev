@@ -3,8 +3,6 @@ import unittest
 from tkinter import messagebox
 from unittest.mock import patch
 
-from pynput import mouse
-
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.shared.i18n import fix_language
@@ -158,18 +156,18 @@ class ActionDialogDragTest(unittest.TestCase):
         dialog = self.make_dialog()
         self.enable_drag(dialog)
         for target in ("start", "end"):
-            with self.subTest(target=target), patch.object(mouse, "Listener") as listener:
+            with self.subTest(target=target), patch(
+                "keyseq.presentation.dialogs.action_dialog.get_backend"
+            ) as get_backend:
+                capture = get_backend.return_value.mouse.capture_next_click
                 button = dialog.mouse_capture_btn if target == "start" else dialog.mouse_to_capture_btn
                 button.invoke()
                 for capture_button in (dialog.mouse_capture_btn, dialog.mouse_to_capture_btn):
                     self.assertTrue(capture_button.instate(["disabled"]))
                     capture_button.invoke()
-                listener.assert_called_once()
-                self.assertTrue(listener.return_value.daemon)
-                listener.return_value.start.assert_called_once_with()
-                on_click = listener.call_args.kwargs["on_click"]
-                self.assertTrue(on_click(12, 34, mouse.Button.left, False))
-                self.assertFalse(on_click(12, 34, mouse.Button.left, True))
+                capture.assert_called_once()
+                on_capture = capture.call_args.args[0]
+                on_capture(12, 34)
                 self.app.update()
                 for capture_button in (dialog.mouse_capture_btn, dialog.mouse_to_capture_btn):
                     self.assertEqual(str(capture_button.cget("state")), "normal")

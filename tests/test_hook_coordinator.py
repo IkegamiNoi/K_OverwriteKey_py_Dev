@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.application.hook_coordinator import HookCoordinator
-from keyseq.application.input_router import SendKeyAction, StopHookAction
+from keyseq.application.input_router import InputRoute, SendKeyAction, StopHookAction
 from keyseq.application.key_overlap import AssignmentConflict, analyze_key_overlaps
 from keyseq.presentation.controllers.hook_controller import HookController
 
@@ -39,6 +39,60 @@ def make_runtime(
 
 
 class HookCoordinatorTest(unittest.TestCase):
+    def test_hook_controller_default_dispatch_uses_after_for_both_routes(self):
+        action = StopHookAction()
+        route = InputRoute(actions=(action,))
+        make_only_result = SimpleNamespace(routes=(route,), generation=7, accept=False)
+        app = _make_dispatch_app(route)
+        controller = HookController(app)
+        controller._execute_reserved_action = Mock()
+        controller._execute_make_only_action = Mock()
+
+        controller.on_input_event(object())
+        app.after.assert_called_once()
+        controller._execute_reserved_action.assert_not_called()
+        regular_callback = app.after.call_args.args[1]
+        self.assertEqual(app.after.call_args.args[0], 0)
+        regular_callback()
+        controller._execute_reserved_action.assert_called_once_with(action, ())
+
+        app.after.reset_mock()
+        app.make_only_keys.handle.return_value = make_only_result
+        self.assertFalse(controller.on_input_event(object()))
+        app.after.assert_called_once()
+        controller._execute_make_only_action.assert_not_called()
+        make_only_callback = app.after.call_args.args[1]
+        make_only_callback()
+        controller._execute_make_only_action.assert_called_once_with(action, (), 7)
+        self.assertEqual(app.after.call_args.args[0], 0)
+
+    def test_hook_controller_injected_dispatch_handles_both_routes(self):
+        action = StopHookAction()
+        route = InputRoute(actions=(action,))
+        make_only_result = SimpleNamespace(routes=(route,), generation=9, accept=False)
+        scheduled = []
+        dispatch = Mock(side_effect=scheduled.append)
+        app = _make_dispatch_app(route)
+        controller = HookController(app, dispatch=dispatch)
+        controller._execute_reserved_action = Mock()
+        controller._execute_make_only_action = Mock()
+
+        controller.on_input_event(object())
+        self.assertEqual(len(scheduled), 1)
+        controller._execute_reserved_action.assert_not_called()
+        scheduled.pop()()
+        controller._execute_reserved_action.assert_called_once_with(action, ())
+        app.after.assert_not_called()
+
+        app.make_only_keys.handle.return_value = make_only_result
+        self.assertFalse(controller.on_input_event(object()))
+        self.assertEqual(len(scheduled), 1)
+        controller._execute_make_only_action.assert_not_called()
+        scheduled.pop()()
+        controller._execute_make_only_action.assert_called_once_with(action, (), 9)
+        self.assertEqual(dispatch.call_count, 2)
+        app.after.assert_not_called()
+
     def test_grid_keymaps_allow_start_and_resume_without_triggers_or_mappings(self):
         gateway = SimpleNamespace(register_global_hook=Mock(return_value="handle"),
                                   unregister_hook=Mock())
@@ -210,6 +264,19 @@ class _StatusVar:
 
     def set(self, value):
         self.value = value
+
+
+def _make_dispatch_app(route):
+    return SimpleNamespace(
+        after=Mock(),
+        data={},
+        layout=SimpleNamespace(
+            resolve_key_name_from_scan_code=Mock(return_value=""),
+            should_debug_special_key_event=Mock(return_value=False),
+        ),
+        make_only_keys=SimpleNamespace(handle=Mock(return_value=None)),
+        input_router=SimpleNamespace(handle=Mock(return_value=route)),
+    )
 
 
 def _make_executor(*, on_stop_hook, on_shadowed_action):
