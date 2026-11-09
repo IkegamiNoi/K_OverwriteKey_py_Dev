@@ -1,8 +1,7 @@
 import os
 from tkinter import messagebox
 
-from keyseq.infrastructure.app_relaunch import relaunch_app
-from keyseq.infrastructure.win32_window import set_app_user_model_id
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.app import App
 from keyseq.shared.i18n import tr
 
@@ -10,12 +9,12 @@ APP_USER_MODEL_ID = "keyseq.app"
 
 
 def main() -> None:
-    set_app_user_model_id(APP_USER_MODEL_ID)
+    get_backend().app.apply_process_identity(APP_USER_MODEL_ID)
     startup_cwd = os.getcwd()
     app = App(first_launch_welcome=True)
     app.mainloop()
     if app.restart_requested:
-        error = relaunch_app(startup_cwd)
+        error = get_backend().app.relaunch(startup_cwd)
         if error is not None:
             messagebox.showerror(
                 tr("dialog.language_restart.title"),

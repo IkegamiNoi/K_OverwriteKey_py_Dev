@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock, patch
 
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend.windows import win32_window
 
 
 class Win32ScreenGridTests(unittest.TestCase):
@@ -13,7 +13,7 @@ class Win32ScreenGridTests(unittest.TestCase):
         self.addCleanup(win32_window._user32.cache_clear)
 
     def _run_win32(self, user32, operation):
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ):
             win32_window._user32.cache_clear()
@@ -79,7 +79,7 @@ class Win32ScreenGridTests(unittest.TestCase):
 
         user32.EnumDisplayMonitors.side_effect = enumerate
         user32.GetMonitorInfoW.side_effect = OSError("monitor info failed")
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"):
             self.assertEqual(
                 self._run_win32(user32, win32_window.list_monitor_rects), []
             )
@@ -87,18 +87,18 @@ class Win32ScreenGridTests(unittest.TestCase):
     def test_monitor_api_exception_returns_empty(self) -> None:
         user32 = Mock()
         user32.EnumDisplayMonitors.side_effect = OSError("enumeration failed")
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"):
             self.assertEqual(
                 self._run_win32(user32, win32_window.list_monitor_rects), []
             )
 
-    def test_non_windows_does_not_load_user32(self) -> None:
-        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
-            win32_window.ctypes, "WinDLL", create=True
+    def test_unavailable_windll_returns_safe_defaults(self) -> None:
+        with patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("unavailable"), create=True
         ) as load_user32:
             self.assertEqual(win32_window.list_monitor_rects(), [])
             self.assertFalse(win32_window.make_click_through_overlay(10))
-        load_user32.assert_not_called()
+        self.assertEqual(load_user32.call_count, 2)
 
     def test_vk_to_scan_code_uses_map_virtual_key_and_returns_none_on_failure(self) -> None:
         user32 = Mock()
@@ -111,7 +111,7 @@ class Win32ScreenGridTests(unittest.TestCase):
 
         broken = Mock()
         broken.MapVirtualKeyW.side_effect = OSError("mapping failed")
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"):
             self.assertIsNone(self._run_win32(broken, lambda: win32_window.vk_to_scan_code(0x41)))
 
     def test_vk_to_char_returns_unshifted_char_and_empty_on_failure(self) -> None:
@@ -129,7 +129,7 @@ class Win32ScreenGridTests(unittest.TestCase):
 
         broken = Mock()
         broken.MapVirtualKeyW.side_effect = OSError("mapping failed")
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"):
             self.assertEqual(self._run_win32(broken, lambda: win32_window.vk_to_char(0xBE)), "")
 
     def test_click_through_overlay_adds_extended_styles(self) -> None:
@@ -174,7 +174,7 @@ class Win32ScreenGridTests(unittest.TestCase):
 
         broken = Mock()
         broken.GetParent.side_effect = OSError("parent failed")
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"):
             self.assertFalse(self._run_win32(
                 broken, lambda: win32_window.make_click_through_overlay(100)
             ))

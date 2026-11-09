@@ -4,9 +4,9 @@
 
 main.py
 
-- 最初の窓を作る前に AppUserModelID（`APP_USER_MODEL_ID = "keyseq.app"`）を `infrastructure/win32_window.set_app_user_model_id` で設定し、App を起動する（phase 71・タスクバーにアイコンの差し替えを出すため）
+- 最初の窓を作る前に AppUserModelID（`APP_USER_MODEL_ID = "keyseq.app"`）を `get_backend().app.apply_process_identity` で設定し、App を起動する（phase 71・タスクバーにアイコンの差し替えを出すため）
 - `keyseq/__init__.py` の `__version__`（`0.1.0`）が版の唯一の定義。バージョン情報はこれを参照する
-- 起動時の作業フォルダを記録し、`mainloop()` の後に `app.restart_requested` が真なら `infrastructure/app_relaunch.relaunch_app(startup_cwd)` で起動し直す（言語の切り替え後の「今すぐ再起動」・phase 72）。失敗は main が messagebox で知らせる（`relaunch_app` は例外を返すだけで画面・文言に依存しない）
+- 起動時の作業フォルダを記録し、`mainloop()` の後に `app.restart_requested` が真なら `get_backend().app.relaunch(startup_cwd)` で起動し直す（言語の切り替え後の「今すぐ再起動」・phase 72）。失敗は main が messagebox で知らせる（`relaunch` は例外を返すだけで画面・文言に依存しない）
 
 ---
 
@@ -33,9 +33,9 @@ shared（phase 72・全層から依存可・他の層に依存しない・標準
 infrastructure
 - keyboard フック
 - JSON入出力
-- `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）
-- `keyseq/infrastructure/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）
-- `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `Capabilities` / `OsBackend` を定義。`windows/` に Windows 実装を配置
+- `keyseq/infrastructure/os_backend/windows/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）。`WindowsWindowBackend` / `WindowsTkKeyTranslator` / `WindowsAppIdentity` がモジュール属性経由で委譲する
+- `keyseq/infrastructure/os_backend/windows/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）。`WindowsAppIdentity.relaunch` が委譲する
+- `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
@@ -132,7 +132,7 @@ keyseq/presentation/
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 退避 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
     keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / カーソルグリッドの編集の窓〔`LayoutController` 経由〕/ キーボードUIでキーを記録するときに使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
-    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`） / 押下だけのキーの直接置換の枠の色 `"keymap_make_only"`（地 `#e4ebe1`・枠 `#7f9a74`・文字 `#2f4429`・phase 63）
+    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `get_backend().tk_keys.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`） / 押下だけのキーの直接置換の枠の色 `"keymap_make_only"`（地 `#e4ebe1`・枠 `#7f9a74`・文字 `#2f4429`・phase 63）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）/ レイアウトごとの最小 `minimum_size(extent)`（1u = 27px・`layout_extent`）・幅の記録の解釈 `parse_keyboard_window_widths`（config.json の `keyboard_window_widths`・phase 69）
     keyboard_key_text.py       # キーの文字合わせの純関数 `fit_key_text`（改行の指定でだけ行に分け、計測の関数を受け取りキーの内側に収まる px を決める・tkinter 非依存・phase 69）
     listbox_utils.py
@@ -815,7 +815,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
   - テスト: `tests/test_key_repeat.py` / `test_held_inputs_repeat.py` / `test_input_gateway_repeat.py` / `test_key_hold.py` / `test_action_executor_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_key_hold_presentation.py`
 - phase 53（アプリの窓が前面のときはキーリピートしない。仕様 = `features.md` §4.2.12「キーリピート」/ `key_input.md` §7.7。判断 = `decisions_archive/53_repeat_stop_on_own_foreground.md`）:
-  - 前面判定: `infrastructure/win32_window.py` のモジュール関数 `is_own_process_foreground`（`@cache` の `_user32` で専用の user32）
+  - 前面判定: `get_backend().window.is_own_process_foreground` → `infrastructure/os_backend/windows/win32_window.py`（`@cache` の `_user32` で専用の user32）
   - `KeyRepeater` の任意引数 `is_blocked`（`_fire` でだけ呼ぶ・真なら `stop`・呼び出しの例外は吸収して止めない〔ログは初回だけ〕）。App の `KeyRepeater` 生成で注入（`app.py`）
   - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
@@ -828,8 +828,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 縦横比: 計算は `presentation/keyboard_window_size.py`（`layout_aspect` / `size_from_width` / `size_from_height` / `minimum_size` / `corrected_size`・tkinter 非依存）。
     補正は `KeyboardWindow` の `<Configure>`（`event.widget is self` のみ）→ 150ms の予約 `_settle_size`（マウスのボタンが押されていれば置き直し）/ `update_layout` は `layout_id`・比率・最小のいずれかが変わったときだけ `_apply_ratio_to_base`（phase 69 で条件を拡張・下記 phase 69）/ 最大化・最小化中は `_ratio_pending` → 通常へ戻った Configure または `<Map>` で `_apply_pending_ratio`
   - 前面化: `LayoutController` の `on_keyboard_topmost_changed` / `apply_keyboard_topmost`（実効値 = `ui_vars.keyboard_always_on_top_var` ∧ ¬`_topmost_released`）/ 監視 `_watch_topmost_tick`（200ms・前面がダイアログ or `grab_current()` 有りで一時解除・ダイアログ前面で入ったときは直下へ置く）
-  - Win32 は `infrastructure/win32_window.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
-    **App が属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）し、presentation の他所は ctypes を呼ばない
+  - `get_backend().window` の `is_mouse_button_down` / `foreground_own_window` / `place_window_below` が `infrastructure/os_backend/windows/win32_window.py` に委譲（`GetAsyncKeyState` 左右・自プロセスの前面 HWND・`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
+    **App が backend のメソッドを属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）。`LayoutController` は `window_handle` で識別子を取得し、等値比較でダイアログを判定、重なり順の変更には窓オブジェクトを渡す。この経路の presentation は ctypes を呼ばない
   - テスト: `tests/test_keyboard_window_title.py` / `test_keyboard_window_size.py` / `test_win32_window.py` / `tests_ui/test_app_ui_flows.py`（`test_keyboard_window_*`）
 - phase 59（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー。仕様 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4。判断 = `decisions_archive/59_keyboard_ui_left_right_modifiers.md`）:
   - 左右の修飾キー: `presentation/keyboard_window.py` の `_LOOKUP_KEY_BY_ID` だけで決まる（`redraw` で引いたキー名が表示・色・`_key_bounds`・編集・右クリック・タイトルへ渡る）
@@ -986,7 +986,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   suppress する集合は `_rebuild_suppression`（常時の集合）+ `_publish_snapshot`（深さ・選択・今の深さのマスのキーで足す実効の集合）で 1 本にする〔phase 57 で `esc_active` を廃止〕。
   移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot`（`visible` / `generation` / `suppress_keys`）を差し替えて公開、窓へは `GridView`（phase 57 で `click_point`）
 - **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（キーマップ切替の後・トリガーの前の `_route_grid_key`。全キーを `key in suppress_keys` だけで判定）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
-- **infrastructure**: `win32_window.py` `list_monitor_rects`・`make_click_through_overlay`・`vk_to_scan_code`・`vk_to_char`（user32 は `use_last_error=True`）/ `input_gateway.py` `cursor_position`・`move_cursor`・`click_at`（pyautogui・`_pause=False`）
+- **infrastructure**: `get_backend().window` の `list_monitor_rects`・`make_click_through_overlay` / `get_backend().tk_keys` の `vk_to_scan_code`・`vk_to_char` → `os_backend/windows/win32_window.py`（user32 は `use_last_error=True`・透過設定には Tk 窓を渡す）/ `input_gateway.py` `cursor_position`・`move_cursor`・`click_at`（pyautogui・`_pause=False`）
 - **presentation**: `app.py` が `ScreenGridController` を作り `InputRouter` へ `snapshot` を渡す・終了で `shutdown` / `layout_controller.refresh_keyboard_window` の先頭で `screen_grid.sync()`（表示の同期の 1 か所）/
   `hook_controller._execute_reserved_action` が `GridKeyAction` を `screen_grid.handle` へ / フォントの変更で `screen_grid.on_font_changed()` /
   ダイアログ: `KeymapEditDialog`（「カーソルグリッドを使う」・「カーソルグリッドを編集…」・下書き・`key_name_from_event`）・`KeymapSwitchBatchDialog`（`grid_option_rows`）/

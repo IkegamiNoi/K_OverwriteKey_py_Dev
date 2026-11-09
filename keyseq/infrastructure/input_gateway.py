@@ -17,7 +17,6 @@ from keyseq.domain.numpad_keys import (
     numpad_key_spec,
 )
 from keyseq.infrastructure.os_backend import get_backend
-from keyseq.infrastructure import win32_window
 from keyseq.shared.i18n import tr
 
 
@@ -338,8 +337,8 @@ class InputGateway:
         if (
             send.kind == "keyboard"
             and _needs_shift(key)
-            and not win32_window.is_shift_down()
-            and not win32_window.is_ctrl_alt_win_down()
+            and not get_backend().window.is_shift_down()
+            and not get_backend().window.is_ctrl_alt_win_down()
         ):
             keyboard.press("shift")
             try:

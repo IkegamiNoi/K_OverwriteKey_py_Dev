@@ -3,9 +3,9 @@ from __future__ import annotations
 import sys
 import threading
 
-from .contracts import Capabilities, ImeBackend, OsBackend
+from .contracts import AppIdentity, Capabilities, ImeBackend, OsBackend, TkKeyTranslator, WindowBackend
 
-__all__ = ["Capabilities", "ImeBackend", "OsBackend", "get_backend"]
+__all__ = ["AppIdentity", "Capabilities", "ImeBackend", "OsBackend", "TkKeyTranslator", "WindowBackend", "get_backend"]
 
 _backend: OsBackend | None = None
 _backend_lock = threading.Lock()

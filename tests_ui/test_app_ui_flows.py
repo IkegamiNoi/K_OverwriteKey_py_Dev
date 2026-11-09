@@ -2447,7 +2447,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 layout._watch_topmost_tick()
                 self.assertFalse(bool(window.attributes("-topmost")))
                 self.app.place_window_below.assert_called_once_with(
-                    int(window.wm_frame(), 16), dialog_hwnd
+                    window, dialog_hwnd
                 )
 
                 self.app.foreground_own_window = Mock(return_value=main_hwnd)

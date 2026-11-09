@@ -4,7 +4,7 @@ import tkinter as tk
 from keyseq.shared.i18n import tr
 
 from keyseq.application.screen_grid_session import GridView
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.screen_grid.cell_label import (
     center_font_for_rect, corner_label_font, draw_cell_label,
 )
@@ -39,7 +39,7 @@ class GridOverlayWindow:
             canvas.pack(fill="both", expand=True)
             window.attributes("-transparentcolor", _TRANSPARENT)
             window.update_idletasks()
-            if not win32_window.make_click_through_overlay(window.winfo_id()):
+            if not get_backend().window.make_click_through_overlay(window):
                 raise RuntimeError(tr("screen_grid.overlay.click_through_failed"))
         except Exception:
             window.destroy()

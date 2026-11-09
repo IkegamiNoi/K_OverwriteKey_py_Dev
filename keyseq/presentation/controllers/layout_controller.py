@@ -6,6 +6,7 @@ from tkinter import filedialog, messagebox
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.dialogs import LayoutDeleteDialog
 from keyseq.presentation.keyboard_layouts import (
     BUILTIN_LAYOUTS,
@@ -162,13 +163,14 @@ class LayoutController:
                 self._topmost_released = False
                 return
 
+            backend = get_backend().window
             get_foreground = getattr(self._app, "foreground_own_window", None)
             foreground = get_foreground() if callable(get_foreground) else None
             is_dialog = False
             if foreground is not None:
-                main_hwnd = int(self._app.wm_frame(), 16)
-                keyboard_hwnd = int(window.wm_frame(), 16)
-                is_dialog = int(foreground) not in (main_hwnd, keyboard_hwnd)
+                main = backend.window_handle(self._app)
+                keyboard = backend.window_handle(window)
+                is_dialog = foreground not in (main, keyboard)
             try:
                 has_grab = self._app.grab_current() is not None
             except Exception:
@@ -181,9 +183,7 @@ class LayoutController:
                 if is_dialog and not was_released:
                     place_below = getattr(self._app, "place_window_below", None)
                     if callable(place_below):
-                        place_below(
-                            int(window.wm_frame(), 16), int(foreground)
-                        )
+                        place_below(window, foreground)
         except Exception:
             pass
         finally:

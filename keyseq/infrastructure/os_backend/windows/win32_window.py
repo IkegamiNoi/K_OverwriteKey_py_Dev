@@ -5,7 +5,6 @@ from __future__ import annotations
 import ctypes
 import logging
 import os
-import sys
 from ctypes import wintypes
 from functools import cache
 from typing import Callable, TypeVar
@@ -53,8 +52,6 @@ def _log_once(key: str, message: str) -> None:
 
 
 def _guarded(name: str, default: _T, call: Callable[[], _T]) -> _T:
-    if sys.platform != "win32":
-        return default
     try:
         return call()
     except Exception:

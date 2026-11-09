@@ -25,8 +25,8 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
             _on_assign_keymap=callback,
         )
         with patch(
-            "keyseq.presentation.keyboard_window.win32_window.is_shift_down",
-            return_value=shift_down,
+            "keyseq.presentation.keyboard_window.get_backend",
+            return_value=SimpleNamespace(window=SimpleNamespace(is_shift_down=Mock(return_value=shift_down))),
         ):
             result = KeyboardWindow._record_key(window, key)
         return result, callback
@@ -35,11 +35,11 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         event = SimpleNamespace(keysym=keysym, keycode=keycode, state=state)
         window = SimpleNamespace(_layout=layout)
         with patch(
-            "keyseq.presentation.keyboard_window.win32_window.vk_to_scan_code",
-            return_value=scan_code,
-        ) as convert:
+            "keyseq.presentation.keyboard_window.get_backend",
+            return_value=SimpleNamespace(tk_keys=SimpleNamespace(vk_to_scan_code=Mock(return_value=scan_code))),
+        ) as backend:
             result = KeyboardWindow._normalize_tk_key(window, event)
-        return result, convert
+        return result, backend.return_value.tk_keys.vk_to_scan_code
 
     def test_function_keys_resolve_for_default_and_jis_layouts(self):
         cases = (("F1", 112, 59, "f1"), ("F10", 121, 68, "f10"), ("F12", 123, 88, "f12"))
@@ -77,7 +77,8 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
     def test_numpad_and_keysym_table_take_precedence(self):
         window = SimpleNamespace(_layout=resolve_keyboard_layout())
         with patch(
-            "keyseq.presentation.keyboard_window.win32_window.vk_to_scan_code"
+            "keyseq.presentation.keyboard_window.get_backend",
+            return_value=SimpleNamespace(tk_keys=SimpleNamespace(vk_to_scan_code=Mock())),
         ) as convert:
             numpad = KeyboardWindow._normalize_tk_key(
                 window, SimpleNamespace(keysym="End", keycode=96, state=0)
@@ -88,7 +89,7 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
 
         self.assertEqual(numpad, "num 0")
         self.assertEqual(enter, "enter")
-        convert.assert_not_called()
+        convert.return_value.tk_keys.vk_to_scan_code.assert_not_called()
 
     def test_numpad_layout_name_does_not_override_extended_insert(self):
         layout = KeyboardLayout(

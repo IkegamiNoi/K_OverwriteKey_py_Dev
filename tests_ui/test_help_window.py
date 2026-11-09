@@ -573,7 +573,7 @@ class HelpWindowTest(unittest.TestCase):
             self.assertTrue(layout._topmost_released)
             self.assertFalse(bool(keyboard.attributes("-topmost")))
             self.app.place_window_below.assert_called_once_with(
-                int(keyboard.wm_frame(), 16), int(help_window.wm_frame(), 16)
+                keyboard, int(help_window.wm_frame(), 16)
             )
         finally:
             main_topmost.set(False)

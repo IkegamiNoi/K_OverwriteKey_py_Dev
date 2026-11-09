@@ -11,14 +11,17 @@ class MainRestartTest(unittest.TestCase):
     def _run_main(self, restart_requested, relaunch_result=None):
         app = unittest.mock.Mock()
         app.restart_requested = restart_requested
-        with patch.object(main_module, "set_app_user_model_id"), patch.object(
+        backend = unittest.mock.Mock()
+        backend.app.relaunch.return_value = relaunch_result
+        with patch.object(main_module, "get_backend", return_value=backend), patch.object(
             main_module.os, "getcwd", return_value="C:/startup"
         ), patch.object(main_module, "App", return_value=app) as create_app, patch.object(
-            main_module, "relaunch_app", return_value=relaunch_result
-        ) as relaunch, patch.object(main_module.messagebox, "showerror") as showerror:
+            main_module.messagebox, "showerror"
+        ) as showerror:
             main_module.main()
             create_app.assert_called_once_with(first_launch_welcome=True)
-        return app, relaunch, showerror
+            backend.app.apply_process_identity.assert_called_once_with(main_module.APP_USER_MODEL_ID)
+        return app, backend.app.relaunch, showerror
 
     def test_relaunches_only_when_restart_was_requested(self):
         app, relaunch, showerror = self._run_main(True)

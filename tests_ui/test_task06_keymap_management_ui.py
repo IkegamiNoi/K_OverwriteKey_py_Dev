@@ -2,7 +2,7 @@ import copy
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from keyseq.application.input_router import SelectKeymapAction
 from keyseq.application.screen_grid_session import MonitorInfo
@@ -555,26 +555,26 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         from types import SimpleNamespace
 
         event = SimpleNamespace(keycode=190, state=0, keysym="period")
+        to_scan_code = Mock(return_value=0x34)
+        tk_keys = SimpleNamespace(vk_to_scan_code=to_scan_code, vk_to_char=Mock())
+        module = "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller"
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.win32_window.vk_to_scan_code",
-            return_value=0x34,
-        ) as to_scan_code, patch.object(
+            f"{module}.get_backend", return_value=SimpleNamespace(tk_keys=tk_keys),
+        ), patch.object(
             self.app.layout, "resolve_key_name_from_scan_code", return_value="period-key"
         ) as resolve:
             self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), "period-key")
         to_scan_code.assert_called_once_with(190)
         resolve.assert_called_once_with(0x34)
 
-        module = "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.win32_window"
-        with patch(f"{module}.vk_to_scan_code", return_value=None), patch(
-            f"{module}.vk_to_char", return_value="."
-        ) as to_char:
+        tk_keys.vk_to_scan_code.return_value = None
+        tk_keys.vk_to_char.return_value = "."
+        with patch(f"{module}.get_backend", return_value=SimpleNamespace(tk_keys=tk_keys)):
             self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), ".")
-        to_char.assert_called_once_with(190)
+        tk_keys.vk_to_char.assert_called_once_with(190)
 
-        with patch(f"{module}.vk_to_scan_code", return_value=None), patch(
-            f"{module}.vk_to_char", return_value=""
-        ):
+        tk_keys.vk_to_char.return_value = ""
+        with patch(f"{module}.get_backend", return_value=SimpleNamespace(tk_keys=tk_keys)):
             self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), "period")
 
     def test_keymap_edit_dialog_grid_editor_without_monitors_reports_error(self):

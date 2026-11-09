@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock, patch
 
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend.windows import win32_window
 
 
 class OwnProcessForegroundTests(unittest.TestCase):
@@ -26,7 +26,7 @@ class OwnProcessForegroundTests(unittest.TestCase):
         return user32
 
     def _check_with_user32(self, user32) -> bool:
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ), patch.object(win32_window.os, "getpid", return_value=42):
             win32_window._user32.cache_clear()
@@ -60,20 +60,19 @@ class OwnProcessForegroundTests(unittest.TestCase):
 
     def test_win32_exception_returns_false_and_logs_only_once(self):
         user32 = self._user32(100, error=OSError("foreground failed"))
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
-        ), self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR") as logs:
+        ), self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR") as logs:
             win32_window._user32.cache_clear()
             self.assertFalse(win32_window.is_own_process_foreground())
             self.assertFalse(win32_window.is_own_process_foreground())
         self.assertEqual(len(logs.records), 1)
 
-    def test_non_windows_does_not_load_user32(self):
-        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
-            win32_window.ctypes, "WinDLL", create=True
-        ) as load_user32:
+    def test_unavailable_windll_returns_false(self):
+        with patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("unavailable"), create=True
+        ):
             self.assertFalse(win32_window.is_own_process_foreground())
-        load_user32.assert_not_called()
 
 
 class ForegroundOwnWindowTests(unittest.TestCase):
@@ -96,7 +95,7 @@ class ForegroundOwnWindowTests(unittest.TestCase):
         return user32
 
     def _check_with_user32(self, user32):
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ), patch.object(win32_window.os, "getpid", return_value=42):
             win32_window._user32.cache_clear()
@@ -120,10 +119,10 @@ class ForegroundOwnWindowTests(unittest.TestCase):
 
     def test_exception_returns_none_and_logs_only_once(self):
         user32 = self._user32(100, error=OSError("foreground failed"))
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ), patch.object(win32_window.os, "getpid", return_value=42), self.assertLogs(
-            "keyseq.infrastructure.win32_window", level="ERROR"
+            "keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"
         ) as logs:
             win32_window._user32.cache_clear()
             self.assertIsNone(win32_window.foreground_own_window())
@@ -138,7 +137,7 @@ class PlaceWindowBelowTests(unittest.TestCase):
         self.addCleanup(win32_window._user32.cache_clear)
 
     def _check_with_user32(self, user32, hwnd=100, above_hwnd=200):
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ):
             win32_window._user32.cache_clear()
@@ -171,22 +170,21 @@ class PlaceWindowBelowTests(unittest.TestCase):
     def test_exception_returns_false_and_logs_only_once(self):
         user32 = Mock()
         user32.SetWindowPos.side_effect = OSError("window placement failed")
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ), self.assertLogs(
-            "keyseq.infrastructure.win32_window", level="ERROR"
+            "keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR"
         ) as logs:
             win32_window._user32.cache_clear()
             self.assertFalse(win32_window.place_window_below(100, 200))
             self.assertFalse(win32_window.place_window_below(100, 200))
         self.assertEqual(len(logs.records), 1)
 
-    def test_non_windows_returns_false_without_loading_user32(self):
-        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
-            win32_window.ctypes, "WinDLL", create=True
-        ) as load_user32:
+    def test_unavailable_windll_returns_false(self):
+        with patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("unavailable"), create=True
+        ):
             self.assertFalse(win32_window.place_window_below(100, 200))
-        load_user32.assert_not_called()
 
 
 class MouseButtonDownTests(unittest.TestCase):
@@ -198,7 +196,7 @@ class MouseButtonDownTests(unittest.TestCase):
     def _check_with_user32(self, left_state: int, right_state: int) -> bool:
         user32 = Mock()
         user32.GetAsyncKeyState.side_effect = (left_state, right_state)
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
         ):
             win32_window._user32.cache_clear()
@@ -219,20 +217,19 @@ class MouseButtonDownTests(unittest.TestCase):
     def test_api_exception_returns_false_and_logs_only_once(self):
         user32 = Mock()
         user32.GetAsyncKeyState.side_effect = OSError("mouse state failed")
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=user32, create=True
-        ), self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR") as logs:
+        ), self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR") as logs:
             win32_window._user32.cache_clear()
             self.assertFalse(win32_window.is_mouse_button_down())
             self.assertFalse(win32_window.is_mouse_button_down())
         self.assertEqual(len(logs.records), 1)
 
-    def test_non_windows_does_not_load_user32(self):
-        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
-            win32_window.ctypes, "WinDLL", create=True
-        ) as load_user32:
+    def test_unavailable_windll_returns_false(self):
+        with patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("unavailable"), create=True
+        ):
             self.assertFalse(win32_window.is_mouse_button_down())
-        load_user32.assert_not_called()
 
 
 class AppUserModelIdTests(unittest.TestCase):
@@ -242,7 +239,7 @@ class AppUserModelIdTests(unittest.TestCase):
     def _call(self, result=0):
         function = Mock(return_value=result)
         shell32 = Mock(SetCurrentProcessExplicitAppUserModelID=function)
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", return_value=shell32, create=True
         ):
             value = win32_window.set_app_user_model_id("keyseq.app")
@@ -254,21 +251,20 @@ class AppUserModelIdTests(unittest.TestCase):
         function.assert_called_once_with("keyseq.app")
         self.assertEqual(function.argtypes, [win32_window.wintypes.LPCWSTR])
         self.assertIs(function.restype, win32_window.ctypes.c_long)
-        with self.assertLogs("keyseq.infrastructure.win32_window", level="WARNING") as logs:
+        with self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="WARNING") as logs:
             self.assertFalse(self._call(1)[0])
         self.assertIn("HRESULT=0x00000001", logs.output[0])
 
     def test_exception_returns_false_and_logs_once(self):
-        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+        with patch.object(
             win32_window.ctypes, "WinDLL", side_effect=OSError("failed"), create=True
-        ), self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR") as logs:
+        ), self.assertLogs("keyseq.infrastructure.os_backend.windows.win32_window", level="ERROR") as logs:
             self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
             self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
         self.assertEqual(len(logs.records), 1)
 
-    def test_non_windows_returns_false(self):
-        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
-            win32_window.ctypes, "WinDLL", create=True
-        ) as load_library:
+    def test_unavailable_windll_returns_false(self):
+        with patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("unavailable"), create=True
+        ):
             self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
-        load_library.assert_not_called()

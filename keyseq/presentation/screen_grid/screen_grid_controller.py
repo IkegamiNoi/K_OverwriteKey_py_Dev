@@ -7,7 +7,7 @@ from keyseq.application.screen_grid_session import (
     GridRouteSnapshot, MonitorInfo, ScreenGridSession,
 )
 from keyseq.domain.screen_grid import monitor_identifier
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.shared.i18n import tr
 from .grid_overlay_window import GridOverlayWindow
 
@@ -35,7 +35,7 @@ class ScreenGridController:
     @staticmethod
     def list_monitors() -> list[MonitorInfo]:
         return [MonitorInfo(monitor_identifier(*rect), rect, primary)
-                for rect, primary in win32_window.list_monitor_rects()]
+                for rect, primary in get_backend().window.list_monitor_rects()]
 
     def _show_view(self) -> None:
         self._overlay.show(self.session.view())

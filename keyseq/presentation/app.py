@@ -101,15 +101,13 @@ from keyseq.domain.numpad_keys import numpad_name_from_event
 from keyseq.infrastructure.input_gateway import (
     InputGateway, keyboard_repeat_timing,
 )
-from keyseq.infrastructure.win32_window import (
-    foreground_own_window, is_mouse_button_down, is_own_process_foreground,
-    place_window_below,
-)
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.infrastructure.json_repository import JsonRepository
 
 class App(tk.Tk):
     def __init__(self, *, first_launch_welcome: bool = False):
         super().__init__()
+        window_backend = get_backend().window
 
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository)
@@ -176,7 +174,7 @@ class App(tk.Tk):
             after=self.after,
             after_cancel=self.after_cancel,
             get_timing=keyboard_repeat_timing,
-            is_blocked=is_own_process_foreground,
+            is_blocked=window_backend.is_own_process_foreground,
         )
         self.held_inputs = HeldInputs(
             self.input_gateway,
@@ -287,9 +285,9 @@ class App(tk.Tk):
         self.reference_cleanup_io = ReferenceCleanupIo(self)
         self.orphan_sweep_io = OrphanSweepIo(self)
         self.quarantine_manage_io = QuarantineManageIo(self)
-        self.is_mouse_button_down = is_mouse_button_down
-        self.foreground_own_window = foreground_own_window
-        self.place_window_below = place_window_below
+        self.is_mouse_button_down = window_backend.is_mouse_button_down
+        self.foreground_own_window = window_backend.foreground_own_window
+        self.place_window_below = window_backend.place_window_below
         self.layout = LayoutController(self)
         configure_capture_hook(KeyCaptureHook(
             register_hook=lambda callback: self.input_gateway.register_global_hook(
@@ -298,7 +296,7 @@ class App(tk.Tk):
             unregister_hook=self.input_gateway.unregister_hook,
             resolve_name=self.layout.resolve_key_name_from_scan_code,
             numpad_name=numpad_name_from_event,
-            is_foreground=is_own_process_foreground,
+            is_foreground=window_backend.is_own_process_foreground,
             after=self.after,
             repeat_delay_ms=lambda: keyboard_repeat_timing()[0],
             deliver=deliver_captured_key,

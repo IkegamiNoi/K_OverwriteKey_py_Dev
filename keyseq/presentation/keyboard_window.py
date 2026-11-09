@@ -12,7 +12,7 @@ from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.numpad_keys import is_numpad_key_name
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     resolve_layout_key_id_from_scan_code,
@@ -619,7 +619,7 @@ class KeyboardWindow(tk.Toplevel):
         if not key:
             return "break"
 
-        if key in _SHIFTED_TARGET_NAMES and win32_window.is_shift_down():
+        if key in _SHIFTED_TARGET_NAMES and get_backend().window.is_shift_down():
             key = _SHIFTED_TARGET_NAMES[key]
 
         callback = self._on_assign_keymap
@@ -648,7 +648,7 @@ class KeyboardWindow(tk.Toplevel):
             vk = int(keycode)
         except (TypeError, ValueError, OverflowError):
             vk = None
-        scan_code = win32_window.vk_to_scan_code(vk) if vk is not None else None
+        scan_code = get_backend().tk_keys.vk_to_scan_code(vk) if vk is not None else None
         resolved = (
             resolve_layout_key_id_from_scan_code(self._layout, scan_code)
             if scan_code is not None

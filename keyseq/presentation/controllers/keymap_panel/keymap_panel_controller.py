@@ -10,7 +10,7 @@ from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
-from keyseq.infrastructure import win32_window
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_range_drag import select_range
 from keyseq.presentation.tk_keys import numpad_name_from_tk_event, normalize_tk_key_event
@@ -464,13 +464,13 @@ class KeymapPanelController:
         )
         if numpad_name:
             return numpad_name
-        scan_code = win32_window.vk_to_scan_code(getattr(event, "keycode", 0))
+        scan_code = get_backend().tk_keys.vk_to_scan_code(getattr(event, "keycode", 0))
         if scan_code:
             key_name = self._app.layout.resolve_key_name_from_scan_code(scan_code)
             if key_name:
                 return key_name
         # 配列にスキャンコードが無いときは、フック（keyboard）と同じく修飾なしの文字を名前にする。
-        char = win32_window.vk_to_char(getattr(event, "keycode", 0))
+        char = get_backend().tk_keys.vk_to_char(getattr(event, "keycode", 0))
         if char:
             return normalize_key_name(char)
         return normalize_tk_key_event(event)

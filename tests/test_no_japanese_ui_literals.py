@@ -27,7 +27,7 @@ ALLOWLIST = [
 ]
 # The ratio diagnostic occurs at four distinct return sites.
 ALLOWLIST += [("keyseq/domain/screen_grid/normalize.py", "_top_layout_with_reason", "比率が不正です", "警告ログ専用。normalize_grid の logger.warning にだけ渡る") for _ in range(3)]
-ALLOWLIST += [("keyseq/infrastructure/win32_window.py", "<module>", value, "ログ専用。_log_once → _logger.exception") for value in [
+ALLOWLIST += [("keyseq/infrastructure/os_backend/windows/win32_window.py", "<module>", value, "ログ専用。_log_once → _logger.exception") for value in [
     "AppUserModelID の設定に失敗しました", "前面ウィンドウのプロセス判定に失敗しました", "前面ウィンドウ HWND の取得に失敗しました",
     "ウィンドウ位置の変更に失敗しました", "マウスボタン状態の取得に失敗しました", "Shift キー状態の取得に失敗しました", "モニター領域の列挙に失敗しました",
     "仮想キーコードからスキャンコードへの変換に失敗しました", "仮想キーコードから文字への変換に失敗しました", "クリック透過ウィンドウの設定に失敗しました"]]

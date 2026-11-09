@@ -22,18 +22,19 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.root = tk.Tk()
         self.root.withdraw()
         self.addCleanup(self.root.destroy)
+        self.monitors = Mock(return_value=[((0, -768, 1024, 0), True)])
         monitors_patch = patch(
-            "keyseq.presentation.screen_grid.screen_grid_controller."
-            "win32_window.list_monitor_rects",
-            return_value=[((0, -768, 1024, 0), True)],
+            "keyseq.presentation.screen_grid.screen_grid_controller.get_backend",
+            return_value=SimpleNamespace(window=SimpleNamespace(list_monitor_rects=self.monitors)),
         )
-        self.monitors = monitors_patch.start()
+        monitors_patch.start()
         self.addCleanup(monitors_patch.stop)
+        self.styles = Mock(return_value=True)
         styles_patch = patch(
-            "keyseq.presentation.screen_grid.grid_overlay_window."
-            "win32_window.make_click_through_overlay", return_value=True,
+            "keyseq.presentation.screen_grid.grid_overlay_window.get_backend",
+            return_value=SimpleNamespace(window=SimpleNamespace(make_click_through_overlay=self.styles)),
         )
-        self.styles = styles_patch.start()
+        styles_patch.start()
         self.addCleanup(styles_patch.stop)
         self.app = SimpleNamespace(
             after=self.root.after,
@@ -88,7 +89,7 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.assertEqual(window.state(), "normal")
         self.assertEqual((window.winfo_rootx(), window.winfo_rooty()), (0, -768))
         self.assertEqual((window.winfo_width(), window.winfo_height()), (1024, 768))
-        self.styles.assert_called_once_with(window.winfo_id())
+        self.styles.assert_called_once_with(window)
         self.assertEqual(len(self.app.screen_grid.session.view().cells), 12)
         for field, value, restored in (
             ("hook_active", False, True),
@@ -131,9 +132,9 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.app.action_executor.execute_router_action.assert_not_called()
 
     def test_style_is_applied_while_window_is_withdrawn_and_failure_is_reported(self):
-        def fail_style(widget_id):
+        def fail_style(target_window):
             window = self.root.winfo_children()[0]
-            self.assertEqual(window.winfo_id(), widget_id)
+            self.assertIs(window, target_window)
             self.assertEqual(window.state(), "withdrawn")
             self.assertTrue(window.overrideredirect())
             self.assertEqual(str(window.cget("background")), "#ff00fe")
