@@ -5,28 +5,28 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-09T12:00:00
-phase: instructions/phase/74_key_symbol_display。次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57
-直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
+phase: なし（phase 74 完了）。次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57
+直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 74（記号キーのキー名の表示）task_01・01b・01c 完了・task_02（ユーザーの実機目視と記録）待ち。** 直接改訂モード・JSON スキーマ不変。
-mode: implementing
+focus: **phase 74 完了（2026-11-09）。アクティブなフェーズなし。**
+mode: idle
 
 ## last_action
 ts: 2026-11-09T01:13:00
 who: main
 summary: |
-  phase 74 を起票し正本 features.md §4.6 を直接改訂。task_01 = domain/key_symbols.py と 3 箇所への適用（codex-implementer・key_display_names の値を表に通していた 1 行はメインで修正）。reviewer 採用。
+  phase 74 完了。task_01〜01d（表示・置換先の記録・送信の Shift・修飾キーの条件）。実機目視 OK・deep-reviewer + Codex 敵対的レビューの採否はユーザー判断どおり・refactor_check 不要。
 verified:
   compile: pass
-  tests: pass（1950・skip 7）
+  tests: pass（1951・skip 7）
   tests_ui: pass（1270）
   smoke: pass
 
 ## next_action
-- phase 74 task_02: verifier で統合確認（tests_ui 全体・smoke）→ 二次レビュー（deep-reviewer + codex-adversarial-reviewer）→ ユーザーの実機目視（キーボードUIの枠の記号表示）→ codebase_map・decisions_archive/74・current.md・/refactor_check
+- phase 74 は完了。ブランチ `claude/gracious-brahmagupta-2e05b1` の main へのマージ（ユーザー）
 - ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 

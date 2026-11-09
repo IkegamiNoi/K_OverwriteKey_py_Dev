@@ -339,6 +339,7 @@ class InputGateway:
             send.kind == "keyboard"
             and _needs_shift(key)
             and not win32_window.is_shift_down()
+            and not win32_window.is_ctrl_alt_win_down()
         ):
             keyboard.press("shift")
             try:

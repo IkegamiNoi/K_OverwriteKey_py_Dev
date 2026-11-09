@@ -83,6 +83,7 @@
 | 71_taskbar_status_icon | [71_taskbar_status_icon.md](decisions_archive/71_taskbar_status_icon.md) | タスクバーのアイコンで状態を表示（2026-11-01 完了・暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・新規依存なし）。窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID（設定しないとタスクバーに出ない）。refactor_check: 不要（M4・M6 の境界事例を別タスク化候補へ） |
 | 72_multilingual_ui | [72_multilingual_ui.md](decisions_archive/72_multilingual_ui.md) | 画面の文言の多言語対応（2026-11-04 完了・暫定仕様先行モード〔暫定 55 v0.7 凍結〕・JSON スキーマ = config.json の任意キー `ui_language`〔無いときは英語〕・新規依存なし）。日英・メニュー「Language」で選び次回起動から反映（「今すぐ再起動」可）・`keyseq/shared/i18n/` の文言ファイル・訳不足は英語・一覧は置いたファイルから・全層の約 1,330 リテラルをキー化（日本語は不変）・英語の表記 E1〜E7（機能名は大文字）・一覧の行頭の印は全言語共通の英語。3 言語目以降は idea_56。保留 D5・D6。refactor_check: 不要（M5 なし / 境界 = `save_keymap_set_to` 80 → 約 90 行・`action_dialog.py` 643 行〔純増 46〕→ current.md「別タスク化候補」）|
 | 73_welcome_first_launch | [73_welcome_first_launch.md](decisions_archive/73_welcome_first_launch.md) | 初回起動の Welcome とサンプルの作り直し（2026-11-09 完了・暫定 56 v0.7 凍結） |
+| 74_key_symbol_display | [74_key_symbol_display.md](decisions_archive/74_key_symbol_display.md) | 記号キーのキー名の表示（2026-11-09 完了・直接改訂）。表示の表 36 個・キーボードUIの置換先で Shift+¥ / Shift+ろ を `bar` / `underscore` で保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -637,27 +638,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 2026-10-24 の「多言語化で吸収（保留）」をユーザー指示で取り消し、項目 1 のみ実施。子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ集約（文言不変・既存テスト無変更）。
 - `child_save_dialog._kind_label` は tests_ui が参照するため import 別名で残す。orphan_sweep_text の「構成セット専用プリセット」は同ファイルに残す（提案書どおり）。
 - 多言語化のフェーズではこの表を辞書へ移す。参考の choice_dialog / hotkey_presets_io.confirm_overwrite の重複は対象外のまま。
-
-## 2026-11-09 (phase 74: 記号キーのキー名の表示・直接改訂モード)
-
-### 保存値は変えず表示だけ記号にする
-- 表示のときだけ変換する → **採用**（ユーザー確定 2026-11-09）
-- 理由: JSON の既存キーの意味を変えない。`+` は hotkey の区切りで `ctrl++` は検査でエラーになる（`keyseq/domain/hotkey.py:17`）。
-- 代替案（保存値も記号にする）→ **除外**。既存データの意味が変わるため。
-- 影響範囲: `features.md` §4.6（キーの文字・記号キーのキー名の表示）。
-
-### 範囲はキーボードUIを主にする
-- 主 = キーボードUIのキー置換の枠 / ついで = トリガー一覧・key_hold の一覧 / hotkey の一覧と入力欄は対象外 → **採用**（ユーザー確定 2026-11-09）
-- 優先順 = `key_display_names` → 記号の表 → キー名。配列固有のキーは `key_display_names` に書く。
-- 一覧にも `key_display_names` を効かせる案 → **除外**。一覧の整形は domain にあり、レイアウトを渡す経路を新たに作ることになるため。
-- 表に JIS の `yen` `¥`・`ro` `\` を含める → **採用**。
-- 記録された `period` 等とフックの名前の不一致（`key_input.md:143`・idea_45）→ **保留**（本フェーズ外）。
-
-### 実機目視で判明した JIS の Shift 付き記号（task_01b）
-- JIS で Shift+¥ / Shift+ろ を置換先に入れると `yen` / `ro` で保存され `|` `_` にならなかった（レイアウトの行に走査コードがあり Shift を見ない）。
-- **採用（ユーザー判断 2026-11-09）**: キーボードUIの置換先だけ、Shift ありの `yen` / `ro` を `bar` / `underscore` で保存する。他の記録の入口は変えない（トリガーではフックの名前と一致しなくなるため）。送信は物理キーのままで Shift は付けない。
-- **採用（ユーザー判断 2026-11-09）**: 表示の表に `minus` `-` を追加（36 個）。key_hold の手書き `minus` も記号で揃える。key_hold の `minus` の送信エラーの見込みは未実測・範囲外。
-
-### キー置換の送信の Shift（task_01c）
-- 実機目視で、表示が `|` `_` でも Shift なしの物理キーが送られ `\` が出ると判明。
-- **採用（ユーザー判断 2026-11-09）**: 送信先が Shift の要る文字すべてで Shift 付きで送る（keyboard が返す先頭候補の修飾で判定・表は持たない）。既に Shift が押されていれば足さない。対象はキーマップの送信先のみ。既存の `exclam` 等の送信先は出る文字が変わる。

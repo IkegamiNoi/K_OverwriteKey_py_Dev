@@ -65,7 +65,6 @@ class FakeGateway:
             self.events.append(("guard_count", self.guard_probe()))
         if key in self.fail_release:
             raise RuntimeError(f"release failed: {key}")
-
         if key in self.fail_release_once:
             self.fail_release_once.remove(key)
             raise RuntimeError(f"release failed once: {key}")
