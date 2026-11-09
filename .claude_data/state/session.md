@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-10T00:34:44
+last_updated: 2026-11-10T01:29:42
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-support-4f08b3`。push はユーザー）。main へのマージはユーザー（PR は作らない）
@@ -16,29 +16,31 @@ mode: implementing
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-10T00:34:44
+ts: 2026-11-10T01:29:42
 who: main
 summary: |
-  実施: task_01 完了。`infrastructure/os_backend/`（`get_backend()`・`contracts.py`〔ImeBackend / Capabilities / OsBackend〕・`windows/backend.py`）を新設し、ime_control / own_ime_status を `windows/` へ移動。input_gateway と key_capture_ime は `get_backend().ime` 経由（infrastructure + presentation の境界）。IME の窓の引数はルートの Tk 窓（hwnd 変換は Windows 実装内）。AST の境界テストと Protocol の一致テストを追加。
+  実施: 段階 ①（task_01〜04）完了・各コミット済み（2f25838e / 6dda07b5 / e582b8dd / 146f1fe0）。OS 依存はすべて `infrastructure/os_backend/windows/` の裏へ移動し、AST の許可リストは空。`KeyCaptureHook` の `after` はディスパッチャ未対応（確認事項 2）。
   ユーザー判断: タスクの連続実行を許可（2026-11-10）。不在モード。
-  レビュー: codex-implementer（4 回に分けて完了・途中で止まる）/ reviewer 採用（参考指摘 3 件は未対応で可）。想定外の先行実装なし。
+  レビュー: 各タスク reviewer 採用 / 段階の区切り = Codex 敵対的 approve（指摘なし）・deep-reviewer「修正して採用」（M1〜M5 は next_action の確認事項）。想定外の先行実装なし。
 result_files:
   - keyseq/infrastructure/os_backend/
   - keyseq/infrastructure/input_gateway.py
-  - keyseq/presentation/key_capture_ime.py
-  - tests/test_os_backend_boundary.py
-  - tests/test_os_backend_contracts.py
-  - instructions/phase/75_mac_support/tasks/task_01_os_backend_skeleton_ime.md
+  - instructions/phase/75_mac_support/tasks/
 verified:
   compile: clean
-  tests: pass 1961（skip 7）
-  tests_ui: pass 1270（テストの最終修正の前に実行・その後は tests/ のみ変更）
+  tests: pass 1971（skip 7）
+  tests_ui: pass 1270（最終コミット 146f1fe0 で全件）
   smoke: pass
 
 ## next_action
-- `instructions/phase/75_mac_support/phase.md` の task_04 を `/task_new` で起票し（modal.py・tk_keys.py の `TkKeyTranslator`・action_dialog.py・ディスパッチャの注入・暫定 57 §3.2）、Codex へ委任する。完了時に `tests/test_os_backend_boundary.py` の許可リストを空にする
-- verifier で Windows の標準検証 4 種をゲートにする。件数を減らさない（基準 = tests 1967・tests_ui 1270）
-- 段階 ① の完了後、state を更新して push し、Mac に戻って task_05 から再開する
+- **【ユーザー確認 1】段階 ① の実機目視（Windows）**: `git` のブランチ `claude/phase-75-progress-d68f10` で起動し、IME オンの文字送信 / キーの取得 / キー置換とシーケンス / マウス操作とクリック位置の取得 / キーボードUIの常に手前 / カーソルグリッド / 言語の「今すぐ再起動」を確認する
+- **【ユーザー確認 2】deep-reviewer の指摘の採否**（推奨つき）:
+  - M1 フックスレッドの `after` が残る（`presentation/key_capture_hook.py:148→168`・実測済）→ 推奨 = task_08 の対象に明記（Windows の動作は変わらず、macOS のディスパッチャの実体と一緒に直す）
+  - M2 ディスパッチャの型では §5.1 の「捨てるときの復元」を渡せない（`hook_controller.py:26-34`）→ 推奨 = task_08 で暫定 57 と併せて改訂
+  - M3 フックの契約が Protocol に未記載（`os_backend/contracts.py:21-27`。イベントの必須属性・戻り値 False = 抑止等）→ 推奨 = 段階 ② の前に docstring を追記（小修正）
+  - M4 pyautogui / pynput / 再起動の実装が `windows/` にしかない（`windows/mouse_backend.py`・`windows/app_relaunch.py`）→ 推奨 = task_11・task_12 で OS 共通の置き場を決める
+  - M5 契約テストが module 先頭で `windows.backend` を import し macOS では収集時に落ちる（`tests/test_os_backend_contracts.py:13-17` ほか）→ 推奨 = task_05 で分離（§7）
+- 確認後: 採用分を反映し、state を更新して push（ユーザー）、Mac で task_05 から再開する（Mac の `.venv` は python.org 版 3.13 に作り直す）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 
 ## blockers

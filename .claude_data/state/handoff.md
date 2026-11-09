@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75（macOS 対応）起票済・実装未着手。次は Windows で段階 ①（task_01〜04）。**
-ブランチ `claude/mac-support-4f08b3`。push と main へのマージはユーザー（PR は作らない）。
+**phase 75（macOS 対応）段階 ①（task_01〜04）の実装完了。段階の区切りレビューと実機目視の待ち。**
+ブランチ `claude/phase-75-progress-d68f10`。push と main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 74 完了時 = 2026-11-09**）:
-compile **clean** / tests **1951 pass**（skip 7）/ tests_ui **1270 pass**（task_01c 時点）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1940〔phase 73〕→ 1951 / tests_ui: 1266 → 1270）。
+直近の実測（**phase 75 task_04 完了時 = 2026-11-10**）:
+compile **clean** / tests **1971 pass**（skip 7）/ tests_ui **1270 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1971 / tests_ui: 1270）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,8 +55,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- Windows で `phase.md` の task_01 を `/task_new` で起票し、task_01〜04 を実装エージェントへ委任する（暫定 57 §3）。**タスクごとに verifier で Windows の標準検証 4 種をゲートにする。件数を減らさない**
-- 段階 ① の完了後、state を更新して push し、Mac に戻って task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）
+- **【ユーザー確認 1】段階 ① の実機目視（Windows）**: IME オンの文字送信 / キーの取得 / キー置換とシーケンス / マウス操作とクリック位置の取得 / キーボードUIの常に手前 / カーソルグリッド / 言語の「今すぐ再起動」
+- **【ユーザー確認 2】deep-reviewer の指摘の採否**（推奨つき・詳細は session.md の next_action）: M1 `key_capture_hook.py:148→168` のフックスレッドの `after` → task_08 に明記 / M2 ディスパッチャの型 → task_08 で改訂 / M3 フックの契約の docstring → 段階 ② の前に追記 / M4 pyautogui 等の OS 共通の置き場 → task_11・12 / M5 契約テストの OS 非依存化 → task_05
+- 確認後: 採用分を反映し、state を更新して push（ユーザー）、Mac で task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
