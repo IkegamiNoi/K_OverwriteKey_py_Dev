@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
@@ -18,6 +18,19 @@ JIS_LAYOUT_PATH = (
 
 
 class KeyboardWindowScanCodeTest(unittest.TestCase):
+    def _record(self, key, shift_down):
+        callback = Mock(return_value=False)
+        window = SimpleNamespace(
+            _editing_source_key="source",
+            _on_assign_keymap=callback,
+        )
+        with patch(
+            "keyseq.presentation.keyboard_window.win32_window.is_shift_down",
+            return_value=shift_down,
+        ):
+            result = KeyboardWindow._record_key(window, key)
+        return result, callback
+
     def _normalize(self, layout, keysym, keycode, scan_code, state=0):
         event = SimpleNamespace(keysym=keysym, keycode=keycode, state=state)
         window = SimpleNamespace(_layout=layout)
@@ -93,6 +106,26 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         insert_convert.assert_called_once_with(45)
         self.assertEqual(numpad_zero, "num 0")
         numpad_convert.assert_not_called()
+
+    def test_shifted_jis_symbols_are_recorded_as_shifted_names(self):
+        for key, expected in (("yen", "bar"), ("ro", "underscore")):
+            with self.subTest(key=key):
+                result, callback = self._record(key, True)
+                callback.assert_called_once_with("source", expected)
+                self.assertEqual(result, "break")
+
+    def test_unshifted_jis_symbols_keep_their_names(self):
+        for key in ("yen", "ro"):
+            with self.subTest(key=key):
+                result, callback = self._record(key, False)
+                callback.assert_called_once_with("source", key)
+                self.assertEqual(result, "break")
+
+    def test_shift_does_not_change_other_key_names(self):
+        result, callback = self._record("a", True)
+
+        callback.assert_called_once_with("source", "a")
+        self.assertEqual(result, "break")
 
 
 if __name__ == "__main__":

@@ -59,6 +59,7 @@ _LOOKUP_KEY_BY_ID = {
     "semicolon": ";",
     "quote": "'",
 }
+_SHIFTED_TARGET_NAMES = {"yen": "bar", "ro": "underscore"}
 
 
 def keyboard_window_title(layout_name: str, editing_key: str | None) -> str:
@@ -617,6 +618,9 @@ class KeyboardWindow(tk.Toplevel):
             return "break"
         if not key:
             return "break"
+
+        if key in _SHIFTED_TARGET_NAMES and win32_window.is_shift_down():
+            key = _SHIFTED_TARGET_NAMES[key]
 
         callback = self._on_assign_keymap
         if callable(callback):

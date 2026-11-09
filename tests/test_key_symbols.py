@@ -15,9 +15,9 @@ class DisplayKeyNameTests(unittest.TestCase):
             "exclam": "!", "quotedbl": '"', "numbersign": "#", "dollar": "$",
             "percent": "%", "ampersand": "&", "parenleft": "(",
             "parenright": ")", "braceleft": "{", "braceright": "}",
-            "yen": "¥", "ro": "\\",
+            "yen": "¥", "ro": "\\", "minus": "-",
         }
-        self.assertEqual(len(KEY_SYMBOLS), 35)
+        self.assertEqual(len(KEY_SYMBOLS), 36)
         self.assertEqual(KEY_SYMBOLS, expected)
         for name, symbol in expected.items():
             with self.subTest(name=name):

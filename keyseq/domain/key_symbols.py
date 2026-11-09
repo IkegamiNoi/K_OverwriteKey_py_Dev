@@ -3,6 +3,7 @@
 KEY_SYMBOLS: dict[str, str] = {
     "backslash": "\\",
     "slash": "/",
+    "minus": "-",
     "semicolon": ";",
     "comma": ",",
     "period": ".",

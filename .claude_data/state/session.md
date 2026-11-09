@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T01:13:00
+last_updated: 2026-11-09T12:00:00
 phase: instructions/phase/74_key_symbol_display。次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
 last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 74（記号キーのキー名の表示）task_01 完了・task_02（統合確認と実機目視）へ。** 直接改訂モード・JSON スキーマ不変。
+focus: **phase 74（記号キーのキー名の表示）task_01・task_01b 完了・task_02（ユーザーの実機目視と記録）待ち。** 直接改訂モード・JSON スキーマ不変。
 mode: implementing
 
 ## last_action
@@ -22,8 +22,8 @@ summary: |
 verified:
   compile: pass
   tests: pass（1944・skip 7）
-  tests_ui: not_run（test_keyboard_key_text 4 件 pass）
-  smoke: not_run
+  tests_ui: pass（1270）
+  smoke: pass
 
 ## next_action
 - phase 74 task_02: verifier で統合確認（tests_ui 全体・smoke）→ 二次レビュー（deep-reviewer + codex-adversarial-reviewer）→ ユーザーの実機目視（キーボードUIの枠の記号表示）→ codebase_map・decisions_archive/74・current.md・/refactor_check

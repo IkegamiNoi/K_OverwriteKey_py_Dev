@@ -29,7 +29,7 @@ ALLOWLIST = [
 ALLOWLIST += [("keyseq/domain/screen_grid/normalize.py", "_top_layout_with_reason", "比率が不正です", "警告ログ専用。normalize_grid の logger.warning にだけ渡る") for _ in range(3)]
 ALLOWLIST += [("keyseq/infrastructure/win32_window.py", "<module>", value, "ログ専用。_log_once → _logger.exception") for value in [
     "AppUserModelID の設定に失敗しました", "前面ウィンドウのプロセス判定に失敗しました", "前面ウィンドウ HWND の取得に失敗しました",
-    "ウィンドウ位置の変更に失敗しました", "マウスボタン状態の取得に失敗しました", "モニター領域の列挙に失敗しました",
+    "ウィンドウ位置の変更に失敗しました", "マウスボタン状態の取得に失敗しました", "Shift キー状態の取得に失敗しました", "モニター領域の列挙に失敗しました",
     "仮想キーコードからスキャンコードへの変換に失敗しました", "仮想キーコードから文字への変換に失敗しました", "クリック透過ウィンドウの設定に失敗しました"]]
 ALLOWLIST += [("keyseq/presentation/dialogs/grid_editor_window.py", "__init__", "編集できる画面がありません", "プログラム側の例外・画面に出ない")]
 ALLOWLIST += [("keyseq/presentation/help/help_content.py", "find_text_issues", value, "出荷前の文字検査・テストからだけ呼ばれる") for value in [

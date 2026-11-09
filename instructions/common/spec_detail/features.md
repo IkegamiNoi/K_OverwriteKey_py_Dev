@@ -747,7 +747,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   * 読込: 無い・`null` → 空 / object でなければ読込エラー / 値が文字列でなければ読込エラー / キーはキー名の正規化をして持つ（空になるキーは読込エラー）/ 正規化後に重なるキーは後に書いた方 / 値の空文字は表に無いものとして扱う
 * **記号キーのキー名の表示**（phase 74）: 記号キーの単語のキー名を、画面では記号で表示する。**保存する名前は変えない**（表示のときだけ変換する）。表は全言語・全レイアウトで共通（翻訳の対象にしない）。表に無いキー名はそのまま出す
   * 使う箇所: キーボードUIのキー置換の枠（`key_display_names` が優先）・トリガー一覧（`01. |: ラベル`）・出力シーケンス一覧の key_hold（`[press] |`）。**hotkey の一覧と入力欄は今のキー名のまま**（`+` は hotkey の区切りのため）。トリガー一覧と key_hold の一覧には `key_display_names` を使わない
-  * 表: `backslash` `\` / `slash` `/` / `semicolon` `;` / `comma` `,` / `period` `.` / `equal` `=` / `grave`・`quoteleft` `` ` `` / `apostrophe`・`quoteright` `'` / `bracketleft` `[` / `bracketright` `]` / `at` `@` / `asciicircum` `^` / `bar` `|` / `underscore` `_` / `plus` `+` / `asterisk` `*` / `colon` `:` / `less` `<` / `greater` `>` / `question` `?` / `asciitilde` `~` / `exclam` `!` / `quotedbl` `"` / `numbersign` `#` / `dollar` `$` / `percent` `%` / `ampersand` `&` / `parenleft` `(` / `parenright` `)` / `braceleft` `{` / `braceright` `}` / `yen` `¥` / `ro` `\`
+  * 表: `backslash` `\` / `slash` `/` / `minus` `-` / `semicolon` `;` / `comma` `,` / `period` `.` / `equal` `=` / `grave`・`quoteleft` `` ` `` / `apostrophe`・`quoteright` `'` / `bracketleft` `[` / `bracketright` `]` / `at` `@` / `asciicircum` `^` / `bar` `|` / `underscore` `_` / `plus` `+` / `asterisk` `*` / `colon` `:` / `less` `<` / `greater` `>` / `question` `?` / `asciitilde` `~` / `exclam` `!` / `quotedbl` `"` / `numbersign` `#` / `dollar` `$` / `percent` `%` / `ampersand` `&` / `parenleft` `(` / `parenright` `)` / `braceleft` `{` / `braceright` `}` / `yen` `¥` / `ro` `\`
   * 配列固有のキーの表示はレイアウトの `key_display_names` に書く（内蔵の表には多くの配列で共通のキー名と標準の JIS のキー名だけを置く）
 
 #### 一覧の表示形式

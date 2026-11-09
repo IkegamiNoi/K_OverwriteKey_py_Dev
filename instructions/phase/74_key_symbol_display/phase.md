@@ -43,6 +43,7 @@
 ## タスク
 
 - task_01: 変換の表と 3 箇所への適用・テスト
+- task_01b: キーボードUIの置換先の Shift+¥ / Shift+ろ を `bar` / `underscore` で保存（ユーザー判断 2026-11-09・実機目視で判明）+ 表に `minus` を追加（36 個）
 - task_02: 統合確認・実機目視・記録（`codebase_map.md`・`decisions_archive/74`・`current.md`・`/refactor_check`）
 
 ## レビュー方針
