@@ -16,6 +16,11 @@ _logged_errors: set[str] = set()
 
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
+VK_SHIFT = 0x10
+VK_CONTROL = 0x11
+VK_MENU = 0x12
+VK_LWIN = 0x5B
+VK_RWIN = 0x5C
 SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
 SWP_NOACTIVATE = 0x0010
@@ -63,6 +68,8 @@ _ERROR_MESSAGES = {
     "foreground_window": "前面ウィンドウ HWND の取得に失敗しました",
     "place_window_below": "ウィンドウ位置の変更に失敗しました",
     "mouse_button": "マウスボタン状態の取得に失敗しました",
+    "shift_key": "Shift キー状態の取得に失敗しました",
+    "modifier_keys": "Modifier key state query failed",
     "monitor_rects": "モニター領域の列挙に失敗しました",
     "scan_code": "仮想キーコードからスキャンコードへの変換に失敗しました",
     "vk_char": "仮想キーコードから文字への変換に失敗しました",
@@ -278,3 +285,28 @@ def is_mouse_button_down() -> bool:
         )
 
     return _guarded("mouse_button", False, check)
+
+
+def is_shift_down() -> bool:
+    """Return whether the Shift key is held down."""
+    def check() -> bool:
+        get_async_key_state = _user32(
+            "GetAsyncKeyState", (ctypes.c_int,), ctypes.c_short
+        )
+        return bool(get_async_key_state(VK_SHIFT) & _KEY_DOWN)
+
+    return _guarded("shift_key", False, check)
+
+
+def is_ctrl_alt_win_down() -> bool:
+    """Return whether Ctrl, Alt, or a Windows key is held down."""
+    def check() -> bool:
+        get_async_key_state = _user32(
+            "GetAsyncKeyState", (ctypes.c_int,), ctypes.c_short
+        )
+        return any(
+            get_async_key_state(key) & _KEY_DOWN
+            for key in (VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN)
+        )
+
+    return _guarded("modifier_keys", False, check)

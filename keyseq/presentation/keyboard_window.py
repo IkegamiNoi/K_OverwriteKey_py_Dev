@@ -8,6 +8,7 @@ from typing import Callable
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.numpad_keys import is_numpad_key_name
@@ -58,6 +59,7 @@ _LOOKUP_KEY_BY_ID = {
     "semicolon": ";",
     "quote": "'",
 }
+_SHIFTED_TARGET_NAMES = {"yen": "bar", "ro": "underscore"}
 
 
 def keyboard_window_title(layout_name: str, editing_key: str | None) -> str:
@@ -461,7 +463,7 @@ class KeyboardWindow(tk.Toplevel):
             lookup_key = _LOOKUP_KEY_BY_ID.get(spec.id, spec.id)
             display = self._display_map.get(lookup_key, spec.label)
             if self._kind_map.get(lookup_key) == "keymap":
-                display = self._layout.key_display_name(display) or display
+                display = self._layout.key_display_name(display) or display_key_name(display)
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
             if kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key):
@@ -616,6 +618,9 @@ class KeyboardWindow(tk.Toplevel):
             return "break"
         if not key:
             return "break"
+
+        if key in _SHIFTED_TARGET_NAMES and win32_window.is_shift_down():
+            key = _SHIFTED_TARGET_NAMES[key]
 
         callback = self._on_assign_keymap
         if callable(callback):

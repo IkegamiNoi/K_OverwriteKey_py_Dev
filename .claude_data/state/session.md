@@ -4,31 +4,29 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T01:13:00
-phase: なし（アクティブなフェーズなし）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
-直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
-last_commit_location: `claude/cool-perlman-b117fd`（phase 73 の実装は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
+last_updated: 2026-11-09T12:00:00
+phase: なし（phase 74 完了）。次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57
+直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
+last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ外の不具合「プリセットが編集画面を開くまで表示されない」を修正済み（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-mode: completed
+focus: **phase 74 完了（2026-11-09）。アクティブなフェーズなし。**
+mode: idle
 
 ## last_action
 ts: 2026-11-09T01:13:00
 who: main
 summary: |
-  原因 = 空データ起動（E4・`startup_io.py:39`）で `new_empty_data()` がプリセットを `[]` にし（`config_service/__init__.py:88`）、共通プリセットが読めないと `apply_global_defaults` が置き換えない（同 `:588`）。アクション編集のボタン（`action_dialog.py:618`）は 0 件、編集画面だけ既定 8 件を表示し（`preset_manager.py:185,257`）OK で保存されて直る。
-  再現 = 一時フォルダで本体 0 件 / 編集画面 8 件（報告時の環境そのものは未確認。メインの config では起きない経路）。
-  ユーザー判断 = A（E4 も既定プリセットに・正本 §5.10.4 改訂）。`new_empty_data` の `[]` を削除・テスト 2 件追加（codex-implementer）。reviewer 採用。実機目視は未実施。
+  phase 74 完了。task_01〜01d（表示・置換先の記録・送信の Shift・修飾キーの条件）。実機目視 OK・deep-reviewer + Codex 敵対的レビューの採否はユーザー判断どおり・refactor_check 不要。
 verified:
   compile: pass
-  tests: pass（1942・skip 7）
-  tests_ui: pass（1266。テストの import の 1 行を直す前の実測）
+  tests: pass（1951・skip 7）
+  tests_ui: pass（1270）
   smoke: pass
 
 ## next_action
-- ブランチ `claude/cool-perlman-b117fd` の main へのマージ（ユーザー）
+- phase 74 は完了。ブランチ `claude/gracious-brahmagupta-2e05b1` の main へのマージ（ユーザー）
 - ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 

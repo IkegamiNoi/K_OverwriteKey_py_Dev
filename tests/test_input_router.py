@@ -246,8 +246,7 @@ class InputRouterTest(unittest.TestCase):
 
         executor.execute_router_action(route.actions[0])
 
-        gateway.press_key.assert_called_once_with("b")
-        gateway.release_key.assert_called_once_with("b")
+        gateway.send_mapped_key.assert_called_once_with("b")
 
     def test_duplicate_key_uses_first_row_and_empty_first_row_falls_through(self):
         first = {"key": "a", "suppress": True, "actions": []}

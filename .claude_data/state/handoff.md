@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 73 = 初回起動の Welcome とサンプルの作り直しは 2026-11-09 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
-   次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 74 = 記号キーのキー名の表示は 2026-11-09 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
+   次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**フェーズ外の不具合「プリセットが編集画面を開くまで表示されない」を修正済み（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-ブランチ `claude/cool-perlman-b117fd`（phase 73 の実装は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
+**phase 74 完了（2026-11-09）。** 記号キーのキー名の表示（表 36 個）・キーボードUIの置換先の Shift+¥ / Shift+ろ の保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
+ブランチ `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 73 完了時 = 2026-11-09**）:
-compile **clean** / tests **1942 pass**（skip 7・phase 73 後の不具合修正で +2）/ tests_ui **1266 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1909〔phase 72〕→ 1942 / tests_ui: 1238 → 1266）。
+直近の実測（**phase 74 完了時 = 2026-11-09**）:
+compile **clean** / tests **1951 pass**（skip 7）/ tests_ui **1270 pass**（task_01c 時点）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1940〔phase 73〕→ 1951 / tests_ui: 1266 → 1270）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,14 +55,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ブランチ `claude/cool-perlman-b117fd` の main へのマージ（ユーザー）
+- ブランチ `claude/gracious-brahmagupta-2e05b1` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 
-## 直前のフェーズ（phase 73 = 初回起動の Welcome とサンプルの作り直し・判断は `decisions_archive/73_welcome_first_launch.md`）
-- 正本 = `features.md` §4.6 Welcome / `data_schema.md` §5.14 / `ui_terms.md` / 地図 = `codebase_map.md`
-- **tests_ui の App() は worktree の `config/config.json`（手元の設定・gitignore）を読む**ので結果が手元の設定に左右される
-- 画面の文言は `tr` を使い `ja.json` / `en.json` の両方へ（詳細は session.md の resume_hints）
+## 直前のフェーズ（phase 74 = 記号キーのキー名の表示・判断は `decisions_archive/74_key_symbol_display.md`。以下は phase 72 までの罠）
+- 正本 = `features.md` §4.6「言語」「一覧の表示形式」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1〜§3 / `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」
+- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
+- **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
+- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
+- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
 
 ## 運用インフラ
 

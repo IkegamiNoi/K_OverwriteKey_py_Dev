@@ -7,10 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**。次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）。
-  **次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = 初回の案内とサンプル設定（Welcome・`config/sample/`）。残件 = 報告された不具合 2 件（プリセットが編集で開くまで表示されない / キー名の記号表記）は phase 73 の対象外。
-- 直前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
+- **アクティブなフェーズ = なし**（次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
+  **次採番 = phase 75 / 暫定 57 / decisions 75 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
+- 直近の一連の作業の領域 = キーの記号の表示とキー置換の送信（`domain/key_symbols.py`・`InputGateway.send_mapped_key`）。残件 = プリセットが編集で開くまで表示されない不具合は別セッション。
+- 直前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
 - その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
 - その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
   [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。

@@ -83,6 +83,7 @@
 | 71_taskbar_status_icon | [71_taskbar_status_icon.md](decisions_archive/71_taskbar_status_icon.md) | タスクバーのアイコンで状態を表示（2026-11-01 完了・暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・新規依存なし）。窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID（設定しないとタスクバーに出ない）。refactor_check: 不要（M4・M6 の境界事例を別タスク化候補へ） |
 | 72_multilingual_ui | [72_multilingual_ui.md](decisions_archive/72_multilingual_ui.md) | 画面の文言の多言語対応（2026-11-04 完了・暫定仕様先行モード〔暫定 55 v0.7 凍結〕・JSON スキーマ = config.json の任意キー `ui_language`〔無いときは英語〕・新規依存なし）。日英・メニュー「Language」で選び次回起動から反映（「今すぐ再起動」可）・`keyseq/shared/i18n/` の文言ファイル・訳不足は英語・一覧は置いたファイルから・全層の約 1,330 リテラルをキー化（日本語は不変）・英語の表記 E1〜E7（機能名は大文字）・一覧の行頭の印は全言語共通の英語。3 言語目以降は idea_56。保留 D5・D6。refactor_check: 不要（M5 なし / 境界 = `save_keymap_set_to` 80 → 約 90 行・`action_dialog.py` 643 行〔純増 46〕→ current.md「別タスク化候補」）|
 | 73_welcome_first_launch | [73_welcome_first_launch.md](decisions_archive/73_welcome_first_launch.md) | 初回起動の Welcome とサンプルの作り直し（2026-11-09 完了・暫定 56 v0.7 凍結） |
+| 74_key_symbol_display | [74_key_symbol_display.md](decisions_archive/74_key_symbol_display.md) | 記号キーのキー名の表示（2026-11-09 完了・直接改訂）。表示の表 36 個・キーボードUIの置換先で Shift+¥ / Shift+ろ を `bar` / `underscore` で保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
