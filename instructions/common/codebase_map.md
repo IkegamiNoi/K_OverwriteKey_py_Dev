@@ -811,7 +811,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - タイマー: `application/key_repeat.py` の `KeyRepeater`（対象は高々 1 つ・世代番号で古い予約を捨てる・`pause_for_text` / `resume_after_text`・`begin_suppress` / `end_suppress` の入れ子）。
     `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）。送信の callback は `send(identity, key)`（phase 65・key は表示・エラー用）
   - 連携: `HeldInputs`（押す・離す・自動の解放・`suspend_keyboard` の前で止める・`_send_repeat` / `_repeat_failed`・`on_repeat_error`）/ `ActionExecutor`（key_hold で `is_repeat_enabled` を渡す・hotkey・直接置換の前に `stop_repeat_for_keys`）
-  - OS の設定: `infrastructure/input_gateway.py` のモジュール関数 `keyboard_repeat_timing`（換算・既定値）
+  - OS の設定: `infrastructure/input_gateway.py` のモジュール関数 `keyboard_repeat_timing` → `get_backend().keyboard.repeat_timing()`（換算・既定値は `infrastructure/os_backend/windows/keyboard_backend.py`）
   - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
   - テスト: `tests/test_key_repeat.py` / `test_held_inputs_repeat.py` / `test_input_gateway_repeat.py` / `test_key_hold.py` / `test_action_executor_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_key_hold_presentation.py`
 - phase 53（アプリの窓が前面のときはキーリピートしない。仕様 = `features.md` §4.2.12「キーリピート」/ `key_input.md` §7.7。判断 = `decisions_archive/53_repeat_stop_on_own_foreground.md`）:
@@ -820,7 +820,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
   - 名前の表と入力の名前: `domain/numpad_keys.py`（16 名 ↔ スキャンコード + 拡張・`numpad_name_from_event(scan_code, is_keypad)`・予約名 `is_reserved_numpad_name`）。`application/input_router.py` と `key_state_manager.py` の `_extract_key_name` が最初に使い、テンキーでないイベントではレイアウトの表の名前を捨てる
-  - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕→ レイアウトの `scan_code`〔phase 62〕）
+  - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否）→ `os_backend/windows/keyboard_backend.py`（`press_key`・`release_key`・`send_hotkey` の送信先は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕→ レイアウトの `scan_code`〔phase 62〕）
   - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1キーを記録」・トリガー / 切替キー / 停止キーの記録・`keyboard_window.py` の置換先キーの記録から呼ぶ）
   - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
 - phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
@@ -871,11 +871,14 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
+- OS 非依存の窓口は `InputGateway`。フック・キー解決・送信・同じキーの判定・Shift 要否・リピート設定は `get_backend().keyboard` → `os_backend/windows/keyboard_backend.py` の `WindowsKeyboardBackend`。拡張キーの表と `_needs_shift`・`_send_numpad_event` も同モジュールにある。
+- `KeySend`（不変・kind / values は backend だけが解釈する不透明な値）と `KeyboardBackend` / `MouseBackend` の契約は `os_backend/contracts.py`。`SendInput` の構造体と API は `windows/send_input.py`。`App.__init__` は pyautogui による DPI aware の設定を Tk の最初の窓より前に行うため、`super().__init__()` より前に backend を取得する。
+
 - 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` /キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
-- **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `_resolve_key` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に種類と値を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。
+- **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `WindowsKeyboardBackend.resolve_send` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に `KeySend` を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。
   **送り方の値**（phase 65）: `resolve_send(key) -> KeySend`（不変の dataclass・種類・値・キー名）と `press_send` / `release_send` / `identity_of(send)` を公開し、`press_key` / `release_key` / `key_identity` はこれらで書く（挙動は不変・keyboard の種類はキー名で送る）。`HeldInputs` が記録に持ち、押したときの送り方で送り直す。レイアウトのキーは `_send_numpad_event(scan, False, ...)` で送る。`send_hotkey` は全キーが keyboard のときだけ `keyboard.send`
 - **Windows の拡張キー**（矢印・Home・End・PageUp/PageDown・Insert・Delete・右 Ctrl / 右 Alt・Windows・menu・PrintScreen・NumLock）は、
-  ファイル内の表（正規化後のキー名 → 仮想キー / スキャンコード）で解決し、`user32.keybd_event` に KEYEVENTF_EXTENDEDKEY を付けて送る
+  `windows/keyboard_backend.py` 内の表（正規化後のキー名 → 仮想キー / スキャンコード）で解決し、`user32.keybd_event` に KEYEVENTF_EXTENDEDKEY を付けて送る
   （`keyboard` ライブラリは拡張フラグを付けないため、`shift+right` 等がテンキー扱いになり範囲選択にならない。仕様は `spec_detail/key_input.md` §7.7）。
   名前の正規化は公開 API の `keyboard.normalize_name`（別名 `pgup` / `del` / `apps` / `win` 等）。
 - `send_hotkey`: 要素に拡張キーもテンキーの名前（`key_input.md` §7.8・phase 54）も無ければ従来どおり `keyboard.send(hotkey)`。含む場合は要素を記述順に押して逆順に離し、途中の例外でも押したキーを逆順に離してから再送出する。
@@ -889,6 +892,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   Win32 の失敗は `logging` に記録して送信だけ続ける。Win32 呼び出し（`_Win32ImeApi`）・タイマー・時計は差し替え可能（`tests/test_ime_control.py` / `tests_ui/test_app_ime_shutdown.py`）。
 
 ### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
+
+- `InputGateway` のマウス系公開メソッドは `get_backend().mouse` へ委譲する。以下の実体は `os_backend/windows/mouse_backend.py` の `WindowsMouseBackend`（ホイールの `_build_wheel_inputs` も同モジュール）。
 
 - 呼び出し元は `ActionExecutor._execute_mouse_click`（`mouse_click` アクション）と、ホイールの `_execute_mouse_scroll`（下の phase 67 の項）。**send guard には入らない**
   （フックはキーボードのみで自己受信しないため。仕様は `spec_detail/data_schema.md` §5.11.2）。

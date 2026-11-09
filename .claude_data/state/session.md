@@ -11,7 +11,7 @@ last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-suppor
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75（macOS 対応）段階 ① を実装中。task_01・02 完了・次は task_03（input_gateway の KeyboardBackend / MouseBackend への分解）。**
+focus: **phase 75（macOS 対応）段階 ① を実装中。task_01〜03 完了・次は task_04（presentation の切替 = modal.py / tk_keys.py / action_dialog.py / ディスパッチャ）。**
 mode: implementing
 presence: away（戻る予定 未定）
 
@@ -36,8 +36,8 @@ verified:
   smoke: pass
 
 ## next_action
-- `instructions/phase/75_mac_support/phase.md` の task_03 を `/task_new` で起票し（`input_gateway` の `KeyboardBackend` / `MouseBackend` への分解・暫定 57 §3.2）、`codex-delegating-implementer` へ委任する。完了時に `tests/test_os_backend_boundary.py` の許可リストから `input_gateway` の 2 項目を消す
-- task_03・04 はタスクごとに verifier で Windows の標準検証 4 種（compile / tests / tests_ui / smoke）をゲートにする。件数を減らさない（基準 = tests 1965・tests_ui 1270）
+- `instructions/phase/75_mac_support/phase.md` の task_04 を `/task_new` で起票し（modal.py・tk_keys.py の `TkKeyTranslator`・action_dialog.py・ディスパッチャの注入・暫定 57 §3.2）、Codex へ委任する。完了時に `tests/test_os_backend_boundary.py` の許可リストを空にする
+- verifier で Windows の標準検証 4 種をゲートにする。件数を減らさない（基準 = tests 1967・tests_ui 1270）
 - 段階 ① の完了後、state を更新して push し、Mac に戻って task_05 から再開する
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 

@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 from keyseq.infrastructure.os_backend.contracts import Capabilities, OsBackend
 from keyseq.infrastructure.os_backend.windows import app_relaunch, ime_control, own_ime_status, win32_window
+from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
+from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
 
 if TYPE_CHECKING:
     import tkinter
@@ -86,4 +88,5 @@ def create_backend() -> OsBackend:
     return OsBackend(
         Capabilities(True, True, True, True), WindowsImeBackend(),
         WindowsWindowBackend(), WindowsTkKeyTranslator(), WindowsAppIdentity(),
+        WindowsKeyboardBackend(), WindowsMouseBackend(),
     )

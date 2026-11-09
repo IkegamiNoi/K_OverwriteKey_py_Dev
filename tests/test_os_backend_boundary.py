@@ -8,8 +8,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_INIT = "infrastructure/os_backend/__init__.py"
 ALLOWLIST = {
-    ("infrastructure/input_gateway.py", "platform"),
-    ("infrastructure/input_gateway.py", "windows_import"),
     ("presentation/modal.py", "windows_import"),
 }
 WINDOW_IMPORTS = {"ctypes", "winreg", "msvcrt", "keyboard"}

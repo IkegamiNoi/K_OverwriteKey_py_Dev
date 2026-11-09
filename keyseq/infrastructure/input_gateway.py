@@ -1,225 +1,19 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-import ctypes
 import logging
-import sys
-from dataclasses import dataclass
-from ctypes import wintypes
-from functools import cache
 from typing import Callable, Sequence
 
-import keyboard
-import pyautogui
-
-from keyseq.domain.numpad_keys import (
-    is_numpad_key_name,
-    is_reserved_numpad_name,
-    numpad_key_spec,
-)
-from keyseq.infrastructure.os_backend import get_backend
+from keyseq.domain.numpad_keys import is_numpad_key_name, is_reserved_numpad_name
+from keyseq.infrastructure.os_backend import KeySend, get_backend
 from keyseq.shared.i18n import tr
 
 
 _logger = logging.getLogger(__name__)
 
 
-_EXTENDED_KEYS = {
-    "up": (0x26, 0x48),
-    "down": (0x28, 0x50),
-    "left": (0x25, 0x4B),
-    "right": (0x27, 0x4D),
-    "home": (0x24, 0x47),
-    "end": (0x23, 0x4F),
-    "page up": (0x21, 0x49),
-    "page down": (0x22, 0x51),
-    "insert": (0x2D, 0x52),
-    "delete": (0x2E, 0x53),
-    "right ctrl": (0xA3, 0x1D),
-    "right alt": (0xA5, 0x38),
-    "windows": (0x5B, 0x5B),
-    "left windows": (0x5B, 0x5B),
-    "right windows": (0x5C, 0x5C),
-    "menu": (0x5D, 0x5D),
-    "print screen": (0x2C, 0x37),
-    "num lock": (0x90, 0x45),
-}
-_KEYEVENTF_EXTENDEDKEY = 0x0001
-_KEYEVENTF_KEYUP = 0x0002
-_KEYEVENTF_SCANCODE = 0x0008
-_INPUT_KEYBOARD = 1
-_INPUT_MOUSE = 0
-_MOUSEEVENTF_WHEEL = 0x0800
-_MOUSEEVENTF_HWHEEL = 0x1000
-_SPI_GETKEYBOARDSPEED = 0x000A
-_SPI_GETKEYBOARDDELAY = 0x0016
-_DEFAULT_REPEAT_DELAY_MS = 500
-_DEFAULT_REPEAT_INTERVAL_MS = 33
-
-
-def _needs_shift(key: str) -> bool:
-    try:
-        name = keyboard.normalize_name(key)
-        _scan_code, modifiers = next(iter(keyboard._os_keyboard.map_name(name)))
-        return tuple(modifiers) == ("shift",)
-    except Exception:
-        return False
-
-
-class _KEYBDINPUT(ctypes.Structure):
-    _fields_ = [
-        ("wVk", wintypes.WORD),
-        ("wScan", wintypes.WORD),
-        ("dwFlags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.c_size_t),
-    ]
-
-
-class _MOUSEINPUT(ctypes.Structure):
-    _fields_ = [
-        ("dx", wintypes.LONG),
-        ("dy", wintypes.LONG),
-        ("mouseData", wintypes.DWORD),
-        ("dwFlags", wintypes.DWORD),
-        ("time", wintypes.DWORD),
-        ("dwExtraInfo", ctypes.c_size_t),
-    ]
-
-
-class _INPUT_UNION(ctypes.Union):
-    _fields_ = [("ki", _KEYBDINPUT), ("mi", _MOUSEINPUT)]
-
-
-class _INPUT(ctypes.Structure):
-    _anonymous_ = ("union",)
-    _fields_ = [("type", wintypes.DWORD), ("union", _INPUT_UNION)]
-
-
-@dataclass(frozen=True)
-class KeySend:
-    kind: str
-    values: tuple[int, ...]
-    key: str
-
-
-def repeat_delay_ms(value: int) -> int | None:
-    """Windows のキーボード待ち設定をミリ秒へ換算する。"""
-    if not 0 <= value <= 3:
-        return None
-    return 250 * (value + 1)
-
-
-def repeat_interval_ms(value: int) -> int | None:
-    """Windows のキーボード間隔設定をミリ秒へ換算する。"""
-    if not 0 <= value <= 31:
-        return None
-    return round(1000 / (2.5 + value * 27.5 / 31))
-
-
-def _read_keyboard_setting(action: int, value_type) -> int | None:
-    try:
-        value = value_type()
-        succeeded = ctypes.windll.user32.SystemParametersInfoW(
-            action, 0, ctypes.byref(value), 0
-        )
-        return int(value.value) if succeeded else None
-    except Exception:
-        return None
-
-
 def keyboard_repeat_timing() -> tuple[int, int]:
     """OS のキーリピート待ち時間と間隔をミリ秒で返す。"""
-    if sys.platform != "win32":
-        return _DEFAULT_REPEAT_DELAY_MS, _DEFAULT_REPEAT_INTERVAL_MS
-
-    delay_value = _read_keyboard_setting(_SPI_GETKEYBOARDDELAY, wintypes.UINT)
-    interval_value = _read_keyboard_setting(_SPI_GETKEYBOARDSPEED, wintypes.DWORD)
-    delay = repeat_delay_ms(delay_value) if delay_value is not None else None
-    interval = repeat_interval_ms(interval_value) if interval_value is not None else None
-    return (
-        delay if delay is not None else _DEFAULT_REPEAT_DELAY_MS,
-        interval if interval is not None else _DEFAULT_REPEAT_INTERVAL_MS,
-    )
-
-
-def _resolve_extended_key(name: str) -> tuple[int, int] | None:
-    try:
-        normalized = keyboard.normalize_name(name.strip())
-    except Exception:
-        return None
-    return _EXTENDED_KEYS.get(normalized)
-
-
-def _send_extended_event(vk: int, scan: int, key_up: bool) -> None:
-    flags = _KEYEVENTF_EXTENDEDKEY | (_KEYEVENTF_KEYUP if key_up else 0)
-    try:
-        listener = keyboard._listener
-        previous_replaying = listener.is_replaying
-    except AttributeError:
-        ctypes.windll.user32.keybd_event(vk, scan, flags, 0)
-        return
-
-    listener.is_replaying = True
-    try:
-        ctypes.windll.user32.keybd_event(vk, scan, flags, 0)
-    finally:
-        listener.is_replaying = previous_replaying
-
-
-@cache
-def _send_input_api():
-    """専用 user32 インスタンスから SendInput を取得する。"""
-    user32 = ctypes.WinDLL("user32", use_last_error=True)
-    send_input = user32.SendInput
-    send_input.argtypes = [
-        wintypes.UINT, ctypes.POINTER(_INPUT), ctypes.c_int,
-    ]
-    send_input.restype = wintypes.UINT
-    return send_input
-
-
-def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
-    flags = _KEYEVENTF_SCANCODE
-    if extended:
-        flags |= _KEYEVENTF_EXTENDEDKEY
-    if key_up:
-        flags |= _KEYEVENTF_KEYUP
-    event = _INPUT(
-        type=_INPUT_KEYBOARD,
-        ki=_KEYBDINPUT(wVk=0, wScan=scan, dwFlags=flags, time=0, dwExtraInfo=0),
-    )
-
-    def send() -> None:
-        if _send_input_api()(1, ctypes.byref(event), ctypes.sizeof(_INPUT)) != 1:
-            error_code = ctypes.get_last_error()
-            raise OSError(error_code, "SendInput failed")
-
-    try:
-        listener = keyboard._listener
-        previous_replaying = listener.is_replaying
-    except AttributeError:
-        send()
-        return
-
-    listener.is_replaying = True
-    try:
-        send()
-    finally:
-        listener.is_replaying = previous_replaying
-
-
-def _build_wheel_inputs(vertical: bool, deltas: Sequence[int]) -> tuple[_INPUT, ...]:
-    flags = _MOUSEEVENTF_WHEEL if vertical else _MOUSEEVENTF_HWHEEL
-    return tuple(
-        _INPUT(
-            type=_INPUT_MOUSE,
-            mi=_MOUSEINPUT(
-                dx=0, dy=0, mouseData=delta & 0xFFFFFFFF,
-                dwFlags=flags, time=0, dwExtraInfo=0,
-            ),
-        )
-        for delta in deltas
-    )
+    return get_backend().keyboard.repeat_timing()
 
 
 class InputGateway:
@@ -230,45 +24,13 @@ class InputGateway:
     ) -> None:
         self._resolve_layout_scan_code = resolve_layout_scan_code
 
-    def _resolve_key(self, key: str) -> tuple[str, tuple[int, ...]]:
-        numpad = numpad_key_spec(key)
-        if numpad is not None:
-            return "numpad", (numpad[0], int(numpad[1]))
-        extended = _resolve_extended_key(key)
-        if extended is not None:
-            return "extended", extended
-        try:
-            scan_codes = tuple(keyboard.key_to_scan_codes(key))
-        except Exception:
-            scan_codes = ()
-        if scan_codes:
-            return "keyboard", scan_codes
-        if self._resolve_layout_scan_code is not None:
-            try:
-                scan_code = self._resolve_layout_scan_code(key)
-            except Exception:
-                scan_code = None
-            if (
-                isinstance(scan_code, int)
-                and not isinstance(scan_code, bool)
-                and 1 <= scan_code <= 255
-            ):
-                return "layout", (scan_code,)
-        raise ValueError(f"Unknown key name: {key!r}")
-
     def cursor_position(self) -> tuple[int, int]:
         """Return the current cursor position in screen coordinates."""
-        position = pyautogui.position()
-        return int(position.x), int(position.y)
+        return get_backend().mouse.cursor_position()
 
     def move_cursor(self, x: int, y: int) -> None:
         """Move the cursor without pyautogui's default post-call pause."""
-        failsafe = pyautogui.FAILSAFE
-        pyautogui.FAILSAFE = False
-        try:
-            pyautogui.moveTo(x, y, _pause=False)
-        finally:
-            pyautogui.FAILSAFE = failsafe
+        get_backend().mouse.move_cursor(x, y)
 
     def scroll_mouse(
         self,
@@ -277,27 +39,11 @@ class InputGateway:
         deltas: Sequence[int],
         position: tuple[int, int] | None,
     ) -> None:
-        if position is not None:
-            self.move_cursor(*position)
-        if not deltas:
-            return
-        events = _build_wheel_inputs(vertical, deltas)
-        inputs = (_INPUT * len(events))(*events)
-        sent = _send_input_api()(
-            len(events), inputs, ctypes.sizeof(_INPUT),
-        )
-        if sent != len(events):
-            raise OSError(ctypes.get_last_error(), "SendInput failed")
+        get_backend().mouse.scroll_mouse(vertical=vertical, deltas=deltas, position=position)
 
     def click_at(self, x: int, y: int, button: str) -> None:
         """Move and click without blocking the UI for pyautogui's default pause."""
-        failsafe = pyautogui.FAILSAFE
-        pyautogui.FAILSAFE = False
-        try:
-            pyautogui.moveTo(x, y, _pause=False)
-            pyautogui.click(button=button, _pause=False)
-        finally:
-            pyautogui.FAILSAFE = failsafe
+        get_backend().mouse.click_at(x, y, button)
 
     def register_global_hook(
         self,
@@ -305,7 +51,7 @@ class InputGateway:
         *,
         suppress: bool = False,
     ):
-        return keyboard.hook(callback, suppress=suppress)
+        return get_backend().keyboard.register_global_hook(callback, suppress=suppress)
 
     def register_key_hook(
         self,
@@ -314,87 +60,49 @@ class InputGateway:
         *,
         suppress: bool,
     ):
-        # hook_key+suppress を使い、押下(down)のみを上位へ渡す。
-        # これにより制御キー（停止/トグル）の抑止を安定させる。
-        def _wrapped(event):
-            try:
-                if getattr(event, "event_type", None) != "down":
-                    return
-            except Exception:
-                pass
-            callback(event)
-
-        return keyboard.hook_key(key, _wrapped, suppress=suppress)
+        return get_backend().keyboard.register_key_hook(key, callback, suppress=suppress)
 
     def unregister_hook(self, handle) -> None:
-        keyboard.unhook(handle)
+        get_backend().keyboard.unregister_hook(handle)
 
     def press_key(self, key: str) -> None:
         self.press_send(self.resolve_send(key))
 
     def send_mapped_key(self, key: str) -> None:
         send = self.resolve_send(key)
+        kb = get_backend().keyboard
+        window = get_backend().window
         if (
-            send.kind == "keyboard"
-            and _needs_shift(key)
-            and not get_backend().window.is_shift_down()
-            and not get_backend().window.is_ctrl_alt_win_down()
+            kb.needs_shift(send)
+            and not window.is_shift_down()
+            and not window.is_ctrl_alt_win_down()
         ):
-            keyboard.press("shift")
+            kb.press_shift()
             try:
                 self.press_send(send)
                 self.release_send(send)
             finally:
-                keyboard.release("shift")
+                kb.release_shift()
             return
         self.press_send(send)
         self.release_send(send)
 
     def resolve_send(self, key: str) -> KeySend:
-        kind, values = self._resolve_key(key)
-        return KeySend(kind, values, key)
+        return get_backend().keyboard.resolve_send(key, self._resolve_layout_scan_code)
 
     def press_send(self, send: KeySend) -> None:
-        kind, values = send.kind, send.values
-        if kind == "numpad":
-            _send_numpad_event(values[0], bool(values[1]), key_up=False)
-            return
-        if kind == "extended":
-            _send_extended_event(values[0], values[1], key_up=False)
-        elif kind == "layout":
-            _send_numpad_event(values[0], False, key_up=False)
-        else:
-            keyboard.press(send.key)
+        get_backend().keyboard.press_send(send)
 
     def release_key(self, key: str) -> None:
         self.release_send(self.resolve_send(key))
 
     def release_send(self, send: KeySend) -> None:
-        kind, values = send.kind, send.values
-        if kind == "numpad":
-            _send_numpad_event(values[0], bool(values[1]), key_up=True)
-            return
-        if kind == "extended":
-            _send_extended_event(values[0], values[1], key_up=True)
-        elif kind == "layout":
-            _send_numpad_event(values[0], False, key_up=True)
-        else:
-            keyboard.release(send.key)
+        get_backend().keyboard.release_send(send)
 
     def send_hotkey(self, hotkey: str) -> None:
         keys = [key.strip() for key in hotkey.split("+")]
-        all_keyboard = True
-        for key in keys:
-            try:
-                kind, _values = self._resolve_key(key)
-            except ValueError:
-                all_keyboard = False
-                break
-            if kind != "keyboard":
-                all_keyboard = False
-                break
-        if all_keyboard:
-            keyboard.send(hotkey)
+        kb = get_backend().keyboard
+        if kb.send_native_hotkey(hotkey, keys, self._resolve_layout_scan_code):
             return
 
         pressed: list[str] = []
@@ -416,13 +124,14 @@ class InputGateway:
             raise first_error
 
     def write_text(self, text: str) -> None:
+        kb = get_backend().keyboard
         if not text:
-            keyboard.write(text, restore_state_after=False)
+            kb.write_text(text)
             return
         ime = get_backend().ime
         reservation = ime.disable_for_text()
         try:
-            keyboard.write(text, restore_state_after=False)
+            kb.write_text(text)
         finally:
             ime.restore_after_text(reservation, len(text))
 
@@ -430,19 +139,7 @@ class InputGateway:
         return self.identity_of(self.resolve_send(key))
 
     def identity_of(self, send: KeySend) -> tuple[int, bool]:
-        kind, values = send.kind, send.values
-        if kind == "numpad":
-            return values[0], bool(values[1])
-        if kind == "extended":
-            return values[1], True
-        if kind == "layout":
-            return values[0], False
-        if kind == "keyboard":
-            scan_code = values[0]
-            if (scan_code & 0xFF00) == 0xE000:
-                return scan_code & 0xFF, True
-            return scan_code, False
-        raise ValueError(f"Unknown key name: {send.key!r}")
+        return get_backend().keyboard.identity_of(send)
 
     def restore_ime_now(self) -> None:
         try:
@@ -457,48 +154,22 @@ class InputGateway:
             raise ValueError(
                 tr("infrastructure.input_gateway.reserved_numpad_name")
             )
-        self._resolve_key(key_name)
+        self.resolve_send(key_name)
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
-        pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+        get_backend().mouse.click_mouse(x, y, button, clicks)
 
     def mouse_down(
         self, button: str, x: int | None = None, y: int | None = None
     ) -> None:
-        self._send_mouse_button(button, x, y, is_down=True)
+        get_backend().mouse.mouse_down(button, x, y)
 
     def mouse_up(
         self, button: str, x: int | None = None, y: int | None = None
     ) -> None:
-        self._send_mouse_button(button, x, y, is_down=False)
-
-    @staticmethod
-    def _send_mouse_button(
-        button: str, x: int | None, y: int | None, *, is_down: bool
-    ) -> None:
-        failsafe = pyautogui.FAILSAFE
-        pyautogui.FAILSAFE = False
-        try:
-            if x is not None and y is not None:
-                pyautogui.moveTo(x, y)
-            if is_down:
-                pyautogui.mouseDown(button=button)
-            else:
-                pyautogui.mouseUp(button=button)
-        finally:
-            pyautogui.FAILSAFE = failsafe
+        get_backend().mouse.mouse_up(button, x, y)
 
     def drag_mouse(
         self, x: int, y: int, to_x: int, to_y: int, button: str, duration_sec: float
     ) -> None:
-        failsafe = pyautogui.FAILSAFE
-        pyautogui.FAILSAFE = False
-        try:
-            pyautogui.moveTo(x, y)
-            try:
-                pyautogui.mouseDown(button=button)
-                pyautogui.moveTo(to_x, to_y, duration=duration_sec)
-            finally:
-                pyautogui.mouseUp(button=button)
-        finally:
-            pyautogui.FAILSAFE = failsafe
+        get_backend().mouse.drag_mouse(x, y, to_x, to_y, button, duration_sec)

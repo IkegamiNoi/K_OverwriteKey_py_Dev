@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+import ast
 import inspect
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
-from keyseq.infrastructure.os_backend import AppIdentity, Capabilities, ImeBackend, OsBackend, TkKeyTranslator, WindowBackend, get_backend
+from keyseq.infrastructure.os_backend import (
+    AppIdentity, Capabilities, ImeBackend, KeyboardBackend, KeySend, MouseBackend,
+    OsBackend, TkKeyTranslator, WindowBackend, get_backend,
+)
 from keyseq.infrastructure.os_backend.windows.backend import (
     WindowsAppIdentity, WindowsImeBackend, WindowsTkKeyTranslator, WindowsWindowBackend,
 )
+from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
+from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
 
 
 class OsBackendContractTests(unittest.TestCase):
@@ -23,6 +30,8 @@ class OsBackendContractTests(unittest.TestCase):
             (WindowBackend, WindowsWindowBackend),
             (TkKeyTranslator, WindowsTkKeyTranslator),
             (AppIdentity, WindowsAppIdentity),
+            (KeyboardBackend, WindowsKeyboardBackend),
+            (MouseBackend, WindowsMouseBackend),
         ):
             with self.subTest(protocol=protocol.__name__):
                 protocol_methods = {
@@ -47,7 +56,7 @@ class OsBackendContractTests(unittest.TestCase):
 
     def test_backend_is_cached_after_single_creation(self) -> None:
         created = OsBackend(
-            Capabilities(True, True, True, True), Mock(), Mock(), Mock(), Mock()
+            Capabilities(True, True, True, True), Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
         )
         with patch("keyseq.infrastructure.os_backend.sys.platform", "win32"), patch("keyseq.infrastructure.os_backend._backend", None), patch(
             "keyseq.infrastructure.os_backend.windows.backend.create_backend", return_value=created
@@ -66,6 +75,36 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertIsInstance(backend.window, WindowsWindowBackend)
         self.assertIsInstance(backend.tk_keys, WindowsTkKeyTranslator)
         self.assertIsInstance(backend.app, WindowsAppIdentity)
+        self.assertIsInstance(backend.keyboard, WindowsKeyboardBackend)
+        self.assertIsInstance(backend.mouse, WindowsMouseBackend)
+
+    def test_key_send_and_new_contracts_are_public_exports(self) -> None:
+        from keyseq.infrastructure import os_backend
+
+        for name in ("KeySend", "KeyboardBackend", "MouseBackend"):
+            with self.subTest(name=name):
+                self.assertIn(name, os_backend.__all__)
+                self.assertIs(getattr(os_backend, name), globals()[name])
+        self.assertEqual(list(inspect.signature(KeySend).parameters), ["kind", "values", "key"])
+
+    def test_app_loads_backend_before_tk_initialization(self) -> None:
+        source = (Path(__file__).resolve().parents[1] / "keyseq/presentation/app.py").read_text(encoding="utf-8-sig")
+        tree = ast.parse(source)
+        app_class = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "App")
+        init = next(node for node in app_class.body if isinstance(node, ast.FunctionDef) and node.name == "__init__")
+        backend_calls = [
+            node for node in ast.walk(init)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "get_backend"
+        ]
+        super_calls = [
+            node for node in ast.walk(init)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "__init__" and isinstance(node.func.value, ast.Call)
+            and isinstance(node.func.value.func, ast.Name) and node.func.value.func.id == "super"
+        ]
+        self.assertTrue(backend_calls)
+        self.assertTrue(super_calls)
+        self.assertLess(min(node.lineno for node in backend_calls), min(node.lineno for node in super_calls))
 
     def test_non_windows_platform_raises(self) -> None:
         with patch("keyseq.infrastructure.os_backend.sys.platform", "darwin"), patch("keyseq.infrastructure.os_backend._backend", None):

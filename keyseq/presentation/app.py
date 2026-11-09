@@ -106,8 +106,11 @@ from keyseq.infrastructure.json_repository import JsonRepository
 
 class App(tk.Tk):
     def __init__(self, *, first_launch_welcome: bool = False):
+        # The backend import loads pyautogui, which makes the process DPI aware;
+        # it must happen before Tk creates its first window.
+        backend = get_backend()
         super().__init__()
-        window_backend = get_backend().window
+        window_backend = backend.window
 
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository)

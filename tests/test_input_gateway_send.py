@@ -5,6 +5,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from keyseq.infrastructure import input_gateway
+from keyseq.infrastructure.os_backend import KeySend
+from keyseq.infrastructure.os_backend.windows import (
+    keyboard_backend, mouse_backend, send_input as send_input_api,
+)
 
 
 class InputGatewaySendTests(unittest.TestCase):
@@ -18,7 +22,7 @@ class InputGatewaySendTests(unittest.TestCase):
             ("ext", "_send_extended_event"),
             ("numpad", "_send_numpad_event"),
         ):
-            patcher = patch(f"keyseq.infrastructure.input_gateway.{target}")
+            patcher = patch(f"keyseq.infrastructure.os_backend.windows.keyboard_backend.{target}")
             mocked = patcher.start()
             self.addCleanup(patcher.stop)
             self.events.attach_mock(mocked, name)
@@ -92,12 +96,12 @@ class InputGatewaySendTests(unittest.TestCase):
         self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
 
     def test_mapped_key_adds_shift_for_shifted_keyboard_key(self) -> None:
-        send = input_gateway.KeySend("keyboard", (1,), "exclam")
+        send = KeySend("keyboard", (1,), "exclam")
         backend = SimpleNamespace(window=SimpleNamespace(
             is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
-        ))
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
         with patch.object(self.gateway, "resolve_send", return_value=send), \
-             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(keyboard_backend, "_needs_shift", return_value=True), \
              patch.object(input_gateway, "get_backend", return_value=backend):
             self.gateway.send_mapped_key("exclam")
         self.assertEqual(self.events.mock_calls, [
@@ -106,23 +110,26 @@ class InputGatewaySendTests(unittest.TestCase):
         ])
 
     def test_mapped_key_does_not_add_shift_when_already_down_or_unneeded(self) -> None:
-        send = input_gateway.KeySend("keyboard", (1,), "a")
-        backend = SimpleNamespace(window=SimpleNamespace(is_shift_down=Mock(return_value=True)))
+        send = KeySend("keyboard", (1,), "a")
+        backend = SimpleNamespace(
+            window=SimpleNamespace(is_shift_down=Mock(return_value=True)),
+            keyboard=keyboard_backend.WindowsKeyboardBackend(),
+        )
         with patch.object(self.gateway, "resolve_send", return_value=send), \
-             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(keyboard_backend, "_needs_shift", return_value=True), \
              patch.object(input_gateway, "get_backend", return_value=backend):
             self.gateway.send_mapped_key("a")
         self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
 
     def test_mapped_key_does_not_add_shift_when_ctrl_alt_or_win_is_down(self) -> None:
-        send = input_gateway.KeySend("keyboard", (1,), "exclam")
+        send = KeySend("keyboard", (1,), "exclam")
         for modifier in ("ctrl", "alt", "left_win", "right_win"):
             backend = SimpleNamespace(window=SimpleNamespace(
                 is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=True),
-            ))
+            ), keyboard=keyboard_backend.WindowsKeyboardBackend())
             with self.subTest(modifier=modifier), patch.object(
                 self.gateway, "resolve_send", return_value=send,
-            ), patch.object(input_gateway, "_needs_shift", return_value=True), patch.object(
+            ), patch.object(keyboard_backend, "_needs_shift", return_value=True), patch.object(
                 input_gateway, "get_backend", return_value=backend,
             ):
                 self.events.reset_mock()
@@ -132,12 +139,12 @@ class InputGatewaySendTests(unittest.TestCase):
                 ])
 
     def test_mapped_key_non_keyboard_send_does_not_add_shift(self) -> None:
-        send = input_gateway.KeySend("extended", (1, 2), "right")
+        send = KeySend("extended", (1, 2), "right")
         backend = SimpleNamespace(window=SimpleNamespace(
             is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
-        ))
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
         with patch.object(self.gateway, "resolve_send", return_value=send), \
-             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(keyboard_backend, "_needs_shift", return_value=True), \
              patch.object(input_gateway, "get_backend", return_value=backend):
             self.gateway.send_mapped_key("right")
         self.assertEqual(self.events.mock_calls, [
@@ -145,7 +152,7 @@ class InputGatewaySendTests(unittest.TestCase):
         ])
 
     def test_mapped_key_releases_added_shift_after_send_error(self) -> None:
-        send = input_gateway.KeySend("keyboard", (1,), "exclam")
+        send = KeySend("keyboard", (1,), "exclam")
         def fail_on_target(key: str) -> None:
             if key == "exclam":
                 raise RuntimeError("send failed")
@@ -153,9 +160,9 @@ class InputGatewaySendTests(unittest.TestCase):
         self.events.press.side_effect = fail_on_target
         backend = SimpleNamespace(window=SimpleNamespace(
             is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
-        ))
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
         with patch.object(self.gateway, "resolve_send", return_value=send), \
-             patch.object(input_gateway, "_needs_shift", return_value=True), \
+             patch.object(keyboard_backend, "_needs_shift", return_value=True), \
              patch.object(input_gateway, "get_backend", return_value=backend):
             with self.assertRaises(RuntimeError):
                 self.gateway.send_mapped_key("exclam")
@@ -170,17 +177,17 @@ class InputGatewaySendTests(unittest.TestCase):
         )
         for entries, expected in cases:
             with self.subTest(entries=entries), patch.object(
-                input_gateway.keyboard, "normalize_name", side_effect=lambda name: name
+                keyboard_backend.keyboard, "normalize_name", side_effect=lambda name: name
             ), patch.object(
-                input_gateway.keyboard._os_keyboard,
+                keyboard_backend.keyboard._os_keyboard,
                 "map_name",
                 side_effect=lambda _name: iter(entries),
             ):
-                self.assertIs(input_gateway._needs_shift("bar"), expected)
+                self.assertIs(keyboard_backend._needs_shift("bar"), expected)
 
     def test_needs_shift_returns_false_on_mapping_error(self) -> None:
-        with patch.object(input_gateway.keyboard, "normalize_name", side_effect=RuntimeError):
-            self.assertFalse(input_gateway._needs_shift("unknown"))
+        with patch.object(keyboard_backend.keyboard, "normalize_name", side_effect=RuntimeError):
+            self.assertFalse(keyboard_backend._needs_shift("unknown"))
 
     def test_resolved_special_sends_preserve_their_original_routes(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda _key: 123)
@@ -255,7 +262,7 @@ class InputGatewaySendTests(unittest.TestCase):
         for name, (vk, scan) in cases.items():
             with self.subTest(name=name):
                 self.events.reset_mock()
-                self.assertEqual(input_gateway._resolve_extended_key(name), (vk, scan))
+                self.assertEqual(keyboard_backend._resolve_extended_key(name), (vk, scan))
                 self.gateway.press_key(name)
                 self.gateway.release_key(name)
                 self.assertEqual(self.events.mock_calls, [
@@ -267,14 +274,14 @@ class InputGatewaySendTests(unittest.TestCase):
         for name in ("ctrl", "alt", "shift", "enter", "/", "alt gr"):
             with self.subTest(name=name):
                 self.events.reset_mock()
-                self.assertIsNone(input_gateway._resolve_extended_key(name))
+                self.assertIsNone(keyboard_backend._resolve_extended_key(name))
                 self.gateway.press_key(name)
                 self.gateway.release_key(name)
                 self.assertEqual(self.events.mock_calls, [
                     call.press(name), call.release(name),
                 ])
-        with patch.object(input_gateway.keyboard, "normalize_name", side_effect=ValueError):
-            self.assertIsNone(input_gateway._resolve_extended_key("right"))
+        with patch.object(keyboard_backend.keyboard, "normalize_name", side_effect=ValueError):
+            self.assertIsNone(keyboard_backend._resolve_extended_key("right"))
 
     def test_cleanup_after_error(self) -> None:
         for fail_on_press, fail_on_release in ((True, False), (True, True), (False, True)):
@@ -315,12 +322,14 @@ class InputGatewaySendTests(unittest.TestCase):
         calls = []
         ime = Mock()
         with patch.object(
-            input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime),
+            input_gateway, "get_backend", return_value=SimpleNamespace(
+                ime=ime, keyboard=keyboard_backend.WindowsKeyboardBackend(),
+            ),
         ), patch.object(
             ime, "disable_for_text",
             side_effect=lambda: calls.append("disable") or reservation,
         ), patch.object(
-            input_gateway.keyboard, "write",
+            keyboard_backend.keyboard, "write",
             side_effect=lambda text, **kwargs: calls.append(("write", text, kwargs)),
         ), patch.object(
             ime, "restore_after_text",
@@ -336,9 +345,11 @@ class InputGatewaySendTests(unittest.TestCase):
         reservation = object()
         send_error = RuntimeError("keyboard write failed")
         ime = Mock()
-        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(
+            ime=ime, keyboard=keyboard_backend.WindowsKeyboardBackend(),
+        )), \
              patch.object(ime, "disable_for_text", return_value=reservation), \
-             patch.object(input_gateway.keyboard, "write", side_effect=send_error) as write, \
+             patch.object(keyboard_backend.keyboard, "write", side_effect=send_error) as write, \
              patch.object(ime, "restore_after_text") as restore:
             with self.assertRaisesRegex(RuntimeError, "keyboard write failed"):
                 self.gateway.write_text("text")
@@ -347,20 +358,23 @@ class InputGatewaySendTests(unittest.TestCase):
 
     def test_write_text_continues_after_ime_timeout_fallback(self) -> None:
         ime = Mock()
-        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=ime)), \
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(
+            ime=ime, keyboard=keyboard_backend.WindowsKeyboardBackend(),
+        )), \
              patch.object(ime, "disable_for_text", return_value=None), \
-             patch.object(input_gateway.keyboard, "write") as write, \
+             patch.object(keyboard_backend.keyboard, "write") as write, \
              patch.object(ime, "restore_after_text") as restore:
             self.gateway.write_text("text")
         write.assert_called_once_with("text", restore_state_after=False)
         restore.assert_called_once_with(None, 4)
 
     def test_empty_write_does_not_touch_ime(self) -> None:
-        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(ime=Mock())) as get_backend, \
-             patch.object(input_gateway.keyboard, "write") as write:
+        # No IME member is provided: even looking it up would fail.
+        backend = SimpleNamespace(keyboard=keyboard_backend.WindowsKeyboardBackend())
+        with patch.object(input_gateway, "get_backend", return_value=backend), \
+             patch.object(keyboard_backend.keyboard, "write") as write:
             self.gateway.write_text("")
         write.assert_called_once_with("", restore_state_after=False)
-        get_backend.assert_not_called()
 
     def test_restore_ime_now_delegates(self) -> None:
         ime = Mock()
@@ -381,7 +395,7 @@ class InputGatewaySendTests(unittest.TestCase):
 
 class InputGatewayExtendedFlagTests(unittest.TestCase):
     def test_extended_key_flags(self) -> None:
-        with patch.object(input_gateway, "ctypes") as mock_ctypes:
+        with patch.object(keyboard_backend, "ctypes") as mock_ctypes:
             gateway = input_gateway.InputGateway()
             gateway.press_key("right")
             gateway.release_key("right")
@@ -396,17 +410,17 @@ class InputGatewayExtendedFlagTests(unittest.TestCase):
         flags = []
 
         def inspect_event(count, pointer, size):
-            event = input_gateway.ctypes.cast(
-                pointer, input_gateway.ctypes.POINTER(input_gateway._INPUT),
+            event = send_input_api.ctypes.cast(
+                pointer, send_input_api.ctypes.POINTER(send_input_api._INPUT),
             ).contents
             self.assertEqual(event.ki.wScan, 123)
             flags.append(event.ki.dwFlags)
             return 1
 
         send_input.side_effect = inspect_event
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]), \
-             patch.object(input_gateway.keyboard, "_listener", object()), \
-             patch.object(input_gateway, "_send_input_api", return_value=send_input):
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[]), \
+             patch.object(keyboard_backend.keyboard, "_listener", object()), \
+             patch.object(keyboard_backend, "_send_input_api", return_value=send_input):
             gateway.press_key("muhenkan")
             gateway.release_key("muhenkan")
         self.assertEqual(flags, [0x0008, 0x0008 | 0x0002])
@@ -418,14 +432,14 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
         self.gateway = input_gateway.InputGateway()
 
     def test_validate_numpad_names_without_keyboard_resolution(self) -> None:
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes") as resolve:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes") as resolve:
             self.gateway.validate_key_name("  NUM 1 ")
         resolve.assert_not_called()
 
     def test_validate_rejects_reserved_numpad_names(self) -> None:
         for name in ("num +", "num plus", "num del", "num_1", "NUM_ADD", "num_plus"):
             with self.subTest(name=name), patch.object(
-                input_gateway.keyboard, "key_to_scan_codes"
+                keyboard_backend.keyboard, "key_to_scan_codes"
             ) as resolve:
                 with self.assertRaises(ValueError):
                     self.gateway.validate_key_name(name)
@@ -434,19 +448,19 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
     def test_validate_num_lock_is_not_rejected_as_reserved_numpad_name(self) -> None:
         # num lock は §7.7 の拡張キーとして解決されるため keyboard へは問い合わせない（暫定 45 §4.1）
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError
+            keyboard_backend.keyboard, "key_to_scan_codes", side_effect=ValueError
         ):
             self.gateway.validate_key_name("num lock")
 
     def test_extended_event_sets_and_restores_keyboard_replaying(self) -> None:
         listener = Mock(is_replaying=False)
-        with patch.object(input_gateway.keyboard, "_listener", listener), \
-             patch.object(input_gateway, "ctypes") as mock_ctypes:
+        with patch.object(keyboard_backend.keyboard, "_listener", listener), \
+             patch.object(keyboard_backend, "ctypes") as mock_ctypes:
             def send_event(*args):
                 self.assertTrue(listener.is_replaying)
 
             mock_ctypes.windll.user32.keybd_event.side_effect = send_event
-            input_gateway._send_extended_event(0x27, 0x4D, key_up=False)
+            keyboard_backend._send_extended_event(0x27, 0x4D, key_up=False)
         self.assertFalse(listener.is_replaying)
         mock_ctypes.windll.user32.keybd_event.assert_called_once_with(
             0x27, 0x4D, 0x0001, 0,
@@ -454,19 +468,19 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
 
     def test_extended_event_restores_replaying_after_send_error(self) -> None:
         listener = Mock(is_replaying=True)
-        with patch.object(input_gateway.keyboard, "_listener", listener), \
+        with patch.object(keyboard_backend.keyboard, "_listener", listener), \
              patch.object(
-                 input_gateway.ctypes.windll.user32, "keybd_event",
+                 keyboard_backend.ctypes.windll.user32, "keybd_event",
                  side_effect=RuntimeError("send failed"),
              ):
             with self.assertRaisesRegex(RuntimeError, "send failed"):
-                input_gateway._send_extended_event(0x27, 0x4D, key_up=True)
+                keyboard_backend._send_extended_event(0x27, 0x4D, key_up=True)
         self.assertTrue(listener.is_replaying)
 
     def test_extended_event_sends_when_listener_has_no_replaying_attribute(self) -> None:
-        with patch.object(input_gateway.keyboard, "_listener", object()), \
-             patch.object(input_gateway, "ctypes") as mock_ctypes:
-            input_gateway._send_extended_event(0x27, 0x4D, key_up=False)
+        with patch.object(keyboard_backend.keyboard, "_listener", object()), \
+             patch.object(keyboard_backend, "ctypes") as mock_ctypes:
+            keyboard_backend._send_extended_event(0x27, 0x4D, key_up=False)
         mock_ctypes.windll.user32.keybd_event.assert_called_once_with(
             0x27, 0x4D, 0x0001, 0,
         )
@@ -477,44 +491,44 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
 
         def inspect_input(count, pointer, size):
             self.assertTrue(listener.is_replaying)
-            event = input_gateway.ctypes.cast(
-                pointer, input_gateway.ctypes.POINTER(input_gateway._INPUT),
+            event = send_input_api.ctypes.cast(
+                pointer, send_input_api.ctypes.POINTER(send_input_api._INPUT),
             ).contents
             self.assertEqual(count, 1)
-            self.assertEqual(size, input_gateway.ctypes.sizeof(input_gateway._INPUT))
-            self.assertEqual(event.type, input_gateway._INPUT_KEYBOARD)
+            self.assertEqual(size, send_input_api.ctypes.sizeof(send_input_api._INPUT))
+            self.assertEqual(event.type, send_input_api._INPUT_KEYBOARD)
             self.assertEqual(event.ki.wVk, 0)
             self.assertEqual(event.ki.wScan, 53)
             self.assertEqual(event.ki.dwFlags, 0x0008 | 0x0001 | 0x0002)
             return 1
 
         send_input.side_effect = inspect_input
-        with patch.object(input_gateway.keyboard, "_listener", listener), \
-             patch.object(input_gateway, "_send_input_api", return_value=send_input):
-            input_gateway._send_numpad_event(53, extended=True, key_up=True)
+        with patch.object(keyboard_backend.keyboard, "_listener", listener), \
+             patch.object(keyboard_backend, "_send_input_api", return_value=send_input):
+            keyboard_backend._send_numpad_event(53, extended=True, key_up=True)
         send_input.assert_called_once()
         self.assertFalse(listener.is_replaying)
 
     def test_numpad_event_raises_oserror_when_sendinput_fails(self) -> None:
         listener = Mock(is_replaying=True)
-        with patch.object(input_gateway.keyboard, "_listener", listener), \
-             patch.object(input_gateway, "_send_input_api", return_value=Mock(return_value=0)), \
-             patch.object(input_gateway.ctypes, "get_last_error", return_value=5):
+        with patch.object(keyboard_backend.keyboard, "_listener", listener), \
+             patch.object(keyboard_backend, "_send_input_api", return_value=Mock(return_value=0)), \
+             patch.object(keyboard_backend.ctypes, "get_last_error", return_value=5):
             with self.assertRaises(OSError) as caught:
-                input_gateway._send_numpad_event(79, extended=False, key_up=False)
+                keyboard_backend._send_numpad_event(79, extended=False, key_up=False)
         self.assertEqual(caught.exception.errno, 5)
         self.assertTrue(listener.is_replaying)
 
     def test_numpad_event_sends_without_listener_replaying_attribute(self) -> None:
         send_input = Mock(return_value=1)
-        with patch.object(input_gateway.keyboard, "_listener", object()), \
-             patch.object(input_gateway, "_send_input_api", return_value=send_input):
-            input_gateway._send_numpad_event(79, extended=False, key_up=False)
+        with patch.object(keyboard_backend.keyboard, "_listener", object()), \
+             patch.object(keyboard_backend, "_send_input_api", return_value=send_input):
+            keyboard_backend._send_numpad_event(79, extended=False, key_up=False)
         send_input.assert_called_once()
 
     def test_key_identity_uses_scan_code_and_extended_flag(self) -> None:
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", return_value=[0x1D],
+            keyboard_backend.keyboard, "key_to_scan_codes", return_value=[0x1D],
         ) as resolve:
             self.assertEqual(self.gateway.key_identity("ctrl"), (0x1D, False))
         resolve.assert_called_once_with("ctrl")
@@ -530,7 +544,7 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
             return {"/": (57397, 53), "a": (2, 79)}[key]
 
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", side_effect=scan_codes_for,
+            keyboard_backend.keyboard, "key_to_scan_codes", side_effect=scan_codes_for,
         ):
             self.assertEqual(self.gateway.key_identity("/"), (53, True))
             self.assertEqual(
@@ -541,7 +555,7 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
 
     def test_key_identity_distinguishes_numpad_main_digit_and_extended_end(self) -> None:
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", return_value=[2],
+            keyboard_backend.keyboard, "key_to_scan_codes", return_value=[2],
         ) as resolve:
             self.assertEqual(self.gateway.key_identity("num 1"), (79, False))
             resolve.assert_not_called()
@@ -552,21 +566,21 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
 
     def test_key_identity_uses_layout_resolution_after_keyboard_misses(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]):
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[]):
             self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
 
     def test_key_identity_uses_layout_resolution_after_keyboard_exception(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError):
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", side_effect=ValueError):
             self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError):
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", side_effect=ValueError):
             with self.assertRaises(ValueError):
                 self.gateway.key_identity("no such key")
 
     def test_layout_key_validation_and_sendinput_press_release(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]), \
-             patch.object(input_gateway, "_send_numpad_event") as send_scan_code:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[]), \
+             patch.object(keyboard_backend, "_send_numpad_event") as send_scan_code:
             self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
             gateway.validate_key_name("muhenkan")
             gateway.press_key("muhenkan")
@@ -579,12 +593,12 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
     def test_layout_hotkey_uses_ordered_press_and_release(self) -> None:
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes",
+            keyboard_backend.keyboard, "key_to_scan_codes",
             side_effect=lambda key: [29] if key == "ctrl" else [],
-        ), patch.object(input_gateway.keyboard, "press") as press, \
-             patch.object(input_gateway.keyboard, "release") as release, \
-             patch.object(input_gateway.keyboard, "send") as send, \
-             patch.object(input_gateway, "_send_numpad_event") as send_scan_code:
+        ), patch.object(keyboard_backend.keyboard, "press") as press, \
+             patch.object(keyboard_backend.keyboard, "release") as release, \
+             patch.object(keyboard_backend.keyboard, "send") as send, \
+             patch.object(keyboard_backend, "_send_numpad_event") as send_scan_code:
             gateway.send_hotkey("ctrl+muhenkan")
         press.assert_called_once_with("ctrl")
         release.assert_called_once_with("ctrl")
@@ -606,7 +620,7 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
         for resolver in resolvers:
             gateway = input_gateway.InputGateway(resolve_layout_scan_code=resolver)
             with self.subTest(resolver=resolver), patch.object(
-                input_gateway.keyboard, "key_to_scan_codes", return_value=[],
+                keyboard_backend.keyboard, "key_to_scan_codes", return_value=[],
             ):
                 with self.assertRaises(ValueError):
                     gateway.key_identity("muhenkan")
@@ -618,51 +632,51 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
     def test_keyboard_names_take_precedence_over_layout_and_keep_send(self) -> None:
         resolver = Mock(return_value=123)
         gateway = input_gateway.InputGateway(resolve_layout_scan_code=resolver)
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[2]), \
-             patch.object(input_gateway.keyboard, "press") as press:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[2]), \
+             patch.object(keyboard_backend.keyboard, "press") as press:
             gateway.press_key("a")
         press.assert_called_once_with("a")
         resolver.assert_not_called()
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[29]), \
-             patch.object(input_gateway.keyboard, "send") as send:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[29]), \
+             patch.object(keyboard_backend.keyboard, "send") as send:
             gateway.send_hotkey("ctrl+a")
         send.assert_called_once_with("ctrl+a")
 
     def test_key_identity_rejects_unresolved_empty_scan_codes(self) -> None:
-        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]):
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes", return_value=[]):
             with self.assertRaises(ValueError):
                 self.gateway.key_identity("no such key")
 
     def test_mouse_down_and_up_disable_failsafe_move_and_restore(self) -> None:
-        with patch.object(input_gateway.pyautogui, "FAILSAFE", True), \
-             patch.object(input_gateway.pyautogui, "moveTo") as move_to, \
-             patch.object(input_gateway.pyautogui, "mouseDown") as mouse_down, \
-             patch.object(input_gateway.pyautogui, "mouseUp") as mouse_up:
+        with patch.object(mouse_backend.pyautogui, "FAILSAFE", True), \
+             patch.object(mouse_backend.pyautogui, "moveTo") as move_to, \
+             patch.object(mouse_backend.pyautogui, "mouseDown") as mouse_down, \
+             patch.object(mouse_backend.pyautogui, "mouseUp") as mouse_up:
             move_to.side_effect = lambda *args: self.assertFalse(
-                input_gateway.pyautogui.FAILSAFE
+                mouse_backend.pyautogui.FAILSAFE
             )
-            mouse_down.side_effect = lambda **kwargs: self.assertFalse(input_gateway.pyautogui.FAILSAFE)
-            mouse_up.side_effect = lambda **kwargs: self.assertFalse(input_gateway.pyautogui.FAILSAFE)
+            mouse_down.side_effect = lambda **kwargs: self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
+            mouse_up.side_effect = lambda **kwargs: self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
             self.gateway.mouse_down("left", 12, 34)
             self.gateway.mouse_up("right", 56, 78)
-            self.assertTrue(input_gateway.pyautogui.FAILSAFE)
+            self.assertTrue(mouse_backend.pyautogui.FAILSAFE)
         self.assertEqual(move_to.call_args_list, [call(12, 34), call(56, 78)])
         mouse_down.assert_called_once_with(button="left")
         mouse_up.assert_called_once_with(button="right")
 
     def test_mouse_up_without_position_preserves_disabled_failsafe_on_error(self) -> None:
-        with patch.object(input_gateway.pyautogui, "FAILSAFE", False), \
-             patch.object(input_gateway.pyautogui, "moveTo") as move_to, \
-             patch.object(input_gateway.pyautogui, "mouseUp", side_effect=RuntimeError("up failed")):
+        with patch.object(mouse_backend.pyautogui, "FAILSAFE", False), \
+             patch.object(mouse_backend.pyautogui, "moveTo") as move_to, \
+             patch.object(mouse_backend.pyautogui, "mouseUp", side_effect=RuntimeError("up failed")):
             with self.assertRaisesRegex(RuntimeError, "up failed"):
                 self.gateway.mouse_up("left")
-            self.assertFalse(input_gateway.pyautogui.FAILSAFE)
+            self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
             move_to.assert_not_called()
 
     def test_mouse_restores_failsafe_when_send_raises(self) -> None:
-        with patch.object(input_gateway.pyautogui, "FAILSAFE", True), \
-             patch.object(input_gateway.pyautogui, "mouseDown",
+        with patch.object(mouse_backend.pyautogui, "FAILSAFE", True), \
+             patch.object(mouse_backend.pyautogui, "mouseDown",
                           side_effect=RuntimeError("mouse failed")):
             with self.assertRaisesRegex(RuntimeError, "mouse failed"):
                 self.gateway.mouse_down("left")
-            self.assertTrue(input_gateway.pyautogui.FAILSAFE)
+            self.assertTrue(mouse_backend.pyautogui.FAILSAFE)
