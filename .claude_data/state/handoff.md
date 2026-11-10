@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75（macOS 対応）段階 ① 完了（Windows の実機目視 OK・区切りレビューの M1〜M5 採用済み）。次は Mac で段階 ② の task_05。**
-ブランチ `claude/phase-75-progress-d68f10`。push と main へのマージはユーザー（PR は作らない）。
+**phase 75 段階 ② task_05・task_05b を Mac で実装・確認済み（reviewer 採用・Mac 起動目視 OK）。Windows の標準検証 4 種待ち（未実施のため完了判定は保留）。次は task_06（probe）。**
+ブランチ `claude/windows-continuation-23d400`（コミット 95a73ac）。push と main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,8 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 75 task_04 完了時 = 2026-11-10**）:
-compile **clean** / tests **1971 pass**（skip 7）/ tests_ui **1270 pass** / smoke **pass**。
+直近の実測（**Windows = phase 75 task_04 完了時 2026-11-10**）:
+compile **clean** / tests **1971 pass**（skip 7）/ tests_ui **1270 pass** / smoke **pass**。task_05・05b の分は未実測（新規テストで tests が増える）。
+**Mac（2026-11-11・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 1920 件・失敗 89・エラー 15・skip 16（Windows 前提のパス約 55・テンキー約 22・スタブ約 15 等。基準線は task_07）/ smoke pass / **tests_ui は Mac で走らせない**（スタブのキー検証で「不明なキー名」のモーダルが出て止まる・task_07 で対処）。
 **件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1971 / tests_ui: 1270）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
@@ -55,7 +56,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- push（ユーザー）して、Mac で task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）。task_05 では M5（契約テストの `windows.backend` の import の分離）も行う
+- push（ユーザー）→ Windows で task_05・05b の標準検証 4 種 → 通れば完了判定 → Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
+- task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
 - 区切りレビューの M1・M2 → task_08 / M4 → task_11・task_12（`phase.md` に追記済み）。M3 は `os_backend/contracts.py` の docstring で対応済み（`suppress=True` の callback は bool を返す・None は抑止扱い）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56
@@ -76,7 +78,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **【phase 75】`.venv` のパスは OS で違う**（本書の `Scripts/python.exe` は Windows。Mac は `bin/python`）。Mac の `.venv` は Python 3.15 で Tk が使えない（task_05 で作り直す）。
+- **【phase 75】`.venv` のパスは OS で違う**（本書の `Scripts/python.exe` は Windows。Mac は `bin/python`）。Mac の `.venv` は Homebrew の 3.13 + `python-tk@3.13`（**Tk 9.1**・Q1 から変更・decisions.md）。**Tk 9 は長さの `cget` を単位つき（`10c`・`2.25p`）で返す → `tk_platform.screen_distance` を使う**。Tk の差の判定は `presentation/tk_platform.py` の 1 か所。
 - **blockers: 【回避中】Codex の書き込み実行の不具合**（2026-10-14 18:24 の Codex 更新〔0.162.x〕以降、書き込みのサンドボックス準備が `setup refresh had errors`〔node_repl.exe の ACL 更新が「使用中」で失敗〕・`~/.codex/.sandbox/sandbox.2026-10-14.log`）。
   **ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更して回避中**（Codex の更新で直ったら `elevated` に戻す = ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
   companion は作業フォルダごとに broker + app-server を常駐させる（呼び出し後も残る設計・worktree ごとに増える）。Codex 不可時の実装代替はユーザー許可が必須。
