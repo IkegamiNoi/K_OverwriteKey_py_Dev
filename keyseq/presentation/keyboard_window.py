@@ -35,6 +35,7 @@ from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     numpad_name_from_tk_event,
 )
+from keyseq.presentation.tk_platform import right_click_sequence
 from keyseq.shared.i18n import tr
 
 _LOOKUP_KEY_BY_ID = {
@@ -140,7 +141,7 @@ class KeyboardWindow(tk.Toplevel):
         self.canvas.pack(fill="both", expand=True)
         self.canvas.bind("<Configure>", self._on_canvas_configure)
         self.canvas.bind("<Button-1>", self._on_canvas_left_click)
-        self.canvas.bind("<Button-3>", self._on_canvas_right_click)
+        self.canvas.bind(right_click_sequence(self.canvas), self._on_canvas_right_click)
         self.bind("<KeyPress>", self._on_key_press, add="+")
         self.bind("<Configure>", self._on_window_configure, add="+")
         self.bind("<Map>", self._on_window_map, add="+")

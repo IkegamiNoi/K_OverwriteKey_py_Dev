@@ -7,6 +7,7 @@ from tkinter import ttk
 from keyseq.presentation.help.help_content import HelpCategory, HelpItem, item_plain_text
 from keyseq.presentation.help.help_filter import highlight_ranges, item_matches
 from keyseq.shared.i18n import tr
+from keyseq.presentation.tk_platform import primary_modifier, right_click_sequence
 
 HIGHLIGHT_COLOR = "#fff19c"
 BODY_INDENT = 36
@@ -88,11 +89,12 @@ class HelpTabView(ttk.Frame):
             self.text.bind(f"<{key}>", lambda event, d=step: self._move(d))
         for key in ("Return", "space", "KP_Enter"):
             self.text.bind(f"<{key}>", self._toggle_selected)
-        self.text.bind("<Control-c>", self._copy)
-        self.text.bind("<Control-C>", self._copy)
+        modifier = primary_modifier(self)
+        self.text.bind(f"<{modifier}-c>", self._copy)
+        self.text.bind(f"<{modifier}-C>", self._copy)
         self.copy_menu = tk.Menu(self, tearoff=False)
         self.copy_menu.add_command(label=tr("help.tab.copy"), command=self._copy)
-        self.text.bind("<Button-3>", self._context_menu)
+        self.text.bind(right_click_sequence(self), self._context_menu)
 
     def apply_filter(self, terms: tuple[str, ...]) -> int:
         self._open.clear()

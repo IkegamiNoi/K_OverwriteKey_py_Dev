@@ -1,17 +1,18 @@
 import tkinter as tk
 from keyseq.shared.i18n import available_languages, tr
 from keyseq.presentation.welcome.first_launch import open_welcome_again
+from keyseq.presentation.tk_platform import accelerator_text, primary_modifier
 
 
 def build_menu_bar(app):
     menubar = tk.Menu(app)
 
     file_menu = tk.Menu(menubar, tearoff=False)
-    file_menu.add_command(label=tr("menu.file.new"), command=app.keymap_set_io.new_config, accelerator="Ctrl+N")
+    file_menu.add_command(label=tr("menu.file.new"), command=app.keymap_set_io.new_config, accelerator=accelerator_text(app, "Ctrl+N"))
     file_menu.add_separator()
-    file_menu.add_command(label=tr("menu.file.save"), command=app.keymap_set_io.save_keymap_set, accelerator="Ctrl+S")
-    file_menu.add_command(label=tr("menu.file.save_as"), command=app.keymap_set_io.save_as, accelerator="Ctrl+Shift+S")
-    file_menu.add_command(label=tr("menu.file.load_keymap_set"), command=app.keymap_set_io.load_keymap_set_from, accelerator="Ctrl+O")
+    file_menu.add_command(label=tr("menu.file.save"), command=app.keymap_set_io.save_keymap_set, accelerator=accelerator_text(app, "Ctrl+S"))
+    file_menu.add_command(label=tr("menu.file.save_as"), command=app.keymap_set_io.save_as, accelerator=accelerator_text(app, "Ctrl+Shift+S"))
+    file_menu.add_command(label=tr("menu.file.load_keymap_set"), command=app.keymap_set_io.load_keymap_set_from, accelerator=accelerator_text(app, "Ctrl+O"))
     file_menu.add_command(label=tr("menu.file.load_history"), command=app.keymap_set_history_io.open_history_dialog)
     file_menu.add_separator()
     file_menu.add_command(label="Import...", command=app.keymap_set_io.import_config)
@@ -24,7 +25,7 @@ def build_menu_bar(app):
     menubar.add_cascade(label=tr("menu.file.title"), menu=file_menu)
 
     settings_menu = tk.Menu(menubar, tearoff=False)
-    settings_menu.add_command(label=tr("menu.settings.preset_edit"), command=app.open_preset_manager, accelerator="Ctrl+Alt+P")
+    settings_menu.add_command(label=tr("menu.settings.preset_edit"), command=app.open_preset_manager, accelerator=accelerator_text(app, "Ctrl+Alt+P"))
     settings_menu.add_command(label=tr("menu.settings.reference_cleanup"), command=app.reference_cleanup_io.run_cleanup)
     settings_menu.add_command(label=tr("menu.settings.orphan_sweep"), command=app.orphan_sweep_io.run_sweep)
     settings_menu.add_command(label=tr("menu.settings.quarantine_manage"), command=app.quarantine_manage_io.manage_quarantine)
@@ -88,13 +89,14 @@ def _open_version_dialog(app: tk.Misc) -> None:
 
 
 def bind_menu_shortcuts(app):
-    app.bind("<Control-n>", app._on_shortcut_new, add="+")
-    app.bind("<Control-N>", app._on_shortcut_new, add="+")
-    app.bind("<Control-s>", app._on_shortcut_save, add="+")
-    app.bind("<Control-S>", app._on_shortcut_save, add="+")
-    app.bind("<Control-o>", app._on_shortcut_load, add="+")
-    app.bind("<Control-O>", app._on_shortcut_load, add="+")
-    app.bind("<Control-Shift-s>", app._on_shortcut_save_as, add="+")
-    app.bind("<Control-Shift-S>", app._on_shortcut_save_as, add="+")
-    app.bind("<Control-Alt-p>", app._on_shortcut_open_preset_manager, add="+")
-    app.bind("<Control-Alt-P>", app._on_shortcut_open_preset_manager, add="+")
+    modifier = primary_modifier(app)
+    app.bind(f"<{modifier}-n>", app._on_shortcut_new, add="+")
+    app.bind(f"<{modifier}-N>", app._on_shortcut_new, add="+")
+    app.bind(f"<{modifier}-s>", app._on_shortcut_save, add="+")
+    app.bind(f"<{modifier}-S>", app._on_shortcut_save, add="+")
+    app.bind(f"<{modifier}-o>", app._on_shortcut_load, add="+")
+    app.bind(f"<{modifier}-O>", app._on_shortcut_load, add="+")
+    app.bind(f"<{modifier}-Shift-s>", app._on_shortcut_save_as, add="+")
+    app.bind(f"<{modifier}-Shift-S>", app._on_shortcut_save_as, add="+")
+    app.bind(f"<{modifier}-Alt-p>", app._on_shortcut_open_preset_manager, add="+")
+    app.bind(f"<{modifier}-Alt-P>", app._on_shortcut_open_preset_manager, add="+")

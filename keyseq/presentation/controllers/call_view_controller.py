@@ -6,6 +6,8 @@ import tkinter as tk
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.tk_platform import screen_distance
+
 from keyseq.presentation.call_view_heights import (
     CALL_VIEW_HEIGHTS_KEY, default_call_view_height,
     displayed_call_view_height, parse_call_view_heights,
@@ -253,9 +255,9 @@ class CallViewController:
             return
         height = displayed_call_view_height(
             self.desired[host.key], host.minimum_height(), panes.winfo_height(),
-            list_minimum_height(host.listing), int(panes.cget("sashwidth")),
+            list_minimum_height(host.listing), screen_distance(panes, "sashwidth"),
         )
-        panes.sash_place(0, 0, panes.winfo_height() - height - int(panes.cget("sashwidth")))
+        panes.sash_place(0, 0, panes.winfo_height() - height - screen_distance(panes, "sashwidth"))
 
     def _on_press(self, host: _CallViewHost, event) -> None:
         if host.is_open and host.panes.identify(event.x, event.y):

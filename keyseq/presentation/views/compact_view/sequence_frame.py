@@ -7,6 +7,7 @@ from tkinter import ttk
 from keyseq.shared.i18n import tr
 
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
+from keyseq.presentation.tk_platform import primary_modifier
 
 
 class CompactSequenceFrame:
@@ -31,9 +32,10 @@ class CompactSequenceFrame:
         self.action_list.bind("<ButtonRelease-1>", on_release)
         for key in ("Up", "Down", "Prior", "Next", "Home", "End"):
             self.action_list.bind(f"<KeyPress-{key}>", on_key)
+        modifier = primary_modifier(parent)
         for event in (
-            "<B1-Motion>", "<Double-Button-1>", "<Control-c>", "<Control-C>",
-            "<Control-v>", "<Control-V>", "<Delete>", "<B1-Leave>", "<B1-Enter>",
+            "<B1-Motion>", "<Double-Button-1>", f"<{modifier}-c>", f"<{modifier}-C>",
+            f"<{modifier}-v>", f"<{modifier}-V>", "<Delete>", "<B1-Leave>", "<B1-Enter>",
         ):
             self.action_list.bind(event, on_ignore)
 

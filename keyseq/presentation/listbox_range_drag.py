@@ -7,6 +7,7 @@ from collections.abc import Callable
 
 from keyseq.domain.list_editing import move_block
 from keyseq.presentation.listbox_utils import set_listbox_mouse_button_down
+from keyseq.presentation.tk_platform import primary_modifier
 
 
 def selected_range(listbox: tk.Listbox) -> tuple[int, int] | None:
@@ -103,8 +104,9 @@ class ListboxRangeDrag:
         box.bind("<Shift-Down>", lambda _event: self._shift_step(1))
         box.bind("<Up>", self._plain_arrow, add="+")
         box.bind("<Down>", self._plain_arrow, add="+")
-        for sequence in ("<Control-slash>", "<Control-backslash>", "<Shift-Control-Home>",
-                         "<Shift-Control-End>", "<Shift-Home>", "<Shift-End>"):
+        modifier = primary_modifier(box)
+        for sequence in (f"<{modifier}-slash>", f"<{modifier}-backslash>", f"<Shift-{modifier}-Home>",
+                         f"<Shift-{modifier}-End>", "<Shift-Home>", "<Shift-End>"):
             box.bind(sequence, self._break_event)
 
     def _row_at(self, y: int) -> int | None:

@@ -25,6 +25,9 @@ def get_backend() -> OsBackend:
             if sys.platform == "win32":
                 from keyseq.infrastructure.os_backend.windows.backend import create_backend
                 _backend = create_backend()
+            elif sys.platform == "darwin":
+                from keyseq.infrastructure.os_backend.macos.backend import create_backend
+                _backend = create_backend()
             else:
                 raise RuntimeError(f"Unsupported operating system: {sys.platform}")
         return _backend

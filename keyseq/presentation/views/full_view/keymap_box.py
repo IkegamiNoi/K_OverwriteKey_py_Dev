@@ -6,6 +6,7 @@ from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.tk_platform import primary_modifier
 from keyseq.presentation.views.full_view.scroll_area import VerticalScrollArea
 
 
@@ -32,9 +33,10 @@ class KeymapBox(ttk.LabelFrame):
             on_commit=app.keymap_panel.on_keymap_list_mouse_release,
             can_start_drag=app.keymap_panel.can_start_keymap_drag,
         )
-        for sequence in ("<Control-c>", "<Control-C>"):
+        modifier = primary_modifier(app)
+        for sequence in (f"<{modifier}-c>", f"<{modifier}-C>"):
             self.keymap_listbox.bind(sequence, app.keymap_panel.copy_keymaps)
-        for sequence in ("<Control-v>", "<Control-V>"):
+        for sequence in (f"<{modifier}-v>", f"<{modifier}-V>"):
             self.keymap_listbox.bind(sequence, app.keymap_panel.paste_keymaps)
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=self.keymap_listbox.yview)
         keymap_list_scrollbar.pack(side="right", fill="y")

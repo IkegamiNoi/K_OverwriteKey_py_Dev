@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from keyseq.presentation.tk_platform import screen_distance
+
 from keyseq.domain.screen_grid import GRID_OPS, OP_LABELS
 from keyseq.shared.i18n import tr
 
@@ -178,9 +180,9 @@ class GridEditorPanel(tk.Toplevel):
             else:
                 available_height = max(1, self._max_height - self.actions.winfo_reqheight() - 20)
             canvas_height = min(content_height, available_height)
-            if int(self.canvas.cget("height")) != canvas_height:
+            if screen_distance(self.canvas, "height") != canvas_height:
                 self.canvas.configure(height=canvas_height)
-            if int(self.scroll_frame.cget("height")) != canvas_height:
+            if screen_distance(self.scroll_frame, "height") != canvas_height:
                 self.scroll_frame.configure(height=canvas_height)
 
             show_scrollbar = content_height > available_height
@@ -194,7 +196,7 @@ class GridEditorPanel(tk.Toplevel):
             content_width = max(
                 self._scroll_content.winfo_reqwidth(), self.monitor_combo.winfo_reqwidth()
             )
-            if int(self.canvas.cget("width")) != content_width:
+            if screen_distance(self.canvas, "width") != content_width:
                 self.canvas.configure(width=content_width)
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         finally:

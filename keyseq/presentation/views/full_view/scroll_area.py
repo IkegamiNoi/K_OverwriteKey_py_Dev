@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Iterable
 
+from keyseq.presentation.tk_platform import screen_distance
+
 
 class VerticalScrollArea(ttk.Frame):
     """A vertically scrollable content frame whose requested size follows its content."""
@@ -92,9 +94,9 @@ class VerticalScrollArea(ttk.Frame):
             content_height = self.content.winfo_reqheight()
             canvas_width = self.canvas.winfo_width()
             canvas_height = self.canvas.winfo_height()
-            if int(self.canvas.cget("width")) != content_width:
+            if screen_distance(self.canvas, "width") != content_width:
                 self.canvas.configure(width=content_width)
-            if int(self.canvas.cget("height")) != content_height:
+            if screen_distance(self.canvas, "height") != content_height:
                 self.canvas.configure(height=content_height)
 
             # The content request can be measured before the pane is placed. In

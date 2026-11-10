@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.tk_platform import screen_distance
+
 from keyseq.presentation.call_view_heights import CALL_VIEW_HEIGHTS_KEY, default_call_view_height
 from keyseq.presentation.compact_pane_heights import COMPACT_SEQUENCE_VIEW_KEY, plan_compact_heights
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
@@ -88,7 +90,7 @@ class CompactPaneLayout:
             return
         frames = self._open_frames()
         specs = self._height_specs(frames)
-        sash = int(panes.cget("sashwidth"))
+        sash = screen_distance(panes, "sashwidth")
         available = panes.winfo_height() - len(frames) * sash
         floor = (0 if self.app.compact_sequence.is_open
                  else self.box.sequence_frame.heading.winfo_reqheight())

@@ -36,11 +36,14 @@ infrastructure
 - `keyseq/infrastructure/os_backend/windows/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）。`WindowsWindowBackend` / `WindowsTkKeyTranslator` / `WindowsAppIdentity` がモジュール属性経由で委譲する
 - `keyseq/infrastructure/os_backend/windows/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）。`WindowsAppIdentity.relaunch` が委譲する
 - `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換・テンキー判定）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
+- `os_backend/macos/backend.py`: macOS 用スタブ実装。フック登録は未対応エラーを返し、能力フラグはすべて False。
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
 
 ## presentation のフォルダ構成
+
+- `presentation/tk_platform.py`: Tk の windowingsystem に基づく修飾キー・右クリック・accelerator 表記の共通判定。
 
 計画04で **種類別フォルダ**（`controllers/` / `views/`）へ再編し、View 専用 Widget は
 `views/full_view/` / `views/compact_view/` の**所有者フォルダ**へ配置した。

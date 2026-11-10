@@ -4,40 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-10T12:00:00
+last_updated: 2026-11-11T01:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-support-4f08b3`。push はユーザー）。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `windows-continuation-23d400`・`Operation_check` 3ea433e から ff）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75（macOS 対応）段階 ① 完了（実機目視 OK・区切りレビューの M1〜M5 採用済み）。次は Mac で段階 ② の task_05。**
+focus: **phase 75 段階 ② task_05・task_05b を Mac で実装・確認済み（reviewer 採用・Mac 起動目視 OK）。Windows の標準検証 4 種待ち（未実施のため完了判定は保留）。次は task_06（probe）。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-11-10T12:00:00
+ts: 2026-11-11T01:00:00
 who: main
 summary: |
-  実施: 段階 ① の実機目視（Windows）= 問題なし（ユーザー報告）。deep-reviewer の M1〜M5 をすべて推奨どおり採用（decisions.md）。M3 = `KeyboardBackend` の docstring にフックの契約を追記（reviewer 修正して採用 → None は抑止扱いと明記して反映）。M1・M2・M4・M5 は phase.md の task_05 / 08 / 11 / 12 へ追記。
-  レビュー: reviewer 修正して採用（指摘 1 件を反映）。
+  task_05（macOS で起動）: os_backend/macos/ のスタブ・darwin の分岐・requirements の環境マーカー（keyboard は win32・pyobjc は darwin）・presentation/tk_platform.py（Control→Command・右クリック・accelerator）・契約テストの windows import の分離（M5）。codex-implementer（途中で止まり resume 1 回）・メインが 2 件修正（Option- / キャッシュのテストの patch 先を macos へ）・reviewer 採用。
+  task_05b（Tk 9 の長さ）: Tk 9 は Canvas の width/height 既定を '10c'/'7c'・sashwidth を '2.25p' で返す（probe）→ tk_platform.screen_distance（winfo_pixels）で 8 か所を置換。codex-implementer・reviewer 採用。
+  Mac の .venv は Homebrew の Python 3.13.18 + python-tk@3.13（Tk 9.1.0）に作り直し（Q1 から変更・decisions.md）。
 result_files:
-  - keyseq/infrastructure/os_backend/
-  - keyseq/infrastructure/input_gateway.py
-  - instructions/phase/75_mac_support/tasks/
+  - keyseq/infrastructure/os_backend/macos/
+  - keyseq/presentation/tk_platform.py
+  - instructions/phase/75_mac_support/tasks/task_05_macos_startup.md・task_05b_tk9_screen_distance.md
 verified:
-  compile: clean
-  tests: pass 1971（skip 7）
-  tests_ui: pass 1270（最終コミット 146f1fe0 で全件）
-  smoke: pass
+  mac_compile: clean
+  mac_tests: 1920 件・失敗 89・エラー 15・skip 16（Windows 前提のパス約 55・テンキー約 22・スタブ約 15 等。基準線の確定は task_07）
+  mac_smoke: pass（stderr の Traceback 0）
+  mac_tests_ui: 実行しない（スタブのキー検証で「不明なキー名」のモーダルが出て止まる。task_07 で対処）
+  mac_visual: 起動・メニュー・キーボードUI・フック開始のエラー・フル表示の大きさ OK（ユーザー）
+  windows: 未実施（標準検証 4 種・tests 1971+新規分 / tests_ui 1270 / smoke）
 
 ## next_action
-- push（ユーザー）して、Mac で task_05 から再開する（Mac の `.venv` は python.org 版 3.13 に作り直す）。task_05 では M5（契約テストの `windows.backend` の import の分離）も行う
-- 区切りレビューの M1・M2 は task_08、M4 は task_11・task_12 に追記済み（`phase.md`）。M3 は `os_backend/contracts.py` の docstring で対応済み
+- push（ユーザー）→ Windows で task_05・05b の標準検証 4 種 → 通れば完了判定 → Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
+- task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 
 ## blockers
-- **Mac の `.venv` は Python 3.15 で Tk が使えない**。task_05 で python.org 版の 3.13 に作り直す（段階 ① には影響しない）
+- **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: `~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が失敗）。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -10,15 +11,39 @@ from keyseq.infrastructure.os_backend import (
     AppIdentity, Capabilities, ImeBackend, KeyboardBackend, KeySend, MouseBackend,
     OsBackend, TkKeyTranslator, WindowBackend, get_backend,
 )
-from keyseq.infrastructure.os_backend.windows.backend import (
-    WindowsAppIdentity, WindowsImeBackend, WindowsTkKeyTranslator, WindowsWindowBackend,
-)
-from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
-from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
 
 
 class OsBackendContractTests(unittest.TestCase):
+    def test_macos_stub_contracts_and_factory(self) -> None:
+        from keyseq.infrastructure.os_backend.macos.backend import (
+            MacAppIdentity, MacImeBackend, MacKeyboardBackend, MacMouseBackend,
+            MacTkKeyTranslator, MacWindowBackend, create_backend,
+        )
+
+        for protocol, implementation in (
+            (ImeBackend, MacImeBackend), (WindowBackend, MacWindowBackend),
+            (TkKeyTranslator, MacTkKeyTranslator), (AppIdentity, MacAppIdentity),
+            (KeyboardBackend, MacKeyboardBackend), (MouseBackend, MacMouseBackend),
+        ):
+            expected = {n: m for n, m in protocol.__dict__.items() if callable(m) and not n.startswith("_")}
+            actual = {n: m for n, m in implementation.__dict__.items() if callable(m) and not n.startswith("_")}
+            self.assertEqual(set(actual), set(expected))
+            for name in expected:
+                self.assertEqual(list(inspect.signature(actual[name]).parameters), list(inspect.signature(expected[name]).parameters))
+        backend = create_backend()
+        self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
+        self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
+        with self.assertRaises(OSError):
+            backend.keyboard.register_global_hook(lambda _event: None)
+
+    def test_get_backend_creates_macos_stub(self) -> None:
+        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
+        with patch("keyseq.infrastructure.os_backend.sys.platform", "darwin"), patch("keyseq.infrastructure.os_backend._backend", None):
+            self.assertIsInstance(get_backend().keyboard, MacKeyboardBackend)
+
     def test_windows_backend_matches_ime_protocol(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsImeBackend
         protocol = {name: member for name, member in ImeBackend.__dict__.items() if callable(member) and not name.startswith("_")}
         implementation = {name: member for name, member in WindowsImeBackend.__dict__.items() if callable(member) and not name.startswith("_")}
         self.assertEqual(set(implementation), set(protocol))
@@ -26,6 +51,10 @@ class OsBackendContractTests(unittest.TestCase):
             self.assertEqual(list(inspect.signature(implementation[name]).parameters), list(inspect.signature(protocol[name]).parameters))
 
     def test_windows_backends_match_new_protocols(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsAppIdentity, WindowsTkKeyTranslator, WindowsWindowBackend
+        from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
+        from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
         for protocol, implementation in (
             (WindowBackend, WindowsWindowBackend),
             (TkKeyTranslator, WindowsTkKeyTranslator),
@@ -58,14 +87,19 @@ class OsBackendContractTests(unittest.TestCase):
         created = OsBackend(
             Capabilities(True, True, True, True), Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
         )
-        with patch("keyseq.infrastructure.os_backend.sys.platform", "win32"), patch("keyseq.infrastructure.os_backend._backend", None), patch(
-            "keyseq.infrastructure.os_backend.windows.backend.create_backend", return_value=created
+        # macos のスタブは標準ライブラリだけなので、どの OS でも patch 先を import できる
+        with patch("keyseq.infrastructure.os_backend.sys.platform", "darwin"), patch("keyseq.infrastructure.os_backend._backend", None), patch(
+            "keyseq.infrastructure.os_backend.macos.backend.create_backend", return_value=created
         ) as create:
             self.assertIs(get_backend(), created)
             self.assertIs(get_backend(), created)
             create.assert_called_once_with()
 
     def test_backend_factory_assembles_all_windows_adapters(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsAppIdentity, WindowsImeBackend, WindowsTkKeyTranslator, WindowsWindowBackend
+        from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
+        from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
         with patch("keyseq.infrastructure.os_backend.windows.backend.ime_control"), \
              patch("keyseq.infrastructure.os_backend.windows.backend.own_ime_status"):
             from keyseq.infrastructure.os_backend.windows.backend import create_backend
@@ -107,11 +141,13 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertLess(min(node.lineno for node in backend_calls), min(node.lineno for node in super_calls))
 
     def test_non_windows_platform_raises(self) -> None:
-        with patch("keyseq.infrastructure.os_backend.sys.platform", "darwin"), patch("keyseq.infrastructure.os_backend._backend", None):
+        with patch("keyseq.infrastructure.os_backend.sys.platform", "linux"), patch("keyseq.infrastructure.os_backend._backend", None):
             with self.assertRaises(RuntimeError):
                 get_backend()
 
     def test_window_id_is_converted_and_failures_return_safe_values(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsImeBackend
         backend = WindowsImeBackend()
         window = Mock()
         window.winfo_id.return_value = "42"
@@ -127,6 +163,8 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertFalse(backend.set_own_open_status(window, True))
 
     def test_window_backend_converts_tk_windows_before_delegation(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsWindowBackend
         backend = WindowsWindowBackend()
         window = Mock()
         window.wm_frame.return_value = "2a"
@@ -140,6 +178,8 @@ class OsBackendContractTests(unittest.TestCase):
         overlay.assert_called_once_with(17)
 
     def test_translator_and_app_identity_delegate_through_modules(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsAppIdentity, WindowsTkKeyTranslator
         with patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.vk_to_scan_code", return_value=30) as scan, \
              patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.vk_to_char", return_value="a") as char, \
              patch("keyseq.infrastructure.os_backend.windows.backend.tk_key_translator.numpad_name_from_tk_event", return_value="num enter") as numpad, \

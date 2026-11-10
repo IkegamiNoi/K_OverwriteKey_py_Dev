@@ -657,3 +657,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M4 pyautogui / pynput / 再起動の実装が `windows/` にしかない → task_11・task_12 で OS 共通の置き場を決める
 - M5 契約テストが module 先頭で `windows.backend` を import → task_05 で分離（§7）
 - 反映先: `instructions/phase/75_mac_support/phase.md` のタスク一覧へ追記。
+
+### 【task_05】macOS の Python は Homebrew の 3.13 + `python-tk@3.13`（Tk 9.1）に変更（2026-11-10・ユーザー判断）
+- 暫定 57 §8 Q1（python.org 版 3.13・Tk 8.6 系）からの変更。理由 = ユーザーが brew で導入することを選んだ（python.org 版は未導入）。
+- 実測: Python 3.13.18 / Tk 9.1.0 / pyautogui 0.9.54・pynput 1.8.2・pyobjc-framework-Quartz/Cocoa 13.0。`.venv` はリポジトリルートに作り直し済み。
+- 影響: Tk 9 由来の差が出ないかを task_06 の probe の観点に足す。PyInstaller での可否は task_13 で確認。暫定 57 の Q1 の文言は task_06 の改訂で反映する。

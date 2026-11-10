@@ -57,8 +57,9 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 **段階 ②: macOS で起動**
 
 - task_05: Mac の `.venv`（Python 3.13）・依存の環境マーカー・macOS スタブ・Tk の差分。契約テストの `windows.backend` の import を module 先頭から分離し、macOS で収集時に落ちないようにする（§7・段階 ① の区切りレビュー M5）
-- task_06: probe（tap・修飾キー・権限・aqua の Tk・スレッド条件・Dock のアイコン・JIS / US の記号キーの対応表）と暫定 57 の改訂
-- task_07: 既定プリセットのプロファイル注入（Q2）、macOS のテストの基準線の記録（§7）
+- task_05b: Tk 9 で長さの `cget` が単位つきで返る差（`winfo_pixels` で揃える）。task_05 の起動目視で発覚（2026-11-11）
+- task_06: probe（tap・修飾キー・権限・aqua の Tk・スレッド条件・Dock のアイコン・JIS / US の記号キーの対応表・Tk 9 由来の差〔Q1 を brew の Tk 9.1 へ変更・decisions 2026-11-10〕）と暫定 57 の改訂（Q1 の文言を含む）
+- task_07: 既定プリセットのプロファイル注入（Q2）、macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 

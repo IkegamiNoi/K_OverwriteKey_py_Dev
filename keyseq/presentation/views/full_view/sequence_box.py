@@ -6,6 +6,7 @@ from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.tk_platform import primary_modifier
 from keyseq.presentation.pane_width_rules import MIN_LIST_CHARS
 from keyseq.presentation.views.full_view.call_view_frame import CallViewFrame
 from keyseq.presentation.views.full_view.scroll_area import VerticalScrollArea
@@ -36,10 +37,11 @@ class SequenceBox(ttk.LabelFrame):
         self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
         self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)
-        self.action_list.bind("<Control-c>", app.trigger_panel.copy_actions)
-        self.action_list.bind("<Control-C>", app.trigger_panel.copy_actions)
-        self.action_list.bind("<Control-v>", app.trigger_panel.paste_actions)
-        self.action_list.bind("<Control-V>", app.trigger_panel.paste_actions)
+        modifier = primary_modifier(app)
+        self.action_list.bind(f"<{modifier}-c>", app.trigger_panel.copy_actions)
+        self.action_list.bind(f"<{modifier}-C>", app.trigger_panel.copy_actions)
+        self.action_list.bind(f"<{modifier}-v>", app.trigger_panel.paste_actions)
+        self.action_list.bind(f"<{modifier}-V>", app.trigger_panel.paste_actions)
         self.action_range_drag = bind_listbox_range_drag(
             self.action_list,
             on_move=app.trigger_panel.on_action_list_move,
