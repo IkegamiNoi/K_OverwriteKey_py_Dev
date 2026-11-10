@@ -4,24 +4,23 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-10T01:29:42
+last_updated: 2026-11-10T12:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/mac-support-4f08b3`（Mac の worktree `mac-support-4f08b3`。push はユーザー）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75（macOS 対応）段階 ① を実装中。task_01〜04 完了（段階 ① の実装完了）。段階の区切りレビューと実機目視の待ち。**
+focus: **phase 75（macOS 対応）段階 ① 完了（実機目視 OK・区切りレビューの M1〜M5 採用済み）。次は Mac で段階 ② の task_05。**
 mode: implementing
-presence: away（戻る予定 未定）
+presence: present
 
 ## last_action
-ts: 2026-11-10T01:29:42
+ts: 2026-11-10T12:00:00
 who: main
 summary: |
-  実施: 段階 ①（task_01〜04）完了・各コミット済み（2f25838e / 6dda07b5 / e582b8dd / 146f1fe0）。OS 依存はすべて `infrastructure/os_backend/windows/` の裏へ移動し、AST の許可リストは空。`KeyCaptureHook` の `after` はディスパッチャ未対応（確認事項 2）。
-  ユーザー判断: タスクの連続実行を許可（2026-11-10）。不在モード。
-  レビュー: 各タスク reviewer 採用 / 段階の区切り = Codex 敵対的 approve（指摘なし）・deep-reviewer「修正して採用」（M1〜M5 は next_action の確認事項）。想定外の先行実装なし。
+  実施: 段階 ① の実機目視（Windows）= 問題なし（ユーザー報告）。deep-reviewer の M1〜M5 をすべて推奨どおり採用（decisions.md）。M3 = `KeyboardBackend` の docstring にフックの契約を追記（reviewer 修正して採用 → None は抑止扱いと明記して反映）。M1・M2・M4・M5 は phase.md の task_05 / 08 / 11 / 12 へ追記。
+  レビュー: reviewer 修正して採用（指摘 1 件を反映）。
 result_files:
   - keyseq/infrastructure/os_backend/
   - keyseq/infrastructure/input_gateway.py
@@ -33,14 +32,8 @@ verified:
   smoke: pass
 
 ## next_action
-- **【ユーザー確認 1】段階 ① の実機目視（Windows）**: `git` のブランチ `claude/phase-75-progress-d68f10` で起動し、IME オンの文字送信 / キーの取得 / キー置換とシーケンス / マウス操作とクリック位置の取得 / キーボードUIの常に手前 / カーソルグリッド / 言語の「今すぐ再起動」を確認する
-- **【ユーザー確認 2】deep-reviewer の指摘の採否**（推奨つき）:
-  - M1 フックスレッドの `after` が残る（`presentation/key_capture_hook.py:148→168`・実測済）→ 推奨 = task_08 の対象に明記（Windows の動作は変わらず、macOS のディスパッチャの実体と一緒に直す）
-  - M2 ディスパッチャの型では §5.1 の「捨てるときの復元」を渡せない（`hook_controller.py:26-34`）→ 推奨 = task_08 で暫定 57 と併せて改訂
-  - M3 フックの契約が Protocol に未記載（`os_backend/contracts.py:21-27`。イベントの必須属性・戻り値 False = 抑止等）→ 推奨 = 段階 ② の前に docstring を追記（小修正）
-  - M4 pyautogui / pynput / 再起動の実装が `windows/` にしかない（`windows/mouse_backend.py`・`windows/app_relaunch.py`）→ 推奨 = task_11・task_12 で OS 共通の置き場を決める
-  - M5 契約テストが module 先頭で `windows.backend` を import し macOS では収集時に落ちる（`tests/test_os_backend_contracts.py:13-17` ほか）→ 推奨 = task_05 で分離（§7）
-- 確認後: 採用分を反映し、state を更新して push（ユーザー）、Mac で task_05 から再開する（Mac の `.venv` は python.org 版 3.13 に作り直す）
+- push（ユーザー）して、Mac で task_05 から再開する（Mac の `.venv` は python.org 版 3.13 に作り直す）。task_05 では M5（契約テストの `windows.backend` の import の分離）も行う
+- 区切りレビューの M1・M2 は task_08、M4 は task_11・task_12 に追記済み（`phase.md`）。M3 は `os_backend/contracts.py` の docstring で対応済み
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 
 ## blockers

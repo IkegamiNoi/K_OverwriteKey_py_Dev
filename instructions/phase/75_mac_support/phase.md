@@ -56,20 +56,20 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 
 **段階 ②: macOS で起動**
 
-- task_05: Mac の `.venv`（Python 3.13）・依存の環境マーカー・macOS スタブ・Tk の差分
+- task_05: Mac の `.venv`（Python 3.13）・依存の環境マーカー・macOS スタブ・Tk の差分。契約テストの `windows.backend` の import を module 先頭から分離し、macOS で収集時に落ちないようにする（§7・段階 ① の区切りレビュー M5）
 - task_06: probe（tap・修飾キー・権限・aqua の Tk・スレッド条件・Dock のアイコン・JIS / US の記号キーの対応表）と暫定 57 の改訂
 - task_07: 既定プリセットのプロファイル注入（Q2）、macOS のテストの基準線の記録（§7）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
-- task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）
+- task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。`KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）・ディスパッチャの型を §5.1 の「捨てるときの復元」を渡せる形へ暫定 57 と併せて改訂する（M2）
 - task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）
 - task_10: 権限の案内（§5.2）
-- task_11: §5.4 の残りの機能と無効化の UI
+- task_11: §5.4 の残りの機能と無効化の UI。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）
 
 **段階 ④: ビルド**
 
-- task_12: `app_data_root` への統一と同梱物のパス、再起動（§6.1・§6.2）
+- task_12: `app_data_root` への統一と同梱物のパス、再起動（§6.1・§6.2）。再起動の実装（現在 `windows/app_relaunch.py` のみ）の OS 共通の置き場を決める（M4）
 - task_13: `packaging/` と Windows / macOS のビルド、ビルド後の実機確認（各 OS で保存した設定の読み込みを含む）
 
 **最終**

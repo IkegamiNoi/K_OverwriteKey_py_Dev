@@ -18,12 +18,26 @@ ResolveLayoutScanCode = Callable[[str], int | None] | None
 
 
 class KeyboardBackend(Protocol):
+    """キーボードのフックと送信。
+
+    フックの契約（どの OS の実装も守る）:
+    - callback はフックのスレッドで呼ばれる。UI の操作は呼び出し側がディスパッチャ経由で行う。
+    - callback へ渡すイベントは次の属性を持つ:
+      `event_type`（"down" / "up"）・`scan_code`（int）・`name`（str | None）・`is_keypad`（bool）。
+    - `suppress=True` のとき callback は bool を返す。True なら素通し、False なら抑止する。
+      None は抑止として扱われる（Windows の keyboard ライブラリの挙動）ので返さない。
+      `suppress=False` では戻り値を見ない。
+    - 戻り値の handle は `unregister_hook` へ渡す以外に使わない。
+    """
+
     def register_global_hook(
         self, callback: Callable[[object], bool | None], *, suppress: bool = False
     ) -> object: ...
     def register_key_hook(
         self, key: str, callback: Callable[[object], None], *, suppress: bool
-    ) -> object: ...
+    ) -> object:
+        """`key` の押下（"down"）だけを callback へ渡す。`suppress=True` ならそのキーの押下・解放とも抑止する。"""
+        ...
     def unregister_hook(self, handle: object) -> None: ...
     def resolve_send(self, key: str, resolve_layout_scan_code: ResolveLayoutScanCode) -> KeySend: ...
     def press_send(self, send: KeySend) -> None: ...

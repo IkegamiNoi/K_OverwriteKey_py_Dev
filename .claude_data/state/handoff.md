@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75（macOS 対応）段階 ①（task_01〜04）の実装完了。段階の区切りレビューと実機目視の待ち。**
+**phase 75（macOS 対応）段階 ① 完了（Windows の実機目視 OK・区切りレビューの M1〜M5 採用済み）。次は Mac で段階 ② の task_05。**
 ブランチ `claude/phase-75-progress-d68f10`。push と main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -55,9 +55,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認 1】段階 ① の実機目視（Windows）**: IME オンの文字送信 / キーの取得 / キー置換とシーケンス / マウス操作とクリック位置の取得 / キーボードUIの常に手前 / カーソルグリッド / 言語の「今すぐ再起動」
-- **【ユーザー確認 2】deep-reviewer の指摘の採否**（推奨つき・詳細は session.md の next_action）: M1 `key_capture_hook.py:148→168` のフックスレッドの `after` → task_08 に明記 / M2 ディスパッチャの型 → task_08 で改訂 / M3 フックの契約の docstring → 段階 ② の前に追記 / M4 pyautogui 等の OS 共通の置き場 → task_11・12 / M5 契約テストの OS 非依存化 → task_05
-- 確認後: 採用分を反映し、state を更新して push（ユーザー）、Mac で task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）
+- push（ユーザー）して、Mac で task_05 から再開する（Mac の `.venv` は python.org 版の 3.13 に作り直す。現状の 3.15 は Tk が使えない）。task_05 では M5（契約テストの `windows.backend` の import の分離）も行う
+- 区切りレビューの M1・M2 → task_08 / M4 → task_11・task_12（`phase.md` に追記済み）。M3 は `os_backend/contracts.py` の docstring で対応済み（`suppress=True` の callback は bool を返す・None は抑止扱い）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
