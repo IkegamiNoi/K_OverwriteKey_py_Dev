@@ -4,36 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-11T23:30:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
+last_updated: 2026-11-12T01:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.6・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `windows-continuation-23d400`・`Operation_check` 3ea433e から ff）。push はユーザー。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `task-06-progression-a047bd`）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_07b（OS ごとの既定プリセット・Q2）完了・コミット済み。次は task_07d（Tk 9 / aqua の寸法の差・基準線の「要調査」10 件）。**
+focus: **phase 75 段階 ② task_07d（Tk 9 / aqua の寸法の差）実装・検証・reviewer（修正して採用 → R1・R2 反映済み）まで完了・未コミット。残りは Mac の目視のみ（ユーザー不在で停止）。**
 mode: implementing
-presence: present
+presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-11T23:30:00
+ts: 2026-11-12T01:00:00
 who: main
 summary: |
-  task_06（probe）: Mac 実機で tap・修飾キー・抑止・タイムアウト・送信・スレッド・aqua の Tk・Dock・記号キーを実測（スクリプトはスクラッチ・リポジトリ外）。暫定 57 を v0.6 へ（§4.1 結果表・§5.1 キュー 64 件/1.0 秒・修飾キーのフラグの左右別の付け直し・§5.3.1 対応表・Q1 = Tk 9.1・Q4 = 取得中に TIS で英字へ・§9 に 11・12）。Codex 敵対的レビュー 4 件を推奨どおり反映・reviewer 修正して採用（指摘 1〜4 反映済み）。
-  task_05c（probe で発覚）: Tk 9 の aqua の右クリックは Button-3 → right_click_sequence を撤去し "<Button-3>" に戻す。codex-implementer・verifier（compile clean / test_tk_platform 4 pass / smoke pass / tests 1920・失敗 89・エラー 15 = 基準同数）・reviewer 採用。
+  2026-11-11〜12 のコミット: task_05c・06（3878868）/ task_07c（9c4c098・Mac でペインの初期幅が適用されない）/ task_07（3598823・Mac のテストの基準線 `instructions/phase/75_mac_support/mac_test_baseline.md`）/ fa60f50（§7 の skip の範囲・task_07d 起票）/ task_07b（d26fac0・OS ごとの既定プリセット）。
+  task_07d（未コミット）: アプリ = ①コンパクト表示の trigger_panes に <Map> でも schedule_layout ②ツールチップは表示後に -topmost を再設定 ③起動時の既定の高さ = max(820, 3 枠が収まる高さ)・画面の高さ（wm_maxsize）で頭打ち ④aqua ではキーの文字を Helvetica。テスト = 窓の幅・既定のペイン幅・省略表示を Windows のフォント非依存に。codex-delegating-implementer・verifier（compile clean / tests 1939・失敗 6・エラー 10・skip 28 = 基準線どおり / smoke OK / 対象 tests_ui 7 モジュール 失敗 0）・reviewer 修正して採用（R1 = 上限を画面の高さに文書統一・R2 = test_full_view_panes の独立検証を復元 → 単独で OK）。
 result_files:
-  - instructions/history/57_mac_support.md（v0.6）
-  - instructions/phase/75_mac_support/tasks/task_05c_tk9_right_click.md・task_06_macos_probe.md
-  - keyseq/presentation/tk_platform.py・keyboard_window.py・help/help_tab_view.py・tests/test_tk_platform.py
+  - instructions/phase/75_mac_support/tasks/task_07d_tk9_aqua_metrics.md・mac_test_baseline.md
+  - keyseq/presentation/（compact_pane_layout・hover_tooltip・pane_measure・pane_layout_controller・tk_platform・keyboard_window）・tests/・tests_ui/
 verified:
-  mac_tests: 1920 件・失敗 89・エラー 15・skip 16（task_05c 後も基準どおり）
-  mac_visual: task_05c の右クリックが届く（キーボードUI）・ヘルプのコピー OK（ユーザー）。割り当てのクリアの目視は task_09 へ（割り当てが作れないため）
+  mac_tests: 1939 件・失敗 6・エラー 10・skip 28（基準線どおり）
+  mac_tests_ui: task_07d の対象 7 モジュール 失敗 0・pane / compact / keyboard 系は基準線どおり
+  mac_visual: task_07d は未（ユーザー不在）
 
 ## next_action
-- Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）。「要調査」10 件は task_07d（task_07b の後）
+- **【最初にユーザーへ確認】task_07d の Mac 目視**（`main.py` を起動）: ①フル表示の各枠にスクロールバーが出ない高さで開く ②コンパクト表示に切り替えると下の枠が適切な高さで出る ③キーボードUIを最小の大きさにして「Home」等の文字がキーに収まる（Helvetica）④ツールチップがキーボードUIの上に出る。OK なら: task_07d の定義の「確認」に結果を書き、`mac_test_baseline.md` の「要調査」7 行を「task_07d で解消」に更新し、`/task_commit`（未コミットの差分は task_07d の分だけ）。NG なら症状を聞いて直す
+- その次: 段階 ② の区切り（phase.md のレビュー方針 = deep-reviewer + Codex レビュー）→ 段階 ③ task_08
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
-- Windows の標準検証 4 種は task_05c の分を次の機会にまとめて
+- Windows の標準検証 4 種は task_05c・07c・07・07b・07d の分を次の機会にまとめて
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
+- Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

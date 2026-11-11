@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.5）を読む。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.6）を読む。
    次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -24,8 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ② task_05・task_05b 完了（Mac 実装・目視 OK + Windows 標準検証 4 種 pass・2026-11-11）。Windows で tests_ui 1 件（ダミー app に `tk` が無い）を修正済み。次は Mac で task_06（probe）。**
-ブランチ `claude/windows-verification-ea8f8e`（Windows の検証。Mac 側の続きは `claude/windows-continuation-23d400` 95a73ac から）。push と main へのマージはユーザー（PR は作らない）。
+**phase 75 段階 ② task_07d（Tk 9 / aqua の寸法の差）実装・検証・reviewer（修正して採用 → R1・R2 反映済み）まで完了・未コミット。残りは Mac の目視のみ（ユーザー不在で停止・2026-11-12 01:00）。**
+ブランチ `claude/task-06-progression-a047bd`（Mac の worktree）。task_05c・06・07c・07・07b はコミット済み。push と main へのマージはユーザー（PR は作らない）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests_ui は通しで流さずモジュールごと）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -56,9 +57,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
-- task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
-- 区切りレビューの M1・M2 → task_08 / M4 → task_11・task_12（`phase.md` に追記済み）。M3 は `os_backend/contracts.py` の docstring で対応済み（`suppress=True` の callback は bool を返す・None は抑止扱い）
+- **【最初にユーザーへ確認】task_07d の Mac 目視**（`main.py`）: ①フル表示の各枠にスクロールバーが出ない高さで開く ②コンパクト表示で下の枠が適切な高さ ③キーボードUIを最小にして「Home」等がキーに収まる ④ツールチップがキーボードUIの上に出る。OK → task_07d の定義の「確認」に結果を書き、`mac_test_baseline.md` の「要調査」7 行を「task_07d で解消」に更新して `/task_commit`。NG → 症状を聞いて直す
+- その次: 段階 ② の区切りレビュー（deep-reviewer + Codex レビュー・phase.md のレビュー方針）→ 段階 ③ task_08
+- task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
+- Windows の標準検証 4 種は task_05c・07c・07・07b・07d の分を次の機会にまとめて
+- JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
