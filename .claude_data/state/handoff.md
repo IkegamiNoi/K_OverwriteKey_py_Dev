@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ② task_05・task_05b を Mac で実装・確認済み（reviewer 採用・Mac 起動目視 OK）。Windows の標準検証 4 種待ち（未実施のため完了判定は保留）。次は task_06（probe）。**
-ブランチ `claude/windows-continuation-23d400`（コミット 95a73ac）。push と main へのマージはユーザー（PR は作らない）。
+**phase 75 段階 ② task_05・task_05b 完了（Mac 実装・目視 OK + Windows 標準検証 4 種 pass・2026-11-11）。Windows で tests_ui 1 件（ダミー app に `tk` が無い）を修正済み。次は Mac で task_06（probe）。**
+ブランチ `claude/windows-verification-ea8f8e`（Windows の検証。Mac 側の続きは `claude/windows-continuation-23d400` 95a73ac から）。push と main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,10 +35,10 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**Windows = phase 75 task_04 完了時 2026-11-10**）:
-compile **clean** / tests **1971 pass**（skip 7）/ tests_ui **1270 pass** / smoke **pass**。task_05・05b の分は未実測（新規テストで tests が増える）。
+直近の実測（**Windows = phase 75 task_05・05b 完了時 2026-11-11**）:
+compile **clean** / tests **1977 pass**（skip 7）/ tests_ui **1270 pass** / smoke **pass**。
 **Mac（2026-11-11・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 1920 件・失敗 89・エラー 15・skip 16（Windows 前提のパス約 55・テンキー約 22・スタブ約 15 等。基準線は task_07）/ smoke pass / **tests_ui は Mac で走らせない**（スタブのキー検証で「不明なキー名」のモーダルが出て止まる・task_07 で対処）。
-**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1971 / tests_ui: 1270）。
+**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1971 → 1977〔task_05〕 / tests_ui: 1270）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -56,7 +56,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- push（ユーザー）→ Windows で task_05・05b の標準検証 4 種 → 通れば完了判定 → Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
+- Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
 - task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
 - 区切りレビューの M1・M2 → task_08 / M4 → task_11・task_12（`phase.md` に追記済み）。M3 は `os_backend/contracts.py` の docstring で対応済み（`suppress=True` の callback は bool を返す・None は抑止扱い）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）

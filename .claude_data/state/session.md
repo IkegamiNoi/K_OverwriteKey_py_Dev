@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-11T01:00:00
+last_updated: 2026-11-11T12:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `windows-continuation-23d400`・`Operation_check` 3ea433e から ff）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_05・task_05b を Mac で実装・確認済み（reviewer 採用・Mac 起動目視 OK）。Windows の標準検証 4 種待ち（未実施のため完了判定は保留）。次は task_06（probe）。**
+focus: **phase 75 段階 ② task_05・task_05b 完了（Mac 目視 OK + Windows 標準検証 4 種 pass・2026-11-11）。次は Mac で task_06（probe）。**
 mode: implementing
 presence: present
 
@@ -32,10 +32,10 @@ verified:
   mac_smoke: pass（stderr の Traceback 0）
   mac_tests_ui: 実行しない（スタブのキー検証で「不明なキー名」のモーダルが出て止まる。task_07 で対処）
   mac_visual: 起動・メニュー・キーボードUI・フック開始のエラー・フル表示の大きさ OK（ユーザー）
-  windows: 未実施（標準検証 4 種・tests 1971+新規分 / tests_ui 1270 / smoke）
+  windows（2026-11-11・ブランチ claude/windows-verification-ea8f8e）: compile clean / tests 1977 pass（skip 7）/ tests_ui 1270 pass / smoke pass。初回 tests_ui で test_action_list_rendering の test_call_note_keeps_delay_heading がダミー app に tk が無く AttributeError（tk_platform.is_aqua 経由）→ ダミーに tk=root.tk を追加（codex-implementer・reviewer 採用）
 
 ## next_action
-- push（ユーザー）→ Windows で task_05・05b の標準検証 4 種 → 通れば完了判定 → Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
+- Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
 - task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 

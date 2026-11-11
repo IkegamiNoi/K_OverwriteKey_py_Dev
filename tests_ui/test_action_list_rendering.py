@@ -314,6 +314,7 @@ class ActionListRenderingTest(unittest.TestCase):
         self.addCleanup(root.destroy)
         root.withdraw()
         app = SimpleNamespace(
+            tk=root.tk,
             trigger_panel=SimpleNamespace(
                 on_action_list_select=Mock(),
                 on_action_list_focus_index_change=Mock(),
