@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from keyseq.presentation.tk_platform import (
-    accelerator_text, is_aqua, primary_modifier, right_click_sequence, screen_distance,
+    accelerator_text, is_aqua, primary_modifier, screen_distance,
 )
 
 
@@ -16,14 +16,12 @@ class TkPlatformTests(TestCase):
         widget = self.widget("win32")
         self.assertFalse(is_aqua(widget))
         self.assertEqual(primary_modifier(widget), "Control")
-        self.assertEqual(right_click_sequence(widget), "<Button-3>")
         self.assertEqual(accelerator_text(widget, "Ctrl+Shift+S"), "Ctrl+Shift+S")
 
     def test_aqua_results(self):
         widget = self.widget("aqua")
         self.assertTrue(is_aqua(widget))
         self.assertEqual(primary_modifier(widget), "Command")
-        self.assertEqual(right_click_sequence(widget), "<Button-2>")
         self.assertEqual(accelerator_text(widget, "Ctrl+Shift+S"), "Command-Shift-S")
         self.assertEqual(accelerator_text(widget, "Ctrl+Alt+P"), "Command-Option-P")
 

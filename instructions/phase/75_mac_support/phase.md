@@ -58,15 +58,16 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 
 - task_05: Mac の `.venv`（Python 3.13）・依存の環境マーカー・macOS スタブ・Tk の差分。契約テストの `windows.backend` の import を module 先頭から分離し、macOS で収集時に落ちないようにする（§7・段階 ① の区切りレビュー M5）
 - task_05b: Tk 9 で長さの `cget` が単位つきで返る差（`winfo_pixels` で揃える）。task_05 の起動目視で発覚（2026-11-11）
+- task_05c: Tk 9 の aqua の右クリックは `<Button-3>`（task_05 の `right_click_sequence` が `<Button-2>` を返す誤り）。task_06 の probe で発覚（2026-11-11）
 - task_06: probe（tap・修飾キー・権限・aqua の Tk・スレッド条件・Dock のアイコン・JIS / US の記号キーの対応表・Tk 9 由来の差〔Q1 を brew の Tk 9.1 へ変更・decisions 2026-11-10〕）と暫定 57 の改訂（Q1 の文言を含む）
 - task_07: 既定プリセットのプロファイル注入（Q2）、macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
 - task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。`KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）・ディスパッチャの型を §5.1 の「捨てるときの復元」を渡せる形へ暫定 57 と併せて改訂する（M2）
-- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）
+- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）
 - task_10: 権限の案内（§5.2）
-- task_11: §5.4 の残りの機能と無効化の UI。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）
+- task_11: §5.4 の残りの機能と無効化の UI。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認
 
 **段階 ④: ビルド**
 
@@ -87,8 +88,8 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 | 4 | task_08〜10 |
 | 5 | task_11 |
 | 6, 7 | task_13 |
-| 8 | task_08 |
-| 9, 10 | task_09 |
+| 8, 11 | task_08 |
+| 9, 10, 12 | task_09 |
 
 ## レビュー方針
 

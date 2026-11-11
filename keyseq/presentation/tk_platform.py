@@ -11,10 +11,6 @@ def primary_modifier(widget) -> str:
     return "Command" if is_aqua(widget) else "Control"
 
 
-def right_click_sequence(widget) -> str:
-    return "<Button-2>" if is_aqua(widget) else "<Button-3>"
-
-
 def accelerator_text(widget, windows_text: str) -> str:
     if not is_aqua(widget):
         return windows_text

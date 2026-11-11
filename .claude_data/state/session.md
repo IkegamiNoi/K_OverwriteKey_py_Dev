@@ -4,40 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-11T12:00:00
+last_updated: 2026-11-11T23:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.5・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `windows-continuation-23d400`・`Operation_check` 3ea433e から ff）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_05・task_05b 完了（Mac 目視 OK + Windows 標準検証 4 種 pass・2026-11-11）。次は Mac で task_06（probe）。**
+focus: **phase 75 段階 ② task_06（probe・暫定 57 v0.6）完了・task_05c（右クリック = Button-3）完了・コミット済み。次は task_07。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-11-11T01:00:00
+ts: 2026-11-11T23:30:00
 who: main
 summary: |
-  task_05（macOS で起動）: os_backend/macos/ のスタブ・darwin の分岐・requirements の環境マーカー（keyboard は win32・pyobjc は darwin）・presentation/tk_platform.py（Control→Command・右クリック・accelerator）・契約テストの windows import の分離（M5）。codex-implementer（途中で止まり resume 1 回）・メインが 2 件修正（Option- / キャッシュのテストの patch 先を macos へ）・reviewer 採用。
-  task_05b（Tk 9 の長さ）: Tk 9 は Canvas の width/height 既定を '10c'/'7c'・sashwidth を '2.25p' で返す（probe）→ tk_platform.screen_distance（winfo_pixels）で 8 か所を置換。codex-implementer・reviewer 採用。
-  Mac の .venv は Homebrew の Python 3.13.18 + python-tk@3.13（Tk 9.1.0）に作り直し（Q1 から変更・decisions.md）。
+  task_06（probe）: Mac 実機で tap・修飾キー・抑止・タイムアウト・送信・スレッド・aqua の Tk・Dock・記号キーを実測（スクリプトはスクラッチ・リポジトリ外）。暫定 57 を v0.6 へ（§4.1 結果表・§5.1 キュー 64 件/1.0 秒・修飾キーのフラグの左右別の付け直し・§5.3.1 対応表・Q1 = Tk 9.1・Q4 = 取得中に TIS で英字へ・§9 に 11・12）。Codex 敵対的レビュー 4 件を推奨どおり反映・reviewer 修正して採用（指摘 1〜4 反映済み）。
+  task_05c（probe で発覚）: Tk 9 の aqua の右クリックは Button-3 → right_click_sequence を撤去し "<Button-3>" に戻す。codex-implementer・verifier（compile clean / test_tk_platform 4 pass / smoke pass / tests 1920・失敗 89・エラー 15 = 基準同数）・reviewer 採用。
 result_files:
-  - keyseq/infrastructure/os_backend/macos/
-  - keyseq/presentation/tk_platform.py
-  - instructions/phase/75_mac_support/tasks/task_05_macos_startup.md・task_05b_tk9_screen_distance.md
+  - instructions/history/57_mac_support.md（v0.6）
+  - instructions/phase/75_mac_support/tasks/task_05c_tk9_right_click.md・task_06_macos_probe.md
+  - keyseq/presentation/tk_platform.py・keyboard_window.py・help/help_tab_view.py・tests/test_tk_platform.py
 verified:
-  mac_compile: clean
-  mac_tests: 1920 件・失敗 89・エラー 15・skip 16（Windows 前提のパス約 55・テンキー約 22・スタブ約 15 等。基準線の確定は task_07）
-  mac_smoke: pass（stderr の Traceback 0）
-  mac_tests_ui: 実行しない（スタブのキー検証で「不明なキー名」のモーダルが出て止まる。task_07 で対処）
-  mac_visual: 起動・メニュー・キーボードUI・フック開始のエラー・フル表示の大きさ OK（ユーザー）
-  windows（2026-11-11・ブランチ claude/windows-verification-ea8f8e）: compile clean / tests 1977 pass（skip 7）/ tests_ui 1270 pass / smoke pass。初回 tests_ui で test_action_list_rendering の test_call_note_keeps_delay_heading がダミー app に tk が無く AttributeError（tk_platform.is_aqua 経由）→ ダミーに tk=root.tk を追加（codex-implementer・reviewer 採用）
+  mac_tests: 1920 件・失敗 89・エラー 15・skip 16（task_05c 後も基準どおり）
+  mac_visual: task_05c の右クリックが届く（キーボードUI）・ヘルプのコピー OK（ユーザー）。割り当てのクリアの目視は task_09 へ（割り当てが作れないため）
 
 ## next_action
-- Mac で task_06（probe・Tk 9 の差を含む・暫定 57 の Q1 の文言改訂）
-- task_07 で Mac の tests_ui のモーダル対処と `tests_ui/test_compact_sequence_view.py` の sashwidth 4 か所（phase.md 追記済み）
-- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
+- task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
+- task_07（既定プリセットの注入・macOS のテストの基準線・tests_ui のモーダル対処と sashwidth 4 か所）
+- Windows の標準検証 4 種は task_05c の分を次の機会にまとめて
+- JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

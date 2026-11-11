@@ -1,9 +1,9 @@
 # 暫定仕様 57: macOS 対応（mac_support）
 
-> 状態: **未凍結・v0.5・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.6・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。
-> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）。
+> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）→ v0.6 task_06 の probe の結果を §4.1 に記録し §5・§8 Q1・Q4・§9 を改訂（ユーザー 2026-11-11: IME は取得中に TIS で英字へ切替・JIS 専用キーは文書値で段階 ③ へ）。続けて Codex 敵対的レビューの 4 件（修飾キーのフラグの左右別・送信フラグの分離・TIS 切替の失敗と戻し方・NSWindow の取り違え）を反映し §9 に 11・12 を追加（ユーザー 2026-11-11）。
 
 ---
 
@@ -85,14 +85,40 @@ keyseq/infrastructure/os_backend/
 - Tk を使える Python の `.venv` を用意する（Q1）。
 - 依存を環境マーカーで分ける（`keyboard; sys_platform == "win32"` 等）。
 - Tk の差分は `tk windowingsystem` で判定し、presentation の 1 か所にまとめる:
-  - 右クリックは aqua では `<Button-2>`（`keyboard_window.py:143`、`help_tab_view.py:95` が対象。両方バインド済みの箇所は変更なし）。
+  - 右クリックは Tk 9 の aqua でも `<Button-3>`（§4.1）。右クリックの切替は不要（task_05c で task_05 の切替を撤去）。中クリックは未実測で、既存の `<Button-2>` のバインドのまま task_11 で確認する。
   - メニューのアクセラレータと範囲選択等の `Control` バインドは aqua では `Command`。
-- **段階 ③ の前に probe する**（結果次第で §5 を改訂する）:
+- **段階 ③ の前に probe する**（結果は §4.1。v0.6 で §5 を改訂済み）:
   1. CGEventTap の修飾キー（§5.1）、抑止、タイムアウト、必要な権限
   2. aqua の Tk の `keycode`、`overrideredirect`、`winfo_id` と NSWindow の対応
   3. フックスレッドからの Tk 呼び出し
   4. `TIS` / `NSWorkspace` のスレッド条件
 - Windows 専用テストは `skipUnless` を付ける。macOS のテスト基準は §7。
+
+### §4.1 probe の結果（task_06・2026-11-11）
+
+環境: macOS 27.2 / arm64・US 配列の内蔵キーボード・Homebrew の Python 3.13.18・Tk 9.1.0・pyobjc 13.0。入力ソースはことえり（ローマ字入力）。
+
+| 項目 | 結果 | 反映先 |
+|---|---|---|
+| 権限 | 未許可では active の tap（`kCGEventTapOptionDefault`）の `CGEventTapCreate` が NULL。listen-only は作成だけ成功する。作成の試行でシステムの許可ダイアログが出て、許可後に**新しいプロセス**では作成に成功した。開発実行での許可の対象は親のアプリ（Claude / ターミナル） | §5.2 |
+| 抑止 | コールバックが `None` を返すと、そのキーは前面アプリ（Tk）へ届かない | §5.1 |
+| 修飾キー | `kCGEventFlagsChanged` の keycode は 左 Command 55・右 Command 54・左 Shift 56・右 Shift 60・左 Option 58・左 Control 59・fn 63（右 Option 61・右 Control 62・CapsLock 57 は未実測）。左右はフラグの機種依存ビット（左 Command `0x08`・右 Command `0x10`・左 Shift `0x02`・右 Shift `0x04`・左 Option `0x20`・左 Control `0x01`）で区別できる | §5.1 |
+| 修飾キーの抑止 | Command の FlagsChanged を抑止しても、**続く文字キーのイベントには Command のフラグが付いたまま届き**、前面アプリは Command+文字として扱った。その離しも抑止すると、セッションの修飾状態に Command が残り、別のアプリで通常の入力ができなくなった（ユーザー目視） | §5.1 |
+| タイムアウト | コールバックが 1.5 秒かかる呼び出しが 2 回続くと `kCGEventTapDisabledByTimeout` が届いた（1 回では届かない）。`CGEventTapEnable(tap, True)` で 4 回とも復帰した | §5.1 |
+| 停止時の通知 | 自分で `CGEventTapEnable(tap, False)` したときも `kCGEventTapDisabledByUserInput` がコールバックへ届く | §5.1 |
+| 送信 | `CGEventSetFlags` で Command を付けた文字キー単体、Command キーの down / up で挟んだ文字キーのどちらも Command+文字になった。`kCGEventSourceUserData` に付けた印は自分の tap で読めた | §5.1・§5.4 |
+| 自動リピート | 文字キーの長押しを測っておらず `kCGKeyboardEventAutorepeat` は未確認 | task_08 |
+| スレッド | tap のコールバック（CFRunLoop のスレッド）から `NSWorkspace.frontmostApplication` と `TISCopyCurrentKeyboardInputSource` を呼べ、前面の切替にも追従した | §5.4 |
+| Tk の `after` | mainloop 中にメインスレッドが 1.5 秒止まると、別スレッドからの `after` の呼び出しも約 1.3 秒ブロックした。mainloop の外では `RuntimeError` | §5.1 の根拠 |
+| メインスレッドの停止 | メニューを開いたまま・窓のドラッグ中もメインスレッドの `after(10)` の刻みは 0.2 秒以上止まらず、キューの排出の遅延は最大 0.047 秒 | §5.1 |
+| Tk の `keycode` | aqua では `(vk << 24) | …| 文字コード`（例 `;` = `0x2900003B`・`a` = `0x61`）。**IME がかな入力のときは上位 8 ビットが `0xFF` になり vk が失われる**（keysym も `prolongedsound`・`??` 等） | §5.3・Q4 |
+| Tk の修飾 keysym | Command = `Meta_L` / `Meta_R`、Option = `Alt_L`、Control = `Control_L`、Shift = `Shift_L` / `Shift_R`、fn = `Super_L` | §5.3（task_09） |
+| マウスのボタン | 右クリック = `<Button-3>`（中クリックは未実測） | §4 |
+| fn | fn 単独の押下・離しで FlagsChanged（vk 63・フラグ `0x800000`）に加えて vk 179 の down / up が届く。F キー（例 vk 109）には fn のフラグ `0x800000` が付く | task_08（fn を修飾キーと誤認しない） |
+| 未実測 | 右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged（押していない）→ task_08。テンキーの vk・Tk の keycode（手元に無い）→ task_09。英数 / かな・JIS 専用キーの受信と Tk の記録（US 配列の機種）→ JIS キーボードを用意できたとき（§9 の 10）。中クリックの番号（押していない）→ task_11。自動リピートの値 → task_08 | 各タスク |
+| Dock のアイコン | `iconphoto` で Dock のアイコンが変わる（ユーザー目視） | §5.4 |
+| 窓 | `overrideredirect` は効く。`winfo_id` / `wm frame` の値を pyobjc のオブジェクトとして扱うとプロセスが落ちる。NSWindow は `NSApp.windows()` の `TKWindow` の位置（Cocoa の座標は下が原点）で対応が取れた。`wm attributes` に `-transparentcolor` は無く `-transparent` がある | §5.4（task_11） |
+| Tk 9 の長さ | task_05b の Canvas・PanedWindow の `sashwidth` のほか、PanedWindow の `handlepad` / `handlesize`、Scale の `length` / `sliderlength` / `width` も単位つき。アプリはこれらを使っていない（grep 0 件） | 対応不要 |
 
 ## §5 macOS の入力（段階 ③）
 
@@ -101,23 +127,29 @@ keyseq/infrastructure/os_backend/
 - 専用スレッドで CFRunLoop を回し、**単一の CGEventTap**（active）を実行する。`register_global_hook` / `register_key_hook` の重ね合わせは backend 内で合成する。
 - 抑止の判定はコールバック内で同期で完結させる。**コールバックから Tk を呼ばない**。アクションと UI 更新は `queue.SimpleQueue` に積み、メインスレッドが排出する（Tk の `after` がメインスレッドを待つと、メニュー表示中などにコールバックが止まり全キー入力が遅延するため）。
 - **配送の滞留の規則**（UI が止まっている間の入力を後からまとめて実行しない）:
-  - キューに上限件数と有効期限を設ける（値は probe の結果で確定する）。期限切れのアクションは実行せず捨てる。
+  - キューに上限件数と有効期限を設ける。**上限 = 64 件・有効期限 = 1.0 秒**（積んだ時刻から排出時刻まで。§4.1 で通常の遅延は最大 0.05 秒・メニュー表示中とドラッグ中もメインスレッドは止まらなかったため、期限切れは重い処理などの異常時だけに起きる値とする）。期限切れのアクションは実行せず捨てる。
   - **アクションを捨てるときは（期限切れ・世代の不一致のどちらでも）、予約時に変更した状態を必ず元に戻す**。`SelectKeymapAction` は `_keymap_switch_in_progress` を解除する（立ったままだと `input_router.py:118` で通常の入力が素通しのままになる）。フラグが立っている間は新しい切替を予約できないため、予約は同時に 1 つで、識別子は持たせない。
   - フックの停止、tap の障害、権限の喪失のときは世代を更新し、古い世代のアクションを捨てる。
   - 上限を超えたら新規の抑止をやめて素通しにし、フックを停止状態へ移して知らせる。
   - 停止キーとフックの停止の通知は、通常のアクションのキューとは別の経路で優先して処理する。
 - 例外時は素通しにする（抑止しない）。解除時は tap を無効化して CFRunLoop を止める。
-- `kCGEventTapDisabledByTimeout` / `ByUserInput` を受けたら tap を再有効化し、**無効化中に解放を取りこぼした可能性があるため押下状態を掃除する**。
+- `kCGEventTapDisabledByTimeout` / `ByUserInput` を受けたら tap を再有効化し、**無効化中に解放を取りこぼした可能性があるため押下状態を掃除する**。ただし backend 自身が停止のために無効化したとき（§4.1: 自分の無効化でも `ByUserInput` が届く）は再有効化しない。停止は tap の参照を先に外してから無効化し、コールバックは参照が無ければ何もしない。
+- コールバックは同期の判定だけで即座に返す（§4.1: 1.5 秒の遅延が 2 回続くとタイムアウトで無効化された）。
 - Secure Input 中はイベントが届かない。この間はフックの動作を保証しない。
 - 自分が合成したイベントは `kCGEventSourceUserData` の印で識別する。Windows の送信時ガードと同じ契約を `KeyboardBackend` で満たす。
-- **修飾キー**は `kCGEventFlagsChanged` で届くため、keycode とフラグから左右別の down / up を導いて上位へ渡す。CapsLock は別扱い。修飾キーの抑止後のフラグ残り、送信時の `CGEventSetFlags` の要否は probe で決める。
-- 自動リピートは `kCGKeyboardEventAutorepeat` で判定し、Windows と同じく down を繰り返して渡す。
+- **修飾キー**は `kCGEventFlagsChanged` で届くため、keycode（§4.1）とフラグの機種依存ビットから左右別の down / up を導いて上位へ渡す。CapsLock は別扱い。
+- **修飾キーの抑止とフラグ**（§4.1: FlagsChanged の抑止だけでは後続のキーに Command が付いたまま届き、セッションの修飾状態に残って別アプリの入力が壊れた）:
+  - backend は修飾キーごとに**左右別に**「物理的に押されている」「抑止中（down を抑止した）」を持つ。修飾キーの down を抑止したら対になる up も抑止し、両方を通すか両方を止めるかを揃える。
+  - **通過させる物理キーのイベント**（自分の印が無いもの）は、フラグを `CGEventSetFlags` で付け直す: 機種依存ビットは「押されていて抑止中でない側」だけを残し、共通ビット（Shift・Control・Option・Command）は左右のどちらかが「押されていて抑止中でない」ときだけ立てる。例: 左 Shift を抑止中で右 Shift を素通しで押している → 共通の Shift と右 Shift のビットは残る。
+  - **自分が送るイベント**（印つき）のフラグは、アクションが指定した修飾だけで決め、物理側の抑止状態の影響を受けない。例: `ctrl` を元キーにして抑止しながら `ctrl+c` を送る → 送る `c` には Control を付ける。
+- 送信の修飾は、修飾キーの down / up を合成して挟む方式（Windows と同じ）とし、送るキーのフラグは上記で決めた値を `CGEventSetFlags` で明示する（§4.1: 挟むだけでも指定だけでも有効だったが、物理側の状態が混ざらないように明示する）。
+- 自動リピートは `kCGKeyboardEventAutorepeat` で判定し、Windows と同じく down を繰り返して渡す（値は §4.1 で未確認・task_08 で実測する）。
 
 ### §5.2 権限
 
-- 起動時に権限を確認する（`AXIsProcessTrusted`。入力監視も必要かは probe）。
+- 起動時に権限を確認する（`AXIsProcessTrusted`）。active の tap は未許可だと作成できない（§4.1）。判定は `AXIsProcessTrusted` と `CGEventTapCreate` の成否で行い、入力監視（`CGPreflightListenEventAccess`）は案内の文言で触れるだけにする（§4.1 では両方同時に許可され、個別の要否は切り分けていない）。
 - 未許可、または `CGEventTapCreate` が NULL のときは既存の `start_hook` の失敗経路（`hook_controller.py`）に乗せ、案内ダイアログからシステム設定の該当画面を開けるようにする。
-- 許可後は「フック開始」の再操作で再試行する（アプリの再起動を要する場合は案内する。probe で決める）。実行中に権限が外れた場合は tap の無効化と同じく処理し、フックを停止状態にして案内する。
+- 許可後は「フック開始」の再操作で再試行する。同じプロセスでの再試行が成功するかは §4.1 で未確認（新しいプロセスでは成功）。task_10 で実測し、失敗する場合は再起動を案内する。実行中に権限が外れた場合は tap の無効化と同じく処理し、フックを停止状態にして案内する。
 - 開発実行では許可の対象がターミナル / python になることを手順に書く。文言は `ja.json` / `en.json` の両方に足す。
 
 ### §5.3 キーの識別
@@ -137,10 +169,38 @@ keyseq/infrastructure/os_backend/
 | 無変換 / 変換（走査コード 123 / 121） | 英数 / かな（JIS 配列） |
 
 - 文字キーの `name` は**選択中のレイアウトに合う名前**を backend で作る（例: JIS を選択中は、US の `[` の位置が `@`）。入力ソースのかな状態には左右されない。レイアウトの切替は既存の写しの更新（`LayoutController`）に合わせて反映する。
-- **段階 ③ の開始条件**: JIS / US の記号キーについて、物理キー・受信名・Tk の記録名・レイアウトの id・送信結果の対応表を実測で確定する。
+- **段階 ③ の開始条件**: JIS / US の記号キーについて、物理キー・受信名・Tk の記録名・レイアウトの id・送信結果の対応表を確定する。→ §5.3.1 で確定（US は実測・JIS 専用キーは Apple の定数による文書値。ユーザー判断 2026-11-11）。
+- Tk のキー取得（`TkKeyTranslator`）は aqua の `keycode` の上位 8 ビットを vk として §5.3.1 の表で解釈する。上位 8 ビットが `0xFF`（IME の入力中）なら解釈しない（`??`）。キー取得中は Q4 のとおり入力ソースを英字へ切り替えるため、通常はこの状態にならない。
 - 表に 241 / 242 を出さないことで、押下だけの組み直し（`make_only_keys`）は自動で対象外になる。
 - 表に無いキー（fn、keypad `=` / Clear、F13 以降など）は `name=""` で上位へ渡し、素通しする（`input_router.py` の既存動作）。Tk の記録では `??` のまま。
 - UI: `windows` は macOS では `Command`、`alt` は `Option` と表示する（表示のみで、保存するキー名は変えない）。
+
+#### §5.3.1 記号キーの対応表（task_06）
+
+受信名はレイアウトの id と同じ文字列にする（`event.name` の既存の語彙）。「実測」= §4.1 の環境で物理キーを押した / `CGEventPost` で送った結果。「文書」= Apple の `kVK_*` 定数による値で、JIS キーボードを用意できたときに実測して確定する（§9 の 10）。
+
+| vk | `kVK_*` | US の印字・`us_tkl` の id | JIS の印字・`jis` の id | Tk の keysym（英字入力・US 配列） | 根拠 |
+|---|---|---|---|---|---|
+| 50 | `ANSI_Grave` | `` ` `` | `zenkaku_hankaku`（Windows 用 JIS キーボードの 半角/全角 の見込み） | `` ` `` | US = 送信のみ実測・JIS = 文書 |
+| 27 | `ANSI_Minus` | `-` | `-` | `-` | 実測 |
+| 24 | `ANSI_Equal` | `=` | `^` | `=` | US = 実測・JIS = 文書 |
+| 33 | `ANSI_LeftBracket` | `[` | `@` | `[` | US = 実測・JIS = 文書 |
+| 30 | `ANSI_RightBracket` | `]` | `[` | `]` | US = 実測・JIS = 文書 |
+| 42 | `ANSI_Backslash` | `\` | `]` | 送信で press = `¥`・release = `\`（ことえりの「¥ キーで入力する文字」の設定に左右される） | US = 送信のみ実測・JIS = 文書 |
+| 41 | `ANSI_Semicolon` | `;` | `;` | `;` | 実測 |
+| 39 | `ANSI_Quote` | `'` | `:` | `'` | US = 実測・JIS = 文書 |
+| 43 | `ANSI_Comma` | `,` | `,` | `,` | 実測 |
+| 47 | `ANSI_Period` | `.` | `.` | `.` | 実測 |
+| 44 | `ANSI_Slash` | `/` | `/` | `/` | 実測 |
+| 93 | `JIS_Yen` | — | `yen` | US 配列の機種では送っても Tk に届かない | 文書 |
+| 94 | `JIS_Underscore` | — | `ro` | 同上 | 文書 |
+| 95 | `JIS_KeypadComma` | — | —（id なし・`name=""` で素通し） | 同上 | 文書 |
+| 102 | `JIS_Eisu` | — | `muhenkan`（§5.3 の表） | — | 文書 |
+| 104 | `JIS_Kana` | — | `henkan`（§5.3 の表） | — | 文書 |
+| 10 | `ISO_Section` | —（表に出さない・`name=""`） | — | `§` | 送信のみ実測 |
+
+- 受信名はこの表の「選択中のレイアウトの id」列で決める（例: JIS を選択中に vk 33 → `@`）。互換の `scan_code` は Windows の同じ位置のキーの走査コードを当てる（`yen` 125・`ro` 115・`muhenkan` 123・`henkan` 121・`zenkaku_hankaku` 41 はレイアウトの `scan_code` と一致させる）。
+- 送信の結果は入力ソースの配列に従う（§4.1: ことえりの英字入力で US 配列の文字になった）。キー送信は物理キーの送信であり、文字を保証するのは文字送信（`CGEventKeyboardSetUnicodeString`）だけである点は Windows と同じ。
 
 ### §5.4 機能対応
 
@@ -152,15 +212,17 @@ keyseq/infrastructure/os_backend/
 | スクロール | `CGEventCreateScrollWheelEvent` | — |
 | マウス操作 | `pyautogui` を維持 | — |
 | クリック位置の取得 | `MouseBackend`（§5.1 の tap と共存できる形で実装） | — |
-| 前面の判定（フックスレッド） | `NSWorkspace.frontmostApplication` の pid（スレッド条件は probe） | — |
+| 前面の判定（フックスレッド） | `NSWorkspace.frontmostApplication` の pid（§4.1: tap のスレッドから呼べる） | — |
 | モニタ一覧 | `NSScreen`（座標変換あり） | — |
 | 物理状態 | `CGEventSourceButtonState` / `CGEventSourceFlagsState` | — |
-| クリック透過 | Tk の `-transparent` + `NSWindow.ignoresMouseEvents` | カーソルグリッドを無効化 |
-| 窓の重なり順 | `NSWindow.orderWindow` | 無効 |
+| クリック透過 | Tk の `-transparent` + `NSWindow.ignoresMouseEvents`（`-transparentcolor` は aqua に無い。NSWindow の引き方は表の下） | カーソルグリッドを無効化 |
+| 窓の重なり順 | `NSWindow.orderWindow`（NSWindow の引き方は表の下） | 無効 |
 | Tk のキー取得 | aqua の `keycode` を §5.3 の表で解釈（`TkKeyTranslator`） | 取れないキーは `??` |
 | IME | Q4 | Q4 |
-| 状態のアイコン | Tk の `iconphoto` が Dock に反映されるか probe | Dock の状態表示を無効化 |
+| 状態のアイコン | Tk の `iconphoto`（§4.1: Dock に反映される） | — |
 | AppUserModelID | 何もしない | — |
+
+- **Tk の窓から NSWindow を引く**: §4.1 では `NSApp.windows()` の `TKWindow` を窓の位置で照合して対応が取れたが、同じ位置に複数の窓があると一意にならない。task_11 で一意に決まる引き方を確かめる。位置の照合を使う場合、候補が 1 つでなければ（0 または 2 以上）その窓には何も適用せず、その機能は無効と同じ扱いにする（別の窓へ誤って適用しない）。同じ位置に窓が重なる場合を task_11 の確認項目にする。
 
 ## §6 ビルド（段階 ④）
 
@@ -188,10 +250,14 @@ keyseq/infrastructure/os_backend/
 ## §8 確定した判断（ユーザー 2026-11-09・Q0〜Q8 はすべて下記の提案どおり）
 
 - **Q0 Windows 実機の確保**（段階 ① の前提）: 提案 = タスクごとに Windows で検証できる状態で進める。用意できない期間は、段階 ① を「import の遅延と選択点の導入のみ（Win32 ファイルの物理移動をしない）」に縮める。
-- **Q1 macOS の Python**: 提案 = python.org 版の 3.13（同梱の Tk 8.6 系・正本の実測が 8.6.15 基準）に固定し、PyInstaller が動くことを段階 ② で確認する。
+- **Q1 macOS の Python**: ~~提案 = python.org 版の 3.13（同梱の Tk 8.6 系）~~ → **Homebrew の Python 3.13 + `python-tk@3.13`（Tk 9.1）**（ユーザー判断 2026-11-10・decisions.md）。Tk 9 の差は presentation の `tk_platform.py` に集める（task_05b・§4.1）。PyInstaller で動くかは task_13 で確認する。
 - **Q2 既定プリセット**: Windows の `Ctrl+C` 相当は macOS では `Command+C`。提案 = 既定データをプロファイルとして presentation の組み立て時に注入し、macOS は `Command` 系を用意する（domain に OS 判定を入れない）。既存の設定の自動変換はしない。
 - **Q3 ビルド後の設定の保存先**: 提案 = macOS は `~/Library/Application Support/keyseq/`、Windows は `.exe` と同じ場所の `config/`（持ち運びやすさと現行の相対配置の維持）。
-- **Q4 IME 制御**: 文字送信は Unicode 送信で IME を経由しない。キー取得は Tk イベントが主経路で、IME がオンだと影響を受ける可能性がある。提案 = macOS では何もしない。キー取得で問題が出たら TIS による入力ソース切替を追加する。
+- **Q4 IME 制御**: 文字送信は Unicode 送信で IME を経由しない。キー取得は Tk イベントが主経路で、IME がオンだと影響を受ける可能性がある。提案 = macOS では何もしない。キー取得で問題が出たら TIS による入力ソース切替を追加する。→ **§4.1 で問題を確認（かな入力中は Tk の keycode から vk が失われる）。キー取得の間だけ TIS で入力ソースを英字（ASCII 可能な入力ソース）へ切り替え、終わったら元へ戻す**（ユーザー判断 2026-11-11。Windows の取得中の IME オフと同じ考え方。実装は task_09）。文字送信は従来どおり IME を経由しない。
+  - 切替の手順: 取得の開始時に元の入力ソースと切替先を記録し、切り替えた後で現在の入力ソースを読み直して切替先になったかを確かめる（§4.1 で確かめたのは読み取りだけで、切替は task_09 で実測する）。
+  - 切替に失敗しても取得は止めない。vk が失われた入力（keycode の上位 8 ビットが `0xFF`）は既存の解釈できないキーと同じく `??` になる（§5.3）。
+  - 戻すのは取得の終了時（確定・キャンセル・窓の破棄のどれでも）に 1 回だけ。切替を行った取得の入口が戻す責任を持ち、取得が入れ子になっても外側の 1 回だけが切り替え・戻す。
+  - 戻す時点の入力ソースが切替先と違う（取得中にユーザーが自分で変えた）ときは戻さない。切替に失敗していたときも戻さない。
 - **Q5 Command キーの割り当て禁止**: 提案 = Windows キーと同じく元キーへの割り当てを禁止する（理由 = システムのショートカットの保護）。
 - **Q6 対象 CPU**: 提案 = Apple Silicon（arm64）のみ。
 - **Q7 キー識別の方式**（§5.3）: 提案 = 案 A（macOS の vk を既存のキー名・互換走査コードへ変換し、domain とレイアウト JSON を変えない）。案 B（OS ごとのキーコード体系とレイアウト）は domain まで影響が及ぶため採らない。
@@ -208,7 +274,9 @@ keyseq/infrastructure/os_backend/
 7. 各 OS で、その OS で保存した既存の設定 JSON が読める（Q8）。
 8. macOS で、メニュー表示などの UI 停止から復帰したとき、期限切れのアクションが実行されず、停止操作が効く。切替アクションが期限切れになったあとも、通常の入力と次の切替が動く（§5.1）。
 9. macOS で、レイアウトの `scan_code` だけで定義した id を、置換先・ホットキー・`key_hold` で送信できる。解決できない id は検証エラーになる（§5.3）。
-10. macOS の JIS 配列で、`^`・`@`・`:` が JIS のレイアウトの枠で作った割り当てと一致する（§5.3）。
+10. macOS の JIS 配列で、`^`・`@`・`:` が JIS のレイアウトの枠で作った割り当てと一致する（§5.3）。JIS キーボードを用意できない間は、§5.3.1 の文書値による単体テストで代え、未実測であることを完了報告に明記する（ユーザー判断 2026-11-11）。US 配列で `us_tkl` の記号キーが一致することは実機で確認する。
+11. macOS で、`ctrl` を元キーにして抑止しながら `ctrl+c` を送る割り当てでコピーが動く。左 Shift を抑止して右 Shift を素通しにしたとき右 Shift の入力が効き、左右を同時に押して離す順を変えても、抑止を解いた後に修飾キーが押されたまま残らない（§5.1）。
+12. macOS で、日本語入力（かな）がオンのままキー取得を始めても物理キーが記録され、取得の終了後に元の入力ソースへ戻る。切替に失敗した場合も取得は止まらず、取れないキーは `??` になる（§8 Q4）。
 
 ## §10 スコープ外（本フェーズでやらない）
 
