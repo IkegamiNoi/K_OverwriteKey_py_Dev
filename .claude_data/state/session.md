@@ -30,7 +30,7 @@ verified:
   mac_visual: task_05c の右クリックが届く（キーボードUI）・ヘルプのコピー OK（ユーザー）。割り当てのクリアの目視は task_09 へ（割り当てが作れないため）
 
 ## next_action
-- Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）。「要調査」10 件の担当は未定（ユーザー確認待ち）
+- Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）。「要調査」10 件は task_07d（task_07b の後）
 - task_07b: Q2 の既定の注入（決定済み・暫定 57 Q2 の詳細）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - Windows の標準検証 4 種は task_05c の分を次の機会にまとめて

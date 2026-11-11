@@ -63,6 +63,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_07c: Mac でフル表示のペインの初期幅の適用が走らない（install 時点で panes の大きさが確定し `<Configure>` が届かない）。task_07 の tests_ui 実測で発覚（2026-11-11）・task_07 より先に行う
 - task_07: macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
 - task_07b: 既定プリセットのプロファイル注入（Q2）。既定データの型と Windows / macOS の 2 組を domain に置き、`OsBackend` が持つ既定を App の組み立てで `ConfigService` へ渡す（ユーザー判断 2026-11-11・task_07 から分割）
+- task_07d: Tk 9 / aqua の寸法の差の調査と修正（`mac_test_baseline.md` の「要調査」10 件: 窓の自動幅・ペイン幅・スクロールバー・ツールチップ・キーの文字の大きさ等）。task_07b の後・段階 ③ の前（ユーザー判断 2026-11-12）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 

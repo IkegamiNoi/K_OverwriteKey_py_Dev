@@ -51,12 +51,12 @@ macOS の backend はスタブ（フックは `OSError`・キーの解決と送�
 | `test_screen_grid_overlay` | 4 / 9 | モニタ一覧が空・クリック透過（スタブ） | task_11 |
 | `test_minimize_grab_custody` | 25 / 0 | aqua では最小化で入れ子の transient が隠れない（decisions 2026-11-12） | task_11 |
 | `test_modal_grab` | 4 / 0 | モーダルの grab が残る（aqua の窓の扱いの差と見られる） | task_11 で調査 |
-| `test_pane_window_width_persistence` | 4 / 0 | 窓の自動幅の値の差（1046 と 1000 等） | 要調査 |
-| `test_full_view_panes` | 1 / 0 | ペインの幅の値の差（381 と 541） | 要調査 |
-| `test_full_view_scroll_areas` | 1 / 0 | スクロールバーの表示の判定 | 要調査 |
-| `test_keyboard_key_text` | 1 / 0 | キーの文字の大きさ（フォントの寸法） | 要調査 |
-| `test_hover_tooltip` | 1 / 0 | ツールチップの表示の状態 | 要調査 |
-| `test_call_view_compact` | 0 / 1 | `KeyError: 'compact'` | 要調査 |
-| `test_child_save_dialog` | 1 / 0 | 文言・表示の差（差分の 1 行） | 要調査 |
+| `test_pane_window_width_persistence` | 4 / 0 | 窓の自動幅の値の差（1046 と 1000 等） | task_07d |
+| `test_full_view_panes` | 1 / 0 | ペインの幅の値の差（381 と 541） | task_07d |
+| `test_full_view_scroll_areas` | 1 / 0 | スクロールバーの表示の判定 | task_07d |
+| `test_keyboard_key_text` | 1 / 0 | キーの文字の大きさ（フォントの寸法） | task_07d |
+| `test_hover_tooltip` | 1 / 0 | ツールチップの表示の状態 | task_07d |
+| `test_call_view_compact` | 0 / 1 | `KeyError: 'compact'` | task_07d |
+| `test_child_save_dialog` | 1 / 0 | 文言・表示の差（差分の 1 行） | task_07d |
 
-「要調査」は Tk 9 / aqua の窓・フォントの差と見られるが原因を確かめていない（10 件）。担当はユーザー判断で決める。
+「要調査」は Tk 9 / aqua の窓・フォントの差と見られるが原因を確かめていない（10 件）。担当は task_07d（ユーザー判断 2026-11-12）。

@@ -245,7 +245,7 @@ keyseq/infrastructure/os_backend/
 - contracts のテストを OS 非依存で作り、backend はモックで検証する。
 - tap・権限・Tk の窓は macOS の実機目視（ユーザー）。
 - **Windows の退行確認には Windows 実機が必要**（Q0）。§3.3 のタスクごとに 4 種の標準検証を行う。
-- macOS の基準: 段階 ② の完了時に `tests` / `tests_ui` の結果を基準線として記録する。skip を許すのは `win32` 実装そのものを検証するテストのみ。
+- macOS の基準: 段階 ② の完了時に `tests` / `tests_ui` の結果を基準線として記録する。skip を許すのは `win32` 実装そのもの、または Windows のパスの意味（`\` 区切り・大文字小文字の同一視。Q8 で OS 間の共有を対象外とした）を検証するテストのみ（ユーザー判断 2026-11-12）。基準線は `instructions/phase/75_mac_support/mac_test_baseline.md`。
 
 ## §8 確定した判断（ユーザー 2026-11-09・Q0〜Q8 はすべて下記の提案どおり）
 
