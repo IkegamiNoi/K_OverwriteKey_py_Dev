@@ -11,7 +11,7 @@ last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `w
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_07c（Mac でペインの初期幅が適用されない）完了・コミット済み。次は task_07（基準線）→ task_07b（Q2 の既定の注入）。**
+focus: **phase 75 段階 ② task_07（Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`）完了・コミット済み。次は task_07b（Q2 の既定の注入）。**
 mode: implementing
 presence: present
 
@@ -30,7 +30,7 @@ verified:
   mac_visual: task_05c の右クリックが届く（キーボードUI）・ヘルプのコピー OK（ユーザー）。割り当てのクリアの目視は task_09 へ（割り当てが作れないため）
 
 ## next_action
-- task_07: Mac のテストの基準線。tests_ui は通しだと実行順依存の Segmentation fault（test_grid_editor_window）で落ちるためモジュールごとの別プロセスで実行（計測用の実行器はスクラッチ `run_tests_ui_mac.py` / `run_tests_ui_per_module.py`）。task_07c 前の Mac の tests_ui = 1269 件・失敗 83・エラー 42。未決: aqua では最小化で入れ子の transient ダイアログが隠れない（test_minimize_grab_custody 25 件）の扱い・test_pane_window_width_persistence の残り 4 件
+- Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）。「要調査」10 件の担当は未定（ユーザー確認待ち）
 - task_07b: Q2 の既定の注入（決定済み・暫定 57 Q2 の詳細）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - Windows の標準検証 4 種は task_05c の分を次の機会にまとめて

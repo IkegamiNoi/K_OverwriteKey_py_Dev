@@ -1,5 +1,6 @@
 import ntpath
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -240,6 +241,7 @@ class ChildSaveRowsTest(unittest.TestCase):
             self.assertEqual(row.share_text, "この構成セットのみが所有・既存を上書き")
             self.assertEqual(row.default_action, ACTION_SAVE)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_collect_normalizes_parent_paths_uses_trigger_set_parent_and_scopes_new_collisions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

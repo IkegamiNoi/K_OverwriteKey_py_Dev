@@ -18,7 +18,7 @@ class QuarantineManageTest(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
-        self.root = Path(directory.name) / "config"
+        self.root = Path(os.path.realpath(directory.name)) / "config"
         self.service = ConfigService(JsonRepository())
 
     def _path(self, stored):

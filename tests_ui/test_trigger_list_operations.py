@@ -8,6 +8,7 @@ from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.trigger_panel import trigger_list_edit as edit_module
 from keyseq.presentation.list_clipboard import CLIP_ACTIONS, CLIP_TRIGGERS
 from keyseq.presentation.listbox_range_drag import select_range
+from keyseq.presentation.tk_platform import primary_modifier
 from tests_ui.click_time import next_click_time
 from keyseq.shared.i18n import fix_language
 
@@ -284,5 +285,6 @@ class TriggerListOperationsTest(unittest.TestCase):
         self.assertEqual(self.panel.selected_trigger_index(), 2)
 
     def test_clipboard_shortcuts_are_bound_to_trigger_list_in_both_cases(self):
-        for sequence in ("<Control-c>", "<Control-C>", "<Control-v>", "<Control-V>"):
+        modifier = primary_modifier(self.listbox)
+        for sequence in (f"<{modifier}-c>", f"<{modifier}-C>", f"<{modifier}-v>", f"<{modifier}-V>"):
             self.assertTrue(self.listbox.bind(sequence))

@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -255,6 +256,7 @@ class ReferenceScanTest(unittest.TestCase):
                 | self._canonicals(os.path.dirname(config_root), [layout]),
             )
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_deduplicates_relative_absolute_and_separator_variants(self):
         with tempfile.TemporaryDirectory() as root:
             keymap_set = "user/keymap_sets/main.json"

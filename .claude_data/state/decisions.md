@@ -678,3 +678,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - task_07 = macOS のテストの基準線と tests_ui の対処（sashwidth 4 か所を含む）／task_07b = 既定プリセットの注入（Q2）。
 - 既定の選択: domain に既定データの型と Windows / macOS の 2 組（データのみ）、`OsBackend` が持ち App の組み立てで `ConfigService` へ渡す（Tk の aqua で選ぶ案は不採用）。
 - macOS の中身: プリセット = Command+Tab・Command+Space・Command+Q・Command+W・Command+H・Command+M・Option+Command+Esc・Ctrl+↑／サンプル = Command+C/V・Command+Tab・行選択 Command+← / Command+Shift+→（暫定 57 Q2 に追記）。
+
+## 2026-11-12 (phase 75: task_07)
+
+### 【task_07】aqua で最小化しても入れ子の transient ダイアログが隠れない → task_11 へ（ユーザー判断「task_11 に回す」）
+- 実測: 直接の transient は最小化で withdrawn になるが、transient の transient は表示されたまま（3 秒待っても）。`test_minimize_grab_custody` は失敗 25 件、または止まる（揺れる）。
+- 基準線では既知の失敗として記録し、Mac で tests_ui を流すときは除外する（§7 の skip の対象ではないため skip は付けない）。

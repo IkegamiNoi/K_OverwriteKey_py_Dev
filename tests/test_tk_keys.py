@@ -1,4 +1,5 @@
 import unittest
+import sys
 from types import SimpleNamespace
 
 from keyseq.presentation.tk_keys import (
@@ -17,6 +18,7 @@ class TkKeysTest(unittest.TestCase):
         self.assertFalse(is_unresolved_capture_key("a"))
         self.assertFalse(is_unresolved_capture_key(""))
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode と extended ビットを検証する（暫定 57 §7）")
     def test_numpad_names_by_keycode_and_extended_state(self):
         cases = {
             **{keycode: f"num {digit}" for digit, keycode in enumerate(range(96, 106))},
@@ -52,6 +54,7 @@ class TkKeysTest(unittest.TestCase):
             with self.subTest(keycode=keycode, state=state):
                 self.assertEqual(numpad_name_from_tk_event(keycode, state), "")
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode と extended ビットを検証する（暫定 57 §7）")
     def test_event_normalizers_prefer_numpad_and_fall_back_to_keysym(self):
         self.assertEqual(
             normalize_tk_key_event(SimpleNamespace(keysym="End", keycode=97, state=0)),

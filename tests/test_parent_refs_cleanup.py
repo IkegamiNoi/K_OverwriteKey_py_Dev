@@ -1,5 +1,6 @@
 import copy
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -69,6 +70,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
 
             self.assertEqual(inspections, [])
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_relative_absolute_and_separator_variants_are_resolved_before_exists(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
@@ -93,6 +95,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
 
             self.assertEqual(inspections, [])
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_current_keymap_set_and_trigger_set_refs_are_protected_when_missing(self):
         with tempfile.TemporaryDirectory() as root:
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
@@ -372,6 +375,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self.assertEqual(inspections[0].state, CLEANUP_ALL_STALE)
             self.assertEqual(self._read_bytes(child_path), before)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_prune_removes_only_stale_refs_and_preserves_runtime(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")

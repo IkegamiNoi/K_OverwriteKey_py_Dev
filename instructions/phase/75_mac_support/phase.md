@@ -69,7 +69,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。`KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）・ディスパッチャの型を §5.1 の「捨てるときの復元」を渡せる形へ暫定 57 と併せて改訂する（M2）
 - task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）
 - task_10: 権限の案内（§5.2）
-- task_11: §5.4 の残りの機能と無効化の UI。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認
+- task_11: §5.4 の残りの機能と無効化の UI。aqua では最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認
 
 **段階 ④: ビルド**
 

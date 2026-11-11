@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import unittest
 from types import SimpleNamespace
 from typing import Any
@@ -49,6 +50,7 @@ class FileLineLoaderTests(unittest.TestCase):
     def _run(self, index: int = 0) -> None:
         self.workers[index]()
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_confirmation_1_normalizes_path_and_separates_encoding(self) -> None:
         first = file_line_load_key("Folder//sub/../Lines.txt", "utf-8")
         second = file_line_load_key("folder/Lines.txt", "utf-8")

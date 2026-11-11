@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import unittest
+import sys
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
+
+if sys.platform != "win32":
+    raise unittest.SkipTest("Windows の keyboard_backend 実装を検証する（暫定 57 §7）")
 
 from keyseq.infrastructure import input_gateway
 from keyseq.infrastructure.os_backend import KeySend

@@ -2484,6 +2484,7 @@ class ParentRefsSchemaTest(unittest.TestCase):
             ["a"],
         )
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_merge_parent_ref_normalizes_and_deduplicates_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

@@ -9,6 +9,7 @@ from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileIo
 from keyseq.presentation.controllers.keymap_panel import keymap_list_edit as edit_module
 from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
+from keyseq.presentation.tk_platform import primary_modifier
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
 from keyseq.presentation.listbox_range_drag import select_range
 from tests_ui.click_time import next_click_time
@@ -463,7 +464,8 @@ class KeymapListOperationsTest(unittest.TestCase):
         batch_dialog.assert_not_called()
 
     def test_clipboard_shortcuts_are_bound_to_keymap_list_in_both_cases(self):
-        for sequence in ("<Control-c>", "<Control-C>", "<Control-v>", "<Control-V>"):
+        modifier = primary_modifier(self.listbox)
+        for sequence in (f"<{modifier}-c>", f"<{modifier}-C>", f"<{modifier}-v>", f"<{modifier}-V>"):
             self.assertTrue(self.listbox.bind(sequence))
 
 

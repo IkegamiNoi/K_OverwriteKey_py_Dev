@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -589,6 +590,7 @@ class NormalizeScanDirsTest(unittest.TestCase):
     def test_empty_and_whitespace_elements_are_removed(self):
         self.assertEqual(self._normalize(("", " \t\n", " Extra ")), ("Extra",))
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows のパス区切りと大文字小文字の同一視を検証する（暫定 57 §7）")
     def test_aliases_are_deduplicated_in_input_order(self):
         absolute = os.path.join(self.root, "Extra", "Sets")
         self.assertEqual(self._normalize([

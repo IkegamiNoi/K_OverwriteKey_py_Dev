@@ -46,7 +46,7 @@ class QuarantineTest(unittest.TestCase):
         self.repository = JsonRepository()
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
-        self.root = os.path.join(self.directory.name, "config")
+        self.root = os.path.join(os.path.realpath(self.directory.name), "config")
 
     def _resolved(self, path, root=None):
         return self.service.resolve_config_path(path, root or self.root)
@@ -534,7 +534,7 @@ class QuarantineTest(unittest.TestCase):
         self.assertTrue(os.path.isfile(self._quarantined_file(result.unit_id, child)))
 
     def test_facade_matches_module_function(self):
-        other_root = os.path.join(self.directory.name, "other")
+        other_root = os.path.join(os.path.realpath(self.directory.name), "other")
         child = "user/keymaps/foo.json"
         for root in (self.root, other_root):
             self._save(child, {"mappings": {}}, root=root)

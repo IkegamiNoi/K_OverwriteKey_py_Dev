@@ -11,6 +11,7 @@ from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
 from keyseq.presentation.compact_pane_heights import plan_compact_heights
+from keyseq.presentation.tk_platform import primary_modifier, screen_distance
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
 from keyseq.shared.i18n import fix_language
@@ -362,7 +363,8 @@ class CompactSequenceViewTest(unittest.TestCase):
 
         actions_before = list(self.app.trigger_panel.selected_trigger()["actions"])
         index_before = self.app._indices["f1"]
-        for sequence in ("<Double-Button-1>", "<Control-c>", "<Control-C>"):
+        modifier = primary_modifier(self.frame.action_list)
+        for sequence in ("<Double-Button-1>", f"<{modifier}-c>", f"<{modifier}-C>"):
             self.assertTrue(self.frame.action_list.bind(sequence))
         self.assertEqual(self.sequence.ignore(SimpleNamespace()), "break")
         with patch.object(self.app.trigger_panel, "edit_action") as edit_action:
@@ -372,8 +374,8 @@ class CompactSequenceViewTest(unittest.TestCase):
         with copy as copy_actions:
             self.frame.action_list.focus_force()
             self.app.update()
-            self.frame.action_list.event_generate("<Control-c>")
-            self.frame.action_list.event_generate("<Control-C>")
+            self.frame.action_list.event_generate(f"<{modifier}-c>")
+            self.frame.action_list.event_generate(f"<{modifier}-C>")
             self.app.update()
             copy_actions.assert_not_called()
         self.assertEqual(self.app.trigger_panel.selected_trigger()["actions"], actions_before)
@@ -462,7 +464,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.geometry(f"270x{max(1, overhead + sequence.heading.winfo_reqheight() + call.heading.winfo_reqheight() + 8)}")
         self.app.update()
         panes_height = self.panes.winfo_height()
-        sash = int(self.panes.cget("sashwidth"))
+        sash = screen_distance(self.panes, "sashwidth")
         seq_min = sequence.heading.winfo_reqheight() + sequence.minimum_body_height()
         call_min = call.heading.winfo_reqheight() + call.minimum_body_height()
         expected = plan_compact_heights(
@@ -508,7 +510,7 @@ class CompactSequenceViewTest(unittest.TestCase):
 
         self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
-            self.panes.event_generate("<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2)
+            self.panes.event_generate("<Button-1>", x=x, y=sash_y + screen_distance(self.panes, "sashwidth") // 2)
             self.app.update()
             self.panes.event_generate("<B1-Motion>", x=x, y=sash_y - 30, state=0x100)
             self.app.update()
@@ -565,7 +567,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
             self.panes.event_generate(
-                "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
+                "<Button-1>", x=x, y=sash_y + screen_distance(self.panes, "sashwidth") // 2,
             )
             self.app.update()
             self.panes.event_generate("<B1-Motion>", x=x, y=sash_y - 25, state=0x100)
@@ -586,7 +588,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", return_value=True) as write:
             self.panes.event_generate(
-                "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
+                "<Button-1>", x=x, y=sash_y + screen_distance(self.panes, "sashwidth") // 2,
             )
             self.app.update()
             self.panes.event_generate("<ButtonRelease-1>", x=x, y=sash_y)
