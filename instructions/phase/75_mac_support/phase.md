@@ -60,7 +60,9 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_05b: Tk 9 で長さの `cget` が単位つきで返る差（`winfo_pixels` で揃える）。task_05 の起動目視で発覚（2026-11-11）
 - task_05c: Tk 9 の aqua の右クリックは `<Button-3>`（task_05 の `right_click_sequence` が `<Button-2>` を返す誤り）。task_06 の probe で発覚（2026-11-11）
 - task_06: probe（tap・修飾キー・権限・aqua の Tk・スレッド条件・Dock のアイコン・JIS / US の記号キーの対応表・Tk 9 由来の差〔Q1 を brew の Tk 9.1 へ変更・decisions 2026-11-10〕）と暫定 57 の改訂（Q1 の文言を含む）
-- task_07: 既定プリセットのプロファイル注入（Q2）、macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
+- task_07c: Mac でフル表示のペインの初期幅の適用が走らない（install 時点で panes の大きさが確定し `<Configure>` が届かない）。task_07 の tests_ui 実測で発覚（2026-11-11）・task_07 より先に行う
+- task_07: macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
+- task_07b: 既定プリセットのプロファイル注入（Q2）。既定データの型と Windows / macOS の 2 組を domain に置き、`OsBackend` が持つ既定を App の組み立てで `ConfigService` へ渡す（ユーザー判断 2026-11-11・task_07 から分割）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
@@ -84,7 +86,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 |---|---|
 | 1 | task_01（AST テスト）・段階 ① |
 | 2 | 段階 ①（task_01〜04） |
-| 3 | task_05〜07 |
+| 3 | task_05〜07b |
 | 4 | task_08〜10 |
 | 5 | task_11 |
 | 6, 7 | task_13 |

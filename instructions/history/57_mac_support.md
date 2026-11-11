@@ -252,6 +252,9 @@ keyseq/infrastructure/os_backend/
 - **Q0 Windows 実機の確保**（段階 ① の前提）: 提案 = タスクごとに Windows で検証できる状態で進める。用意できない期間は、段階 ① を「import の遅延と選択点の導入のみ（Win32 ファイルの物理移動をしない）」に縮める。
 - **Q1 macOS の Python**: ~~提案 = python.org 版の 3.13（同梱の Tk 8.6 系）~~ → **Homebrew の Python 3.13 + `python-tk@3.13`（Tk 9.1）**（ユーザー判断 2026-11-10・decisions.md）。Tk 9 の差は presentation の `tk_platform.py` に集める（task_05b・§4.1）。PyInstaller で動くかは task_13 で確認する。
 - **Q2 既定プリセット**: Windows の `Ctrl+C` 相当は macOS では `Command+C`。提案 = 既定データをプロファイルとして presentation の組み立て時に注入し、macOS は `Command` 系を用意する（domain に OS 判定を入れない）。既存の設定の自動変換はしない。
+  - 詳細（ユーザー判断 2026-11-11・task_07b）: 既定データの型と Windows / macOS の 2 組は domain に置き（データのみ・OS 判定なし）、どちらを使うかは `OsBackend` が持つ。App の組み立てで `ConfigService` へ渡し、`new_base_data` / `new_default_data`・domain の互換処理の既定への戻し・プリセット管理の「既定に戻す」は渡された既定を使う。
+  - macOS のホットキー・プリセット（8 件）: `Command+Tab`（`windows+tab`）・`Command+Space`（`windows+space`）・`Command+Q`（`windows+q`）・`Command+W`（`windows+w`）・`Command+H`（`windows+h`）・`Command+M`（`windows+m`）・`Option+Command+Esc`（`alt+windows+esc`）・`Ctrl+↑`（`ctrl+up`）。
+  - macOS のサンプル: `ctrl+c` / `ctrl+v` → `windows+c` / `windows+v`、`alt+tab` → `windows+tab`、行の選択（`home`・`shift+end`）→ `windows+left`・`windows+shift+right`。
 - **Q3 ビルド後の設定の保存先**: 提案 = macOS は `~/Library/Application Support/keyseq/`、Windows は `.exe` と同じ場所の `config/`（持ち運びやすさと現行の相対配置の維持）。
 - **Q4 IME 制御**: 文字送信は Unicode 送信で IME を経由しない。キー取得は Tk イベントが主経路で、IME がオンだと影響を受ける可能性がある。提案 = macOS では何もしない。キー取得で問題が出たら TIS による入力ソース切替を追加する。→ **§4.1 で問題を確認（かな入力中は Tk の keycode から vk が失われる）。キー取得の間だけ TIS で入力ソースを英字（ASCII 可能な入力ソース）へ切り替え、終わったら元へ戻す**（ユーザー判断 2026-11-11。Windows の取得中の IME オフと同じ考え方。実装は task_09）。文字送信は従来どおり IME を経由しない。
   - 切替の手順: 取得の開始時に元の入力ソースと切替先を記録し、切り替えた後で現在の入力ソースを読み直して切替先になったかを確かめる（§4.1 で確かめたのは読み取りだけで、切替は task_09 で実測する）。

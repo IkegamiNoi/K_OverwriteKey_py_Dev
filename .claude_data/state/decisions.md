@@ -673,3 +673,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - §5.3.1: US 配列は実測・JIS 専用キーは Apple の定数による文書値で段階 ③ へ進む（JIS の実測は JIS キーボードを用意できたとき。§9 の 10）。
 - §5.1 のキュー: 上限 64 件・期限 1.0 秒（メニュー表示中・ドラッグ中もメインスレッドは止まらなかったため）。
 - Codex 敵対的レビュー 4 件 → 推奨どおり採用（3 は修正して採用 = 切替に失敗しても取得は止めず `??`。レビュー案の「取得を中止」は不採用）。
+
+### 【task_07】task_07 を分割・Q2 の詳細を確定（2026-11-11・ユーザー判断「推奨どおり」）
+- task_07 = macOS のテストの基準線と tests_ui の対処（sashwidth 4 か所を含む）／task_07b = 既定プリセットの注入（Q2）。
+- 既定の選択: domain に既定データの型と Windows / macOS の 2 組（データのみ）、`OsBackend` が持ち App の組み立てで `ConfigService` へ渡す（Tk の aqua で選ぶ案は不採用）。
+- macOS の中身: プリセット = Command+Tab・Command+Space・Command+Q・Command+W・Command+H・Command+M・Option+Command+Esc・Ctrl+↑／サンプル = Command+C/V・Command+Tab・行選択 Command+← / Command+Shift+→（暫定 57 Q2 に追記）。

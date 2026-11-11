@@ -61,6 +61,7 @@ class PaneLayoutController:
         for sequence in ("<Button-2>", "<B2-Motion>", "<ButtonRelease-2>"):
             panes.bind(sequence, self._block_middle_button, add="+")
         self._installed = True
+        self.app.after_idle(self._apply_if_already_sized)
 
     def _is_ready(self) -> bool:
         return self.desired is not None and self.min_widths is not None
@@ -68,6 +69,12 @@ class PaneLayoutController:
     def _on_configure(self, event: tk.Event) -> None:
         if event.width > 1 and not self._applied:
             # 測定中の update_idletasks による Configure の再入も防ぐ。
+            self._applied = True
+            self.apply_initial_widths()
+
+    def _apply_if_already_sized(self) -> None:
+        """aqua では install 前に panes の大きさが確定し <Configure> が届かないため。"""
+        if not self._applied and self.app.full_view.panes.winfo_width() > 1:
             self._applied = True
             self.apply_initial_widths()
 
