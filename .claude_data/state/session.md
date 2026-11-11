@@ -11,7 +11,7 @@ last_commit_location: `claude/windows-continuation-23d400`（Mac の worktree `w
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_07（Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`）完了・コミット済み。次は task_07b（Q2 の既定の注入）。**
+focus: **phase 75 段階 ② task_07b（OS ごとの既定プリセット・Q2）完了・コミット済み。次は task_07d（Tk 9 / aqua の寸法の差・基準線の「要調査」10 件）。**
 mode: implementing
 presence: present
 
@@ -31,7 +31,6 @@ verified:
 
 ## next_action
 - Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）。「要調査」10 件は task_07d（task_07b の後）
-- task_07b: Q2 の既定の注入（決定済み・暫定 57 Q2 の詳細）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - Windows の標準検証 4 種は task_05c の分を次の機会にまとめて
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき

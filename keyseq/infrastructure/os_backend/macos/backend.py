@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from keyseq.domain.default_profile import MACOS_DEFAULT_PROFILE
 from keyseq.infrastructure.os_backend.contracts import Capabilities, KeySend, OsBackend, ResolveLayoutScanCode
 
 
@@ -71,4 +72,8 @@ class MacAppIdentity:
 
 
 def create_backend() -> OsBackend:
-    return OsBackend(Capabilities(False, False, False, False), MacImeBackend(), MacWindowBackend(), MacTkKeyTranslator(), MacAppIdentity(), MacKeyboardBackend(), MacMouseBackend())
+    return OsBackend(
+        Capabilities(False, False, False, False), MacImeBackend(), MacWindowBackend(),
+        MacTkKeyTranslator(), MacAppIdentity(), MacKeyboardBackend(), MacMouseBackend(),
+        default_profile=MACOS_DEFAULT_PROFILE,
+    )

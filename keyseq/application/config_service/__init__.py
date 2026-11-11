@@ -21,7 +21,7 @@ from keyseq.domain.config import (
     normalize_key_name,
     safe_deepcopy,
 )
-from keyseq.infrastructure.json_repository import JsonRepository
+from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
     INTERNAL_TRIGGER_SET_IMPORTED,
@@ -30,6 +30,7 @@ from keyseq.domain.keymap_triggers import (
     ensure_active_triggers,
     migrate_single_json_triggers,
 )
+from keyseq.infrastructure.json_repository import JsonRepository
 from . import child_file_io, hotkey_presets_files, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, sample_install, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
@@ -58,14 +59,18 @@ class ConfigService:
     INTERNAL_TRIGGER_SET_PARENT_REFS = INTERNAL_TRIGGER_SET_PARENT_REFS
     INTERNAL_LEGACY_TRIGGER_SET = "_legacy_trigger_set"
 
-    def __init__(self, repository: JsonRepository):
+    def __init__(
+        self, repository: JsonRepository, *,
+        default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE,
+    ):
         self.repository = repository
+        self.default_profile = default_profile
 
     def new_default_data(self) -> dict[str, Any]:
-        return build_sample_config()
+        return build_sample_config(self.default_profile)
 
     def new_base_data(self) -> dict[str, Any]:
-        return build_base_config()
+        return build_base_config(self.default_profile)
 
     def install_sample(
         self, *, config_root: str, keyboard_layout_id: str,
@@ -89,15 +94,15 @@ class ConfigService:
         data["active_keymap_id"] = ""
         data["keymap_switch_keys"] = {}
         ensure_active_triggers(data)
-        return ensure_config_compatibility(data)
+        return ensure_config_compatibility(data, profile=self.default_profile)
 
     def normalize_runtime_data(self, data: Any) -> dict[str, Any]:
-        return ensure_config_compatibility(data)
+        return ensure_config_compatibility(data, profile=self.default_profile)
 
 
     def load(self, path: str) -> dict[str, Any]:
         loaded = self.repository.load_json(path)
-        normalized = ensure_config_compatibility(loaded)
+        normalized = ensure_config_compatibility(loaded, profile=self.default_profile)
         migrate_single_json_triggers(normalized)
         return normalized
 
@@ -142,7 +147,7 @@ class ConfigService:
 
 
     def export_runtime_data(self, path: str, data: Any) -> dict[str, Any]:
-        normalized = ensure_config_compatibility(data)
+        normalized = ensure_config_compatibility(data, profile=self.default_profile)
         self.repository.save_json(path, self._sanitize_runtime_for_storage(normalized))
         return normalized
 
@@ -203,7 +208,9 @@ class ConfigService:
         }
         copy_keymap_optional_keys(raw_keymap, keymap)
         parent_refs = self._normalize_parent_refs(raw_keymap.get(self.PARENT_REFS_KEY))
-        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [keymap])[0]
+        normalized = ensure_config_compatibility(
+            {"keymaps": [keymap]}, profile=self.default_profile,
+        ).get("keymaps", [keymap])[0]
         if parent_refs is not None:
             normalized[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
         return normalized
@@ -249,7 +256,9 @@ class ConfigService:
         return self._saved_keymap_result(item, path, resolved_path, config_root, payload)
 
     def _keymap_item_for_save(self, keymap: dict[str, Any]) -> dict[str, Any]:
-        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
+        normalized = ensure_config_compatibility(
+            {"keymaps": [keymap]}, profile=self.default_profile,
+        ).get("keymaps", [])
         if not normalized:
             raise ValueError(tr("application.config_service.keymap_missing"))
         item = normalized[0]

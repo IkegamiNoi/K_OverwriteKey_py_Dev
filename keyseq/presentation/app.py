@@ -113,7 +113,7 @@ class App(tk.Tk):
         window_backend = backend.window
 
         self.repository = JsonRepository()
-        self.config_service = ConfigService(self.repository)
+        self.config_service = ConfigService(self.repository, default_profile=backend.default_profile)
 
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.config_root = os.path.join(self.base_dir, "config")

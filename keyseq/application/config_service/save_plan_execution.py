@@ -21,11 +21,14 @@ from keyseq.application.save_plan import (
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets
 from keyseq.domain.config import ensure_config_compatibility, normalize_identifier, normalize_key_name, safe_deepcopy
+from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
 
 from . import split_payloads
 
 
-def normalize_save_runtime(data: Any) -> dict[str, Any]:
+def normalize_save_runtime(
+    data: Any, *, profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE,
+) -> dict[str, Any]:
     """区切りが strip で失われる前に保存識別子を検査する。"""
     for owner, _, triggers in iter_trigger_sets(data):
         owner_id = str(owner.get("id") or "")
@@ -36,13 +39,13 @@ def normalize_save_runtime(data: Any) -> dict[str, Any]:
             key = str(trigger.get("key") or "") if isinstance(trigger, dict) else ""
             if key:
                 compose_sequence_key(owner_id, key)
-    return ensure_config_compatibility(data)
+    return ensure_config_compatibility(data, profile=profile)
 
 
 def _restore_input_parent_refs(
     service: Any, data: Any
 ) -> tuple[dict[str, Any], list[Any]]:
-    normalized = normalize_save_runtime(data)
+    normalized = normalize_save_runtime(data, profile=service.default_profile)
     raw_keymaps = (
         data.get("keymaps")
         if isinstance(data, dict) and isinstance(data.get("keymaps"), list)
@@ -286,7 +289,7 @@ def resolve_child_save_targets(service,
     save_plan: SavePlan | None = None,
 ) -> dict[tuple[str, str], str]:
     """ACTION_SAVE 時の子ファイル保存先を、書き込まずに解決する。"""
-    runtime = normalize_save_runtime(data)
+    runtime = normalize_save_runtime(data, profile=service.default_profile)
     resolved_config_root = os.path.abspath(config_root)
     resolved_keymap_set_path = (
         os.path.abspath(keymap_set_path)
@@ -328,7 +331,7 @@ def find_dependency_blocked_sequences(service,
     save_plan: SavePlan,
 ) -> list[str]:
     """trigger_set を保存しない計画で、保存先が変わる sequence を返す。"""
-    runtime = normalize_save_runtime(data)
+    runtime = normalize_save_runtime(data, profile=service.default_profile)
     resolved_config_root = os.path.abspath(config_root)
     resolved_keymap_set_path = (
         os.path.abspath(keymap_set_path)
@@ -352,7 +355,8 @@ def find_dependency_blocked_parents(service, data: Any, *, config_root: str,
 ) -> dict[tuple[str, str], list[str]]:
     """子の保存先変更によって保存が必要になる、SKIP 指定の直接の親。"""
     payloads = split_payloads.build_split_save_payloads(
-        service, normalize_save_runtime(data), config_root=os.path.abspath(config_root),
+        service, normalize_save_runtime(data, profile=service.default_profile),
+        config_root=os.path.abspath(config_root),
         startup_data=None, keymap_set_path=os.path.abspath(keymap_set_path),
         keymap_set_name_path=keymap_set_path, legacy_path="",
         split_base_dir=split_base_dir, save_plan=save_plan,

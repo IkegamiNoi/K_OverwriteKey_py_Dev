@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from keyseq.domain.default_profile import WINDOWS_DEFAULT_PROFILE
+
 from keyseq.infrastructure.os_backend.contracts import Capabilities, OsBackend
 from keyseq.infrastructure.os_backend.windows import app_relaunch, ime_control, own_ime_status, tk_key_translator, win32_window
 from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
@@ -92,4 +94,5 @@ def create_backend() -> OsBackend:
         Capabilities(True, True, True, True), WindowsImeBackend(),
         WindowsWindowBackend(), WindowsTkKeyTranslator(), WindowsAppIdentity(),
         WindowsKeyboardBackend(), WindowsMouseBackend(),
+        default_profile=WINDOWS_DEFAULT_PROFILE,
     )

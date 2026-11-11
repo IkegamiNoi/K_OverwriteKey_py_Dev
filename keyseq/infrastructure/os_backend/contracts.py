@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Protocol, Sequence, TYPE_CHECKING
 
+from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
+
 if TYPE_CHECKING:
     import tkinter
 
@@ -117,3 +119,4 @@ class OsBackend:
     app: AppIdentity
     keyboard: KeyboardBackend
     mouse: MouseBackend
+    default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE

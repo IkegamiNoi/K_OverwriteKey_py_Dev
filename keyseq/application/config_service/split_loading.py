@@ -331,7 +331,7 @@ def _normalize_runtime_data_and_restore_parent_refs(
     runtime: dict[str, Any],
     keymaps: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    normalized = ensure_config_compatibility(runtime)
+    normalized = ensure_config_compatibility(runtime, profile=service.default_profile)
     normalized_keymaps = normalized.get("keymaps", [])
     for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
         parent_refs = service._normalize_parent_refs(keymap.get(service.INTERNAL_KEYMAP_PARENT_REFS))
@@ -531,7 +531,9 @@ def load_triggers_from_trigger_set(
                 trigger[service.INTERNAL_SEQUENCE_DIRTY] = False
         triggers.append(trigger)
 
-    normalized = ensure_config_compatibility({"triggers": triggers}).get("triggers", [])
+    normalized = ensure_config_compatibility(
+        {"triggers": triggers}, profile=service.default_profile,
+    ).get("triggers", [])
     for trigger, normalized_trigger in zip(triggers, normalized):
         parent_refs = service._normalize_parent_refs(trigger.get(service.INTERNAL_SEQUENCE_PARENT_REFS))
         if parent_refs is not None:

@@ -96,7 +96,7 @@ def save_trigger_set_file(
     save_plan: SavePlan | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     resolved_path = service._resolve_config_relative_path(path, config_root)
-    normalized = ensure_config_compatibility(data)
+    normalized = ensure_config_compatibility(data, profile=service.default_profile)
     raw_triggers = get_active_triggers(data)
     normalized_triggers = get_active_triggers(normalized)
     for raw_trigger, trigger in zip(

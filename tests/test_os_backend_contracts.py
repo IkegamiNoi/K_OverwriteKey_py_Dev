@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from dataclasses import fields
 import inspect
 import sys
 import unittest
@@ -11,9 +12,26 @@ from keyseq.infrastructure.os_backend import (
     AppIdentity, Capabilities, ImeBackend, KeyboardBackend, KeySend, MouseBackend,
     OsBackend, TkKeyTranslator, WindowBackend, get_backend,
 )
+from keyseq.domain.default_profile import (
+    MACOS_DEFAULT_PROFILE,
+    WINDOWS_DEFAULT_PROFILE,
+)
 
 
 class OsBackendContractTests(unittest.TestCase):
+    def test_os_backend_fields_include_profile_with_windows_constructor_default(self) -> None:
+        self.assertEqual(
+            [field.name for field in fields(OsBackend)],
+            [
+                "capabilities", "ime", "window", "tk_keys", "app", "keyboard",
+                "mouse", "default_profile",
+            ],
+        )
+        legacy_constructor = OsBackend(
+            Capabilities(True, True, True, True), Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
+        )
+        self.assertIs(legacy_constructor.default_profile, WINDOWS_DEFAULT_PROFILE)
+
     def test_macos_stub_contracts_and_factory(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import (
             MacAppIdentity, MacImeBackend, MacKeyboardBackend, MacMouseBackend,
@@ -32,6 +50,7 @@ class OsBackendContractTests(unittest.TestCase):
                 self.assertEqual(list(inspect.signature(actual[name]).parameters), list(inspect.signature(expected[name]).parameters))
         backend = create_backend()
         self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
+        self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
         with self.assertRaises(OSError):
             backend.keyboard.register_global_hook(lambda _event: None)
@@ -106,6 +125,7 @@ class OsBackendContractTests(unittest.TestCase):
 
             backend = create_backend()
         self.assertIsInstance(backend.ime, WindowsImeBackend)
+        self.assertIs(backend.default_profile, WINDOWS_DEFAULT_PROFILE)
         self.assertIsInstance(backend.window, WindowsWindowBackend)
         self.assertIsInstance(backend.tk_keys, WindowsTkKeyTranslator)
         self.assertIsInstance(backend.app, WindowsAppIdentity)

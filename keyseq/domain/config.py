@@ -5,6 +5,7 @@ from typing import Any, Callable, Mapping
 from keyseq.shared.i18n import tr
 
 from . import key_hold, mouse_scroll, sequence_control
+from .default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
 from .key_symbols import display_key_name
 from .screen_grid import normalize_grid
 
@@ -26,18 +27,14 @@ def coerce_nonnegative_int(value: Any, default: int) -> int:
     return number
 
 
-def build_base_config() -> dict[str, Any]:
+def build_base_config(
+    profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE,
+) -> dict[str, Any]:
     return {
         "triggers": [],
         "hotkey_presets": [
-            {"label": "Alt+Tab", "value": "alt+tab"},
-            {"label": "Win+D", "value": "windows+d"},
-            {"label": "Win+E", "value": "windows+e"},
-            {"label": "Ctrl+Shift+Esc", "value": "ctrl+shift+esc"},
-            {"label": "Win+R", "value": "windows+r"},
-            {"label": "Win+Tab", "value": "windows+tab"},
-            {"label": "Win+X", "value": "windows+x"},
-            {"label": "Alt+F4", "value": "alt+f4"},
+            {"label": label, "value": value}
+            for label, value in profile.hotkey_presets
         ],
         "hook_stop_key": "",
         "hook_toggle_key": "",
@@ -70,22 +67,30 @@ def _sample_trigger(
     }
 
 
-def build_sample_config() -> dict[str, Any]:
-    data = build_base_config()
+def build_sample_config(
+    profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE,
+) -> dict[str, Any]:
+    data = build_base_config(profile)
     data.update(hook_keys_individual=True, hook_stop_key="f12", hook_toggle_key="f1")
     data["keymaps"] = [
         {
             "id": "keymap_1", "label": tr("sample.keymap.shortcuts"), "mappings": {},
             "triggers": [
                 _sample_trigger(
-                    "r", "select_line", ["home", "shift+end"], run_to_end=True, delay_ms=30,
+                    "r", "select_line", list(profile.select_line), run_to_end=True, delay_ms=30,
                 ),
-                _sample_trigger("c", "copy", ["ctrl+c"]),
-                _sample_trigger("v", "paste", ["ctrl+v"]),
-                _sample_trigger("t", "switch_app", ["alt+tab"]),
+                _sample_trigger("c", "copy", [profile.copy]),
+                _sample_trigger("v", "paste", [profile.paste]),
+                _sample_trigger("t", "switch_app", [profile.switch_app]),
                 _sample_trigger(
                     "a", "paste_line_to_app",
-                    ["home", "shift+end", "ctrl+c", "alt+tab", "ctrl+v", "alt+tab"],
+                    [
+                        *profile.select_line,
+                        profile.copy,
+                        profile.switch_app,
+                        profile.paste,
+                        profile.switch_app,
+                    ],
                     run_to_end=True, delay_ms=300,
                 ),
             ],
@@ -266,10 +271,12 @@ def _migrate_legacy_triggers(config: dict[str, Any]) -> None:
         ]
 
 
-def _normalize_general_settings(config: dict[str, Any]) -> None:
+def _normalize_general_settings(
+    config: dict[str, Any], profile: DefaultProfile,
+) -> None:
     raw_presets = config.get("hotkey_presets")
     if not isinstance(raw_presets, list):
-        config["hotkey_presets"] = build_base_config()["hotkey_presets"]
+        config["hotkey_presets"] = build_base_config(profile)["hotkey_presets"]
     else:
         config["hotkey_presets"] = normalize_hotkey_presets(raw_presets)
 
@@ -418,7 +425,9 @@ def _normalize_keymap_switch_keys(
     return normalized_keymap_switch_keys
 
 
-def ensure_config_compatibility(data: Any) -> dict[str, Any]:
+def ensure_config_compatibility(
+    data: Any, *, profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE,
+) -> dict[str, Any]:
     from keyseq.domain.keymap_triggers import (
         INTERNAL_TRIGGER_SET_DIRTY,
         INTERNAL_TRIGGER_SET_IMPORTED,
@@ -434,7 +443,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     _migrate_legacy_triggers(config)
     config["triggers"] = normalize_triggers(config.get("triggers"))
-    _normalize_general_settings(config)
+    _normalize_general_settings(config, profile)
 
     config["external_keyboard_layouts"] = _normalize_external_keyboard_layouts(
         config.get("external_keyboard_layouts")
