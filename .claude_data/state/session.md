@@ -5,9 +5,9 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-13T12:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.6・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `task-06-progression-a047bd`）。push はユーザー。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/continue-ec893a`（Windows の worktree `continue-ec893a`・2026-11-13 の M1 記録と v0.7・task_08 起票）。Mac の worktree は `claude/task-06-progression-a047bd`。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
