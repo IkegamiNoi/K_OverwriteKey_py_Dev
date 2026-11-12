@@ -11,7 +11,7 @@ last_commit_location: `claude/task-08-progression-2214c7`（Windows の worktree
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。次は task_08b（CGEventTap・Mac・未起票）。**
+focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。task_08b（CGEventTap・受信の vk の表・CapsLock は素通し）を起票済み。次は task_08b の実装（Windows で単体テストまで可・実測と目視は Mac）。**
 mode: implementing
 
 ## last_action
@@ -37,7 +37,7 @@ verified:
   visual_windows: OK（ユーザー）
 
 ## next_action
-- 次: task_08b（CGEventTap のフック・修飾キー・配送の滞留 §5.1・§4.1 の未実測の実測）を `/task_new` で起票。起票時に受信側の vk の表〔§5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める。実装・実測は Mac。reviewer 参考 2（排出中のモーダル）も 08b の実機で確認
+- 次: task_08b の実装（`instructions/phase/75_mac_support/tasks/task_08b_macos_event_tap.md`・codex 実装 → verifier〔Windows の tests・smoke〕→ reviewer）→ Mac で probe の実測（暫定 57 §4.1 へ追記）・tests の基準線・目視 ①〜⑥。task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - Mac で task_08 の tests が基準線（失敗 6・エラー 10）から増えないこと・smoke pass を確認（次に Mac を使うとき）
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）

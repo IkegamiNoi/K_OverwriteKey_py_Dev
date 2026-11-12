@@ -140,7 +140,7 @@ keyseq/infrastructure/os_backend/
 - コールバックは同期の判定だけで即座に返す（§4.1: 1.5 秒の遅延が 2 回続くとタイムアウトで無効化された）。
 - Secure Input 中はイベントが届かない。この間はフックの動作を保証しない。
 - 自分が合成したイベントは `kCGEventSourceUserData` の印で識別する。Windows の送信時ガードと同じ契約を `KeyboardBackend` で満たす。
-- **修飾キー**は `kCGEventFlagsChanged` で届くため、keycode（§4.1）とフラグの機種依存ビットから左右別の down / up を導いて上位へ渡す。CapsLock は別扱い。
+- **修飾キー**は `kCGEventFlagsChanged` で届くため、keycode（§4.1）とフラグの機種依存ビットから左右別の down / up を導いて上位へ渡す。CapsLock は別扱い: **常に素通し**し、上位へは表に無いキーと同じく `name=""` で渡す（macOS では CapsLock を元キーに割り当てられない・ユーザー判断 2026-11-13・task_08b）。
 - **修飾キーの抑止とフラグ**（§4.1: FlagsChanged の抑止だけでは後続のキーに Command が付いたまま届き、セッションの修飾状態に残って別アプリの入力が壊れた）:
   - backend は修飾キーごとに**左右別に**「物理的に押されている」「抑止中（down を抑止した）」を持つ。修飾キーの down を抑止したら対になる up も抑止し、両方を通すか両方を止めるかを揃える。
   - **通過させる物理キーのイベント**（自分の印が無いもの）は、フラグを `CGEventSetFlags` で付け直す: 機種依存ビットは「押されていて抑止中でない側」だけを残し、共通ビット（Shift・Control・Option・Command）は左右のどちらかが「押されていて抑止中でない」ときだけ立てる。例: 左 Shift を抑止中で右 Shift を素通しで押している → 共通の Shift と右 Shift のビットは残る。

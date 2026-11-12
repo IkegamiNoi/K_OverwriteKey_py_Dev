@@ -69,9 +69,9 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
 - task_08: フックの受け渡しのディスパッチャ（暫定 57 §5.1.1・v0.7）。型の改訂（M2）・即時版 / キュー版・`OsBackend.queued_hook_dispatch`・`HookController` と `KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）。OS 非依存で Windows でも実装・テストできる（ユーザー判断 2026-11-13 で分割）
-- task_08b: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。§4.1 の未実測（右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged・自動リピートの値）を実測する（段階 ② の区切り L2）
-- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）。テンキーの vk・Tk の keycode の実測（§4.1）・Command+Option+P でプリセット管理が開くかの目視（`menu_bar.py` の `<Command-Alt-p>`・段階 ② の区切り L7）
-- task_10: 権限の案内（§5.2）。`AXIsProcessTrusted` に使う `pyobjc-framework-ApplicationServices` を darwin のマーカーつきで依存に明記する（現在は pynput の推移依存・段階 ② の区切り L8）
+- task_08b: CGEventTap のフック・修飾キーの左右と抑止時のフラグ・tap の無効化からの復帰（§5.1）・**受信側の vk の表**（§5.3 受信・§5.3.1。US の名前で固定・ユーザー判断 2026-11-13 で task_09 から前倒し）・CapsLock は常に素通し（同）。§4.1 の未実測（右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged・自動リピートの値）を実測する（段階 ② の区切り L2）
+- task_09: キーの識別（JIS を選択中のレイアウトに合う受信名・テンキーの表）と送信の解決順・送信するイベントへの印付け（印の定数は task_08b）、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）。テンキーの vk・Tk の keycode の実測（§4.1）・Command+Option+P でプリセット管理が開くかの目視（`menu_bar.py` の `<Command-Alt-p>`・段階 ② の区切り L7）
+- task_10: 権限の案内（§5.2）・実行中の権限の喪失と tap の障害からのフックの停止と通知（§5.2 末尾・task_08b から）。`AXIsProcessTrusted` に使う `pyobjc-framework-ApplicationServices` を darwin のマーカーつきで依存に明記する（現在は pynput の推移依存・段階 ② の区切り L8）
 - task_11: §5.4 の残りの機能と無効化の UI。aqua では最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認。`test_modal_grab` の 4 件（aqua でモーダルの grab が残る）の調査（`mac_test_baseline.md`・段階 ② の区切り L2）
 
 **段階 ④: ビルド**
