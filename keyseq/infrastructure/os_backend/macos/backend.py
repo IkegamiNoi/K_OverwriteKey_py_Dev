@@ -76,4 +76,5 @@ def create_backend() -> OsBackend:
         Capabilities(False, False, False, False), MacImeBackend(), MacWindowBackend(),
         MacTkKeyTranslator(), MacAppIdentity(), MacKeyboardBackend(), MacMouseBackend(),
         default_profile=MACOS_DEFAULT_PROFILE,
+        queued_hook_dispatch=True,
     )

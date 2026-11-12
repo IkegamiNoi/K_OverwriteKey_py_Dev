@@ -17,6 +17,7 @@ class KeyCaptureHookTests(unittest.TestCase):
         self.foreground = True
         self.names = {41: "zenkaku_hankaku", 42: "kana", 43: "esc", 44: "left ctrl"}
         self.target_checks: list[str] = []
+        self.dispatch_accept = True
         self.hook = KeyCaptureHook(
             register_hook=self._register,
             unregister_hook=self.unregistered.append,
@@ -28,7 +29,13 @@ class KeyCaptureHookTests(unittest.TestCase):
             deliver=lambda name, generation: self.delivered.append((name, generation)),
             get_generation=lambda: self.generation,
             clock=lambda: self.now,
+            dispatch=self._dispatch_callback,
         )
+
+    def _dispatch_callback(self, callback, **_kwargs) -> bool:
+        if self.dispatch_accept:
+            self._after(0, callback)
+        return self.dispatch_accept
 
     def _register(self, callback):
         handle = object()
@@ -205,6 +212,7 @@ class KeyCaptureHookTests(unittest.TestCase):
             repeat_delay_ms=lambda: 500,
             deliver=lambda name, generation: None,
             get_generation=lambda: 0,
+            dispatch=lambda callback, **_kwargs: (callback(), True)[1],
         )
         broken.activate()
         self.assertIs(broken._callback(self._event(41)), True)
@@ -218,6 +226,60 @@ class KeyCaptureHookTests(unittest.TestCase):
         self.assertEqual(len(self.unregistered), 1)
         self._run_timer(100)
         self.assertEqual(len(self.unregistered), 1)
+
+    def test_shutdown_clears_passthrough_keys(self) -> None:
+        self.hook.activate()
+        self.dispatch_accept = False
+        self._dispatch(self._event(41))
+        self.hook.deactivate()
+        self.hook.shutdown()
+        self.assertEqual(self.hook._passing_through, set())
+        self._run_timer(100)
+        self.assertEqual(len(self.unregistered), 1)
+
+    def test_dispatch_rejection_passes_down_and_release_through_without_pressed_entry(self) -> None:
+        self.hook.activate()
+        self.dispatch_accept = False
+        self.assertIs(self._dispatch(self._event(41)), True)
+        self.assertNotIn(41, self.hook._pressed)
+        self.assertIn(41, self.hook._passing_through)
+        self.assertIs(self._dispatch(self._event(41)), True)  # autorepeat down
+        self.foreground = False
+        self.assertIs(self._dispatch(self._event(41, "up")), True)
+        self.assertNotIn(41, self.hook._passing_through)
+
+    def test_passthrough_key_keeps_idle_hook_registered_until_release(self) -> None:
+        self.hook.activate()
+        self.dispatch_accept = False
+        self.assertIs(self._dispatch(self._event(41)), True)
+        self.dispatch_accept = True
+        self.hook.deactivate()
+        self._run_timer(100)
+        self.assertEqual(self.unregistered, [])
+        self.assertIs(self._dispatch(self._event(41, "up")), True)
+        self.now = 5.0
+        self._run_timer(100)
+        self.assertEqual(self.unregistered, [self.registered[0][1]])
+        self.assertEqual(self.hook._passing_through, set())
+
+    def test_passthrough_key_is_cleared_when_idle_hook_reaches_five_second_limit(self) -> None:
+        self.hook.activate()
+        self.dispatch_accept = False
+        self.assertIs(self._dispatch(self._event(41)), True)
+        self.hook.deactivate()
+        self._run_timer(100)
+        self.now = 5.0
+        self._run_timer(100)
+        self.assertEqual(self.unregistered, [self.registered[0][1]])
+        self.assertEqual(self.hook._passing_through, set())
+
+    def test_true_dispatch_retains_existing_suppression_and_delivery(self) -> None:
+        self.hook.activate()
+        self.assertIs(self._dispatch(self._event(41)), False)
+        self.assertIn(41, self.hook._pressed)
+        self.assertNotIn(41, self.hook._passing_through)
+        self.events.pop(0)[1]()
+        self.assertEqual(self.delivered, [("zenkaku_hankaku", 4)])
 
 
 if __name__ == "__main__":

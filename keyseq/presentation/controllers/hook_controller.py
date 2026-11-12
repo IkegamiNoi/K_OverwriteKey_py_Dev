@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 import tkinter as tk
 from tkinter import messagebox
@@ -8,12 +9,13 @@ from typing import Callable
 
 from keyseq.shared.i18n import tr
 
-from keyseq.application.input_router import GridKeyAction, InputRoute, SendKeyAction, StopHookAction, TriggerAction
+from keyseq.application.input_router import GridKeyAction, InputRoute, SelectKeymapAction, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.screen_grid import has_enabled_grid
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
+from keyseq.presentation.hook_dispatcher import HookDispatcher, ImmediateHookDispatcher
 from keyseq.presentation.hook_button_texts import (
     HOOK_START_TEXT, HOOK_STOP_TEXT, HOOK_TOGGLE_TEXTS,
     TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT, TRIGGER_TOGGLE_TEXTS,
@@ -26,12 +28,15 @@ class HookController:
     def __init__(
         self,
         app,
-        dispatch: Callable[[Callable[[], None]], None] | None = None,
+        dispatch: HookDispatcher | None = None,
     ) -> None:
         self._app = app
-        self._dispatch = (
-            dispatch if dispatch is not None else lambda callback: app.after(0, callback)
-        )
+        self._dispatcher = dispatch if dispatch is not None else ImmediateHookDispatcher(app.after)
+        self._dispatch = self._dispatcher.dispatch
+        self._hook_generation = 0
+        self._switch_reservation = 0
+        self._overloaded = threading.Event()
+        self._overload_lock = threading.Lock()
         self.hook_active = False
         self.custom_input_enabled = True
         self.hook_suspend_count = 0
@@ -131,6 +136,7 @@ class HookController:
             marker.clear()
 
     def start_hook(self):
+        self._overloaded.clear()
         if self._shutting_down:
             return
         self._clear_keymap_switch_in_progress()
@@ -150,6 +156,7 @@ class HookController:
 
         self._app.key_state_manager.clear()
         self._app.make_only_keys.clear()
+        self._hook_generation += 1
         started = self._app.hook_coordinator.start(
             triggers=overlap.all_triggers,
             on_input_event=self.on_input_event,
@@ -174,6 +181,7 @@ class HookController:
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
         try:
             self._clear_keymap_switch_in_progress()
+            self._dispatcher.invalidate()
             self._app.sequence_runner.stop_run_to_end()
             self._app.sequence_runner.cancel_pending_waits()
             self._app.hook_coordinator.stop()
@@ -299,6 +307,8 @@ class HookController:
         return tr("hook.conflict.trigger", key=conflict.key, reason=reason)
 
     def on_input_event(self, event: object):
+        if self._overloaded.is_set():
+            return True
         debug = bool((getattr(self._app, "data", None) or {}).get("debug_jis_special_key_events", False))
         started_at = time.perf_counter() if debug else 0.0
         resolved_key = self._app.layout.resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
@@ -306,16 +316,18 @@ class HookController:
             self._app.layout.debug_special_key_event(event, resolved_key)
         result = self._app.make_only_keys.handle(event)
         if result is not None:
-            self._schedule_make_only_routes(result.routes, result.generation)
-            accept = result.accept
+            accepted = self._schedule_make_only_routes(result.routes, result.generation)
+            accept = result.accept if accepted else True
             actions = sum(len(route.actions) for route in result.routes)
         else:
             route = self._app.input_router.handle(event)
-            for action in route.actions:
-                self._dispatch(
-                    lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
-                )
             accept = route.accept
+            for action in route.actions:
+                if not self._dispatch_action(
+                    action, lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
+                ):
+                    accept = True
+                    break
             actions = len(route.actions)
         if debug:
             ended_at = time.perf_counter()
@@ -334,14 +346,57 @@ class HookController:
 
     def _schedule_make_only_routes(
         self, routes: tuple[InputRoute, ...], generation: int,
-    ) -> None:
+    ) -> bool:
+        if self._overloaded.is_set():
+            return False
         for route in routes:
             for action in route.actions:
-                self._dispatch(
-                    lambda aa=action, ss=route.shadowed: self._execute_make_only_action(
+                if not self._dispatch_action(
+                    action, lambda aa=action, ss=route.shadowed: self._execute_make_only_action(
                         aa, ss, generation,
                     ),
-                )
+                ):
+                    return False
+        return True
+
+    def _dispatch_action(self, action: object, run: Callable[[], None]) -> bool:
+        on_discard = None
+        priority = isinstance(action, StopHookAction)
+        if isinstance(action, SelectKeymapAction):
+            self._switch_reservation += 1
+            reservation = self._switch_reservation
+
+            def on_discard() -> None:
+                if reservation == self._switch_reservation:
+                    self._clear_keymap_switch_in_progress()
+
+        if priority:
+            original_run = run
+            generation = self._hook_generation
+
+            def run() -> None:
+                if generation == self._hook_generation:
+                    original_run()
+
+        if self._dispatch(run, on_discard=on_discard, priority=priority):
+            return True
+        self._handle_overload()
+        return False
+
+    def _handle_overload(self) -> None:
+        with self._overload_lock:
+            if self._overloaded.is_set():
+                return
+            self._overloaded.set()
+            generation = self._hook_generation
+
+        def stop_overloaded_hook() -> None:
+            if generation != self._hook_generation:
+                return
+            self.stop_hook()
+            messagebox.showwarning(tr("hook.overload.title"), tr("hook.overload.body"))
+
+        self._dispatch(stop_overloaded_hook, priority=True)
 
     def _execute_make_only_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...], generation: int,

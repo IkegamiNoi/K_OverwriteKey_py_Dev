@@ -24,13 +24,14 @@ class OsBackendContractTests(unittest.TestCase):
             [field.name for field in fields(OsBackend)],
             [
                 "capabilities", "ime", "window", "tk_keys", "app", "keyboard",
-                "mouse", "default_profile",
+                "mouse", "default_profile", "queued_hook_dispatch",
             ],
         )
         legacy_constructor = OsBackend(
             Capabilities(True, True, True, True), Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
         )
         self.assertIs(legacy_constructor.default_profile, WINDOWS_DEFAULT_PROFILE)
+        self.assertFalse(legacy_constructor.queued_hook_dispatch)
 
     def test_macos_stub_contracts_and_factory(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import (
@@ -51,6 +52,7 @@ class OsBackendContractTests(unittest.TestCase):
         backend = create_backend()
         self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
+        self.assertTrue(backend.queued_hook_dispatch)
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
         with self.assertRaises(OSError):
             backend.keyboard.register_global_hook(lambda _event: None)
@@ -126,6 +128,7 @@ class OsBackendContractTests(unittest.TestCase):
             backend = create_backend()
         self.assertIsInstance(backend.ime, WindowsImeBackend)
         self.assertIs(backend.default_profile, WINDOWS_DEFAULT_PROFILE)
+        self.assertFalse(backend.queued_hook_dispatch)
         self.assertIsInstance(backend.window, WindowsWindowBackend)
         self.assertIsInstance(backend.tk_keys, WindowsTkKeyTranslator)
         self.assertIsInstance(backend.app, WindowsAppIdentity)

@@ -25,6 +25,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         )
         controller = HookController.__new__(HookController)
         controller._app = app
+        controller._dispatcher = SimpleNamespace(invalidate=Mock())
         controller.hook_active = True
         controller.custom_input_enabled = False
         controller._clear_keymap_switch_in_progress = Mock()

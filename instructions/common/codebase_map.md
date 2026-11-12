@@ -36,7 +36,8 @@ infrastructure
 - `keyseq/infrastructure/os_backend/windows/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）。`WindowsWindowBackend` / `WindowsTkKeyTranslator` / `WindowsAppIdentity` がモジュール属性経由で委譲する
 - `keyseq/infrastructure/os_backend/windows/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）。`WindowsAppIdentity.relaunch` が委譲する
 - `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換・テンキー判定）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
-- `keyseq/infrastructure/os_backend/macos/backend.py`: macOS 用スタブ実装（phase 75）。フック登録は未対応エラーを返し、能力フラグはすべて False。`default_profile` は `MACOS_DEFAULT_PROFILE`
+- `keyseq/infrastructure/os_backend/macos/backend.py`: macOS 用スタブ実装（phase 75）。フック登録は未対応エラーを返し、能力フラグはすべて False。`default_profile` は `MACOS_DEFAULT_PROFILE`。`queued_hook_dispatch=True`
+- `OsBackend.queued_hook_dispatch`（phase 75 task_08・既定 False）: 真ならフックの受け渡しをキュー版のディスパッチャにする（`presentation/hook_dispatcher.py`）。Windows は False（即時版 = `after(0)`）
 - `OsBackend.default_profile`（phase 75 task_07b）: OS ごとの既定のホットキー・プリセットとサンプル（`domain/default_profile.py` の `DefaultProfile`）。App の組み立てで `ConfigService(repository, default_profile=backend.default_profile)` へ渡し、既定の作成（`new_base_data` / `new_default_data`）と欠損時の補完（`ensure_config_compatibility(..., profile=)`）で使う
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
@@ -177,7 +178,8 @@ keyseq/presentation/
     pane_width_rules.py        # 詳細表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの記録中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・記録用のフックの設定 `configure_capture_hook`（phase 66）
-    key_capture_hook.py        # KeyCaptureHook: キーの記録中だけ使う suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
+    key_capture_hook.py        # KeyCaptureHook: キーの記録中だけ使う suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）。受け渡しは注入の `dispatch`（False の down は素通し中の集合へ入れ、その up まで抑止しない・素通し中も押下中と同じに数えて解除を待つ・phase 75 task_08）
+    hook_dispatcher.py         # フックのスレッド → UI スレッドの受け渡し（暫定 57 §5.1.1・phase 75 task_08。Tk 非依存）: HookDispatcher（Protocol）/ ImmediateHookDispatcher（after(0)・Windows）/ QueuedHookDispatcher（通常用・優先用の 2 本・上限 64 で False・期限 1 秒で on_discard・世代 invalidate・10 ms ごとの排出・macOS）/ create_hook_dispatcher
     hook_button_texts.py       # フック切替ボタンの文言キー・capture_idle_text / capture_active_text / capture_texts / unknown_capture_key_hint_text の実行時翻訳とキーボード選択幅（phase 72 task_05）
     orphan_sweep_text.py       # 未使用ファイルの整理の提示テキスト整形（警告 / 候補一覧 / 退避結果。呼出時に翻訳。公開文言定数はキー）
     quarantine_manage_text.py  # 退避したファイルの管理の提示テキスト整形（回の一覧 / 復元・削除の計画と結果。呼出時に翻訳）
@@ -374,7 +376,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
 - TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/出力シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、詳細表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）、トリガー行の追加・改名・削除は `TriggerRowEditFlow`（`trigger_row_edit.py`）へ遅延生成して委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
-  - `HookController(app, dispatch=None)` はフックスレッドの通常入力と make-only の UI 予約を注入された dispatch に渡す。既定は `app.after(0, callback)`。他の UI 予約は従来どおり。
+  - `HookController(app, dispatch=None)` はフックスレッドの通常入力と make-only の UI 予約を注入された `HookDispatcher` に渡す（`None` は `ImmediateHookDispatcher(app.after)`）。App は `backend.queued_hook_dispatch` で `create_hook_dispatcher` を 1 つ作り `self.hook_dispatcher` に置き、`KeyCaptureHook` にも `dispatch` を渡す・`on_close` で `close()`。他の UI 予約は従来どおり。
+  - phase 75 task_08（暫定 57 §5.1.1）: 稼働番号（`start_hook` で登録前に進める）・切替の予約番号（`SelectKeymapAction` の `on_discard` は番号一致時だけ切替中の印を下ろす）・過負荷の印。`StopHookAction` は `priority=True` で稼働番号が違えば何もしない。`dispatch` が `False` なら印を立てて素通しし、停止を優先で 1 回だけ渡して `hook.overload.*` を警告。印の間は `input_router` に渡さない（`start_hook` で下ろす）。`stop_hook` で `invalidate()`
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
     （渡さなければ呼び出し側が解除する＝try/finally 形）。

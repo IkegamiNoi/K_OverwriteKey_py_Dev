@@ -95,4 +95,5 @@ def create_backend() -> OsBackend:
         WindowsWindowBackend(), WindowsTkKeyTranslator(), WindowsAppIdentity(),
         WindowsKeyboardBackend(), WindowsMouseBackend(),
         default_profile=WINDOWS_DEFAULT_PROFILE,
+        queued_hook_dispatch=False,
     )

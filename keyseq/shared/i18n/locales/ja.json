@@ -170,6 +170,8 @@
   "hook.conflict.trigger": "{key}は{reason}と重複しているため、トリガーは実行されません。トリガーキーを変更してください",
   "hook.send_error.body": "キー送信中にエラーが発生しました。\n送信キーの指定に誤りがある可能性があります。内容を確認してください。\n\n種別: {action_type}\n値: {value}\n\nエラー: {error}",
   "hook.send_error.title": "送信エラー",
+  "hook.overload.title": "フック停止",
+  "hook.overload.body": "入力の処理が追いつかないため、フックを停止しました。",
   "hook.status.stopped": "停止しました",
   "hook_button.capture_active": "記録中…（Escで停止）",
   "hook_button.capture_idle": "キー入力で記録",

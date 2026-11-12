@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 75](75_mac_support/phase.md)（macOS 対応）**。暫定仕様先行モード・主入力 = [暫定 57](../history/57_mac_support.md)（v0.5・ユーザー確定済）・起票元 = ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。完了タスク = task_01〜04（2026-11-10・段階 ①）・task_05・05b（2026-11-11・Mac 目視 + Windows 標準検証 pass）・次 = Mac で task_06。
+- **アクティブなフェーズ = [phase 75](75_mac_support/phase.md)（macOS 対応）**。暫定仕様先行モード・主入力 = [暫定 57](../history/57_mac_support.md)（v0.7・ユーザー確定済）・起票元 = ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。完了タスク = task_01〜04（段階 ①）・05〜07e（段階 ②・2026-11-13 区切り M1 pass）・task_08（2026-11-13・ディスパッチャ・Windows 検証 pass・reviewer 採用・Windows 実機目視待ち）・次 = task_08b（CGEventTap・Mac・未起票）。
   **次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
 - 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`）。その前 = キーの記号の表示とキー置換の送信（`domain/key_symbols.py`・`InputGateway.send_mapped_key`。残件 = プリセットが編集で開くまで表示されない不具合は別セッション）。
 - 直前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。

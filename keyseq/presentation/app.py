@@ -103,6 +103,7 @@ from keyseq.infrastructure.input_gateway import (
 )
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.infrastructure.json_repository import JsonRepository
+from keyseq.presentation.hook_dispatcher import create_hook_dispatcher
 
 class App(tk.Tk):
     def __init__(self, *, first_launch_welcome: bool = False):
@@ -292,6 +293,9 @@ class App(tk.Tk):
         self.foreground_own_window = window_backend.foreground_own_window
         self.place_window_below = window_backend.place_window_below
         self.layout = LayoutController(self)
+        self.hook_dispatcher = create_hook_dispatcher(
+            self.after, queued=backend.queued_hook_dispatch,
+        )
         configure_capture_hook(KeyCaptureHook(
             register_hook=lambda callback: self.input_gateway.register_global_hook(
                 callback, suppress=True,
@@ -301,6 +305,7 @@ class App(tk.Tk):
             numpad_name=numpad_name_from_event,
             is_foreground=window_backend.is_own_process_foreground,
             after=self.after,
+            dispatch=self.hook_dispatcher.dispatch,
             repeat_delay_ms=lambda: keyboard_repeat_timing()[0],
             deliver=deliver_captured_key,
             get_generation=capture_key_generation,
@@ -313,7 +318,7 @@ class App(tk.Tk):
         self.compact_header = CompactHeaderController(self)
         self.compact_pane_layout = CompactPaneLayout(self)
         self.compact_window = CompactWindowController(self)
-        self.hook = HookController(self)
+        self.hook = HookController(self, dispatch=self.hook_dispatcher)
         self.help = HelpWindowController(self)
         self.license = LicenseWindowController(self)
 
@@ -882,6 +887,10 @@ class App(tk.Tk):
         self.pane_layout.cancel_window_width_save()
         self.compact_window.cancel_save()
         self.hook.begin_shutdown()
+        try:
+            self.hook_dispatcher.close()
+        except Exception:
+            logging.getLogger(__name__).exception("Could not close hook dispatcher")
         try:
             try:
                 shutdown_capture_hook()

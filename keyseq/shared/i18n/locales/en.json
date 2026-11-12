@@ -170,6 +170,8 @@
   "hook.conflict.trigger": "{key} conflicts with {reason}, so the Trigger will not run. Change the Trigger Key.",
   "hook.send_error.body": "An error occurred while sending keys.\nThe specified keys may be incorrect. Check the contents.\n\nType: {action_type}\nValue: {value}\n\nError: {error}",
   "hook.send_error.title": "Send error",
+  "hook.overload.title": "Hook stopped",
+  "hook.overload.body": "The Hook was stopped because input processing could not keep up.",
   "hook.status.stopped": "Stopped",
   "hook_button.capture_active": "Recording… (Esc)",
   "hook_button.capture_idle": "Record key",

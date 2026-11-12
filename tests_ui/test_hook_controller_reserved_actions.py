@@ -30,11 +30,9 @@ class HookControllerReservedActionsTest(unittest.TestCase):
             action_executor=SimpleNamespace(
                 execute_router_action=self.execute_router_action,
             ),
-            after=lambda _delay, callback: self.callbacks.append(callback),
+            after=Mock(side_effect=lambda _delay, callback: self.callbacks.append(callback)),
         )
-        self.controller = HookController.__new__(HookController)
-        self.controller._app = self.app
-        self.controller._dispatch = lambda callback: self.app.after(0, callback)
+        self.controller = HookController(self.app)
         self.controller.hook_active = True
         self.controller.custom_input_enabled = True
 
@@ -113,7 +111,7 @@ class HookControllerReservedActionsTest(unittest.TestCase):
 
     def test_timer_after_failure_is_logged_and_discarded(self) -> None:
         route = SimpleNamespace(actions=(StopHookAction(),), shadowed=())
-        self.app.after = Mock(side_effect=RuntimeError("main loop has ended"))
+        self.app.after.side_effect = RuntimeError("main loop has ended")
         with self.assertLogs("keyseq.presentation.controllers.hook_controller", level="ERROR"):
             self.controller.schedule_make_only_routes((route,), 0)
         self.execute_router_action.assert_not_called()

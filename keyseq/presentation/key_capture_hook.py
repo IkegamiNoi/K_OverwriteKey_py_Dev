@@ -26,6 +26,7 @@ class KeyCaptureHook:
         repeat_delay_ms: Callable[[], int],
         deliver: Callable[[str, int], None],
         get_generation: Callable[[], int],
+        dispatch: Callable[..., bool],
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._register_hook = register_hook
@@ -34,6 +35,7 @@ class KeyCaptureHook:
         self._numpad_name = numpad_name
         self._is_foreground = is_foreground
         self._after = after
+        self._dispatch = dispatch
         self._repeat_delay_ms = repeat_delay_ms
         self._deliver = deliver
         self._get_generation = get_generation
@@ -43,6 +45,7 @@ class KeyCaptureHook:
         self._handle: object | None = None
         self._owners = 0
         self._pressed: dict[object, float] = {}
+        self._passing_through: set[object] = set()
         self._idle_token = 0
         self._idle_started: float | None = None
 
@@ -75,6 +78,7 @@ class KeyCaptureHook:
             self._idle_token += 1
             self._idle_started = None
             self._pressed.clear()
+            self._passing_through.clear()
             self._unregister_locked()
 
     def _unregister_locked(self) -> None:
@@ -82,6 +86,7 @@ class KeyCaptureHook:
         if handle is None:
             return
         self._handle = None
+        self._passing_through.clear()
         self._unregister_hook(handle)
 
     def _timeout_seconds(self) -> float:
@@ -92,7 +97,7 @@ class KeyCaptureHook:
         stale = [scan_code for scan_code, pressed_at in self._pressed.items() if pressed_at < cutoff]
         for scan_code in stale:
             del self._pressed[scan_code]
-        return bool(self._pressed)
+        return bool(self._pressed or self._passing_through)
 
     def _schedule_idle_check(self, token: int) -> None:
         try:
@@ -124,8 +129,13 @@ class KeyCaptureHook:
         event_type = event.event_type
         if event_type not in ("down", "up"):
             return True
-        generation = self._get_generation()
         scan_code = event.scan_code
+        with self._lock:
+            if scan_code in self._passing_through:
+                if event_type == "up":
+                    self._passing_through.remove(scan_code)
+                return True
+        generation = self._get_generation()
         name = self._target_name(scan_code, event.is_keypad)
         if name is None:
             return True
@@ -144,8 +154,12 @@ class KeyCaptureHook:
             if event_type == "down":
                 self._pressed[scan_code] = now
             should_deliver = event_type == "down" and is_new
-        if should_deliver:
-            self._queue_delivery(name, generation)
+        if should_deliver and not self._queue_delivery(name, generation):
+            with self._lock:
+                self._pressed.pop(scan_code, None)
+                if self._handle is not None:
+                    self._passing_through.add(scan_code)
+            return True
         return False
 
     def _target_name(self, scan_code: object, is_keypad: bool) -> str | None:
@@ -163,8 +177,9 @@ class KeyCaptureHook:
             return None
         return name
 
-    def _queue_delivery(self, name: str, generation: int) -> None:
+    def _queue_delivery(self, name: str, generation: int) -> bool:
         try:
-            self._after(0, lambda: self._deliver(name, generation))
+            return self._dispatch(lambda: self._deliver(name, generation))
         except Exception:
             self._logger.exception("Could not queue captured key")
+            return True

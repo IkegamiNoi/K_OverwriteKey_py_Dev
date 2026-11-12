@@ -120,3 +120,4 @@ class OsBackend:
     keyboard: KeyboardBackend
     mouse: MouseBackend
     default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE
+    queued_hook_dispatch: bool = False

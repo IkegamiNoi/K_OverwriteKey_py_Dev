@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.application.hook_coordinator import HookCoordinator
-from keyseq.application.input_router import InputRoute, SendKeyAction, StopHookAction
+from keyseq.application.input_router import InputRoute, SelectKeymapAction, SendKeyAction, StopHookAction
 from keyseq.application.key_overlap import AssignmentConflict, analyze_key_overlaps
 from keyseq.presentation.controllers.hook_controller import HookController
 
@@ -71,7 +71,7 @@ class HookCoordinatorTest(unittest.TestCase):
         route = InputRoute(actions=(action,))
         make_only_result = SimpleNamespace(routes=(route,), generation=9, accept=False)
         scheduled = []
-        dispatch = Mock(side_effect=scheduled.append)
+        dispatch = _FakeHookDispatcher(scheduled)
         app = _make_dispatch_app(route)
         controller = HookController(app, dispatch=dispatch)
         controller._execute_reserved_action = Mock()
@@ -90,8 +90,170 @@ class HookCoordinatorTest(unittest.TestCase):
         controller._execute_make_only_action.assert_not_called()
         scheduled.pop()()
         controller._execute_make_only_action.assert_called_once_with(action, (), 9)
-        self.assertEqual(dispatch.call_count, 2)
+        self.assertEqual(dispatch.dispatch.call_count, 2)
         app.after.assert_not_called()
+
+    def test_keymap_discard_only_clears_current_reservation(self):
+        event = Mock()
+        route = InputRoute(actions=(SelectKeymapAction("km2"),), accept=False)
+        app = _make_dispatch_app(route)
+        app._keymap_switch_in_progress = Mock()
+        dispatcher = _FakeHookDispatcher([])
+        controller = HookController(app, dispatch=dispatcher)
+        controller._execute_reserved_action = Mock()
+        controller.on_input_event(event)
+        queued = dispatcher.dispatch.call_args
+        discard_a = queued.kwargs["on_discard"]
+        controller._clear_keymap_switch_in_progress()
+        app._keymap_switch_in_progress.clear.reset_mock()
+        controller.on_input_event(event)
+        discard_b = dispatcher.dispatch.call_args.kwargs["on_discard"]
+        discard_a()
+        app._keymap_switch_in_progress.clear.assert_not_called()
+        discard_b()
+        app._keymap_switch_in_progress.clear.assert_called_once_with()
+
+    def test_stop_action_is_priority_and_stale_generation_does_nothing(self):
+        route = InputRoute(actions=(StopHookAction(),), accept=False)
+        app = _make_dispatch_app(route)
+        dispatcher = _FakeHookDispatcher([])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.hook_active = True
+        controller._execute_reserved_action = Mock()
+        controller.on_input_event(object())
+        self.assertTrue(dispatcher.dispatch.call_args.kwargs["priority"])
+        queued_stop = dispatcher.dispatch.call_args.args[0]
+        controller._hook_generation += 1
+        queued_stop()
+        controller._execute_reserved_action.assert_not_called()
+
+    def test_dispatch_overload_passes_through_and_schedules_one_priority_stop(self):
+        route = InputRoute(actions=(SendKeyAction("a", "b"),), accept=False)
+        app = _make_dispatch_app(route)
+        dispatcher = _FakeHookDispatcher([], results=[False, True])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.stop_hook = Mock()
+        with patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning") as warning:
+            self.assertTrue(controller.on_input_event(object()))
+            self.assertTrue(controller._overloaded.is_set())
+            self.assertEqual(dispatcher.dispatch.call_count, 2)
+            self.assertTrue(dispatcher.dispatch.call_args.kwargs["priority"])
+            stop_run = dispatcher.dispatch.call_args.args[0]
+            self.assertTrue(controller.on_input_event(object()))
+            self.assertEqual(app.input_router.handle.call_count, 1)
+            self.assertEqual(app.make_only_keys.handle.call_count, 1)
+            self.assertEqual(dispatcher.dispatch.call_count, 2)
+            stop_run()
+            controller.stop_hook.assert_called_once()
+            warning.assert_called_once()
+
+    def test_overload_does_not_dispatch_remaining_actions_or_make_only_actions(self):
+        route = InputRoute(actions=(SendKeyAction("a", "b"), StopHookAction()), accept=False)
+        app = _make_dispatch_app(route)
+        dispatcher = _FakeHookDispatcher([], results=[False, True])
+        controller = HookController(app, dispatch=dispatcher)
+        with patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning"):
+            self.assertTrue(controller.on_input_event(object()))
+        self.assertEqual(dispatcher.dispatch.call_count, 2)  # rejected action + one priority stop
+        app.make_only_keys.handle.return_value = SimpleNamespace(
+            routes=(route,), generation=1, accept=False,
+        )
+        self.assertTrue(controller.on_input_event(object()))
+        self.assertEqual(dispatcher.dispatch.call_count, 2)
+
+    def test_make_only_dispatch_rejection_marks_overload_and_stops_once(self):
+        route = InputRoute(actions=(SendKeyAction("a", "b"),), accept=False)
+        app = _make_dispatch_app(InputRoute())
+        app.make_only_keys.handle.return_value = SimpleNamespace(
+            routes=(route,), generation=1, accept=False,
+        )
+        dispatcher = _FakeHookDispatcher([], results=[False, True])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.stop_hook = Mock()
+        with patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning") as warning:
+            self.assertTrue(controller.on_input_event(object()))
+            self.assertTrue(controller._overloaded.is_set())
+            self.assertEqual(dispatcher.dispatch.call_count, 2)
+            dispatcher.dispatch.call_args.args[0]()
+            controller.stop_hook.assert_called_once()
+            warning.assert_called_once()
+
+    def test_stale_overload_stop_does_not_stop_restarted_hook(self):
+        route = InputRoute(actions=(SendKeyAction("a", "b"),), accept=False)
+        dispatcher = _FakeHookDispatcher([], results=[False, True])
+        controller = HookController(_make_dispatch_app(route), dispatch=dispatcher)
+        controller.stop_hook = Mock()
+        with patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning") as warning:
+            self.assertTrue(controller.on_input_event(object()))
+            stale_stop = dispatcher.dispatch.call_args.args[0]
+            controller._hook_generation += 1
+            stale_stop()
+        controller.stop_hook.assert_not_called()
+        warning.assert_not_called()
+
+    def test_timer_dispatch_rejection_stops_remaining_routes_and_schedules_stop_once(self):
+        route = InputRoute(actions=(SendKeyAction("a", "b"), StopHookAction()))
+        app = _make_dispatch_app(InputRoute())
+        dispatcher = _FakeHookDispatcher([], results=[False, True])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.schedule_make_only_routes((route, route), 1)
+        self.assertTrue(controller._overloaded.is_set())
+        self.assertEqual(dispatcher.dispatch.call_count, 2)
+        self.assertTrue(dispatcher.dispatch.call_args.kwargs["priority"])
+        controller.schedule_make_only_routes((route,), 1)
+        self.assertEqual(dispatcher.dispatch.call_count, 2)
+
+    def test_timer_actions_use_switch_discard_and_stop_run_guards(self):
+        dispatcher = _FakeHookDispatcher([])
+        app = _make_dispatch_app(InputRoute())
+        app._keymap_switch_in_progress = Mock()
+        controller = HookController(app, dispatch=dispatcher)
+        controller._execute_make_only_action = Mock()
+        route = InputRoute(actions=(SelectKeymapAction("km2"), StopHookAction()))
+        controller.schedule_make_only_routes((route,), 1)
+        select_call, stop_call = dispatcher.dispatch.call_args_list
+        self.assertFalse(select_call.kwargs["priority"])
+        select_call.kwargs["on_discard"]()
+        app._keymap_switch_in_progress.clear.assert_called_once_with()
+        self.assertTrue(stop_call.kwargs["priority"])
+        self.assertIsNone(stop_call.kwargs["on_discard"])
+        controller._hook_generation += 1
+        stop_call.args[0]()
+        controller._execute_make_only_action.assert_not_called()
+
+    def test_stop_priority_run_executes_when_generation_is_current(self):
+        route = InputRoute(actions=(StopHookAction(),), accept=False)
+        app = _make_dispatch_app(route)
+        dispatcher = _FakeHookDispatcher([])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.hook_active = True
+        controller._execute_reserved_action = Mock()
+        controller.on_input_event(object())
+        dispatcher.dispatch.call_args.args[0]()
+        controller._execute_reserved_action.assert_called_once()
+
+    def test_start_clears_overload_and_stop_invalidates_dispatcher(self):
+        app = _make_dispatch_app(InputRoute())
+        app.data = make_runtime()
+        app.key_state_manager = SimpleNamespace(clear=Mock())
+        app.make_only_keys = SimpleNamespace(clear=Mock())
+        app.hook_coordinator = SimpleNamespace(start=Mock(return_value=True))
+        app.hook_coordinator.stop = Mock()
+        app.layout.refresh_keyboard_window = Mock()
+        app.trigger_panel = SimpleNamespace(update_status=Mock())
+        app.sequence_runner = SimpleNamespace(stop_run_to_end=Mock(), cancel_pending_waits=Mock())
+        app.held_inputs = SimpleNamespace(release_all=Mock(return_value=[]))
+        dispatcher = _FakeHookDispatcher([])
+        controller = HookController(app, dispatch=dispatcher)
+        controller.sync_hook_toggle_buttons = Mock()
+        controller.sync_trigger_toggle_buttons = Mock()
+        controller._overloaded.set()
+        generation_before_start = controller._hook_generation
+        controller.start_hook()
+        self.assertFalse(controller._overloaded.is_set())
+        self.assertGreater(controller._hook_generation, generation_before_start)
+        controller.stop_hook()
+        dispatcher.invalidate.assert_called_once_with()
 
     def test_grid_keymaps_allow_start_and_resume_without_triggers_or_mappings(self):
         gateway = SimpleNamespace(register_global_hook=Mock(return_value="handle"),
@@ -109,6 +271,7 @@ class HookCoordinatorTest(unittest.TestCase):
         data = make_runtime(active_has_trigger=False, include_mappings=False)
         controller = HookController(
             SimpleNamespace(
+                after=Mock(),
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
@@ -134,6 +297,7 @@ class HookCoordinatorTest(unittest.TestCase):
         coordinator = SimpleNamespace(start=Mock(return_value=True))
         controller = HookController(
             SimpleNamespace(
+                after=Mock(),
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
@@ -153,7 +317,7 @@ class HookCoordinatorTest(unittest.TestCase):
 
         data["hook_toggle_key"] = " F1 "
         rejected_coordinator = SimpleNamespace(start=Mock())
-        controller = HookController(SimpleNamespace(data=data, hook_coordinator=rejected_coordinator))
+        controller = HookController(SimpleNamespace(after=Mock(), data=data, hook_coordinator=rejected_coordinator))
         with patch("keyseq.presentation.controllers.hook_controller.messagebox.showerror") as showerror:
             controller.start_hook()
             showerror.assert_called_once()
@@ -180,6 +344,7 @@ class HookCoordinatorTest(unittest.TestCase):
         coordinator = HookCoordinator(Mock())
         controller = HookController(
             SimpleNamespace(
+                after=Mock(),
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
@@ -214,6 +379,7 @@ class HookCoordinatorTest(unittest.TestCase):
         set_flash_message = Mock(side_effect=flash.set)
         controller = HookController(
             SimpleNamespace(
+                after=Mock(),
                 ui_vars=SimpleNamespace(status_var=status, flash_message_var=flash),
                 _set_flash_message=set_flash_message,
             )
@@ -230,6 +396,7 @@ class HookCoordinatorTest(unittest.TestCase):
         set_flash_message = Mock()
         controller = HookController(
             SimpleNamespace(
+                after=Mock(),
                 ui_vars=SimpleNamespace(status_var=status),
                 _set_flash_message=set_flash_message,
             )
@@ -264,6 +431,21 @@ class _StatusVar:
 
     def set(self, value):
         self.value = value
+
+
+class _FakeHookDispatcher:
+    def __init__(self, scheduled, results=None):
+        self.dispatch = Mock(side_effect=self._dispatch)
+        self.invalidate = Mock()
+        self.close = Mock()
+        self._scheduled = scheduled
+        self._results = list(results or [])
+
+    def _dispatch(self, run, **kwargs):
+        result = self._results.pop(0) if self._results else True
+        if result:
+            self._scheduled.append(run)
+        return result
 
 
 def _make_dispatch_app(route):

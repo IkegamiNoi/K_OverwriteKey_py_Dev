@@ -14,6 +14,7 @@ class AppImeShutdownTests(unittest.TestCase):
             pane_layout=SimpleNamespace(cancel_window_width_save=trace.cancel),
             compact_window=SimpleNamespace(cancel_save=trace.cancel),
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
+            hook_dispatcher=SimpleNamespace(close=trace.close_dispatcher),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
             held_inputs=SimpleNamespace(release_all=trace.release),
@@ -23,7 +24,8 @@ class AppImeShutdownTests(unittest.TestCase):
         trace.release.return_value = []
         App.on_close(app)
         self.assertEqual(trace.mock_calls, [
-            call.confirm("終了"), call.cancel(), call.cancel(), call.begin(), call.stop(),
+            call.confirm("終了"), call.cancel(), call.cancel(), call.begin(),
+            call.close_dispatcher(), call.stop(),
             call.release(), call.restore(), call.destroy(),
         ])
 
@@ -34,6 +36,7 @@ class AppImeShutdownTests(unittest.TestCase):
             pane_layout=SimpleNamespace(cancel_window_width_save=trace.cancel),
             compact_window=SimpleNamespace(cancel_save=trace.cancel),
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
+            hook_dispatcher=SimpleNamespace(close=trace.close_dispatcher),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
             held_inputs=SimpleNamespace(release_all=trace.release),
