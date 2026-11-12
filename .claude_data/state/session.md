@@ -11,13 +11,14 @@ last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `ta
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② 完了（M1 = Windows の標準検証 4 種と目視 6 項目 OK・2026-11-13）。次は段階 ③ task_08（起票から）。**
+focus: **phase 75 段階 ③ 着手。暫定 57 v0.7（§5.1.1 ディスパッチャの契約・敵対的レビュー 3 回）を確定し、task_08 を分割して task_08（ディスパッチャ・OS 非依存）を起票済み。次は task_08 の実装（Windows で可）。**
 mode: implementing
 
 ## last_action
 ts: 2026-11-13T12:00:00
 who: main
 summary: |
+  2026-11-13: task_08 起票前に暫定 57 を v0.7 へ改訂（§5.1.1 ディスパッチャの契約）。Codex 敵対的レビュー 3 回の指摘をすべて推奨どおり反映して確定。phase.md で task_08 を 08（ディスパッチャ）/ 08b（CGEventTap）に分割し、task_08 を起票。
   2026-11-13（Windows）: 段階 ② の区切り M1 = Windows の標準検証 4 種（compile clean・tests 1997 / 0 / 0 / skip 7・tests_ui 1271 / 0 / 0・smoke OK・verifier）と目視 6 項目（既定の高さ 820・プリセットとサンプル・ツールチップとフォント・ペインの初期幅・一覧の Control+/ と Control+Shift+Home の封じ・右クリック）すべて OK（ユーザー）。
   2026-11-11〜12 のコミット: task_05c・06（3878868）/ task_07c（9c4c098・Mac でペインの初期幅が適用されない）/ task_07（3598823・Mac のテストの基準線 `instructions/phase/75_mac_support/mac_test_baseline.md`）/ fa60f50（§7 の skip の範囲・task_07d 起票）/ task_07b（d26fac0・OS ごとの既定プリセット）。
   task_07d（コミット済み・目視 OK）: アプリ = ①コンパクト表示の trigger_panes に <Map> でも schedule_layout ②ツールチップは表示後に -topmost を再設定 ③起動時の既定の高さ = max(820, 3 枠が収まる高さ)・画面の高さ（wm_maxsize）で頭打ち ④aqua ではキーの文字を Helvetica。テスト = 窓の幅・既定のペイン幅・省略表示を Windows のフォント非依存に。codex-delegating-implementer・verifier（compile clean / tests 1939・失敗 6・エラー 10・skip 28 = 基準線どおり / smoke OK / 対象 tests_ui 7 モジュール 失敗 0）・reviewer 修正して採用（R1 = 上限を画面の高さに文書統一・R2 = test_full_view_panes の独立検証を復元 → 単独で OK）。
@@ -29,7 +30,7 @@ verified:
   mac_tests_ui: task_07d の対象 7 モジュール 失敗 0・pane / compact / keyboard 系は基準線どおり
   mac_visual: task_07d ①〜④ OK（ユーザー・④ はダイアログの「?」のツールチップ）
 
-## next_action
+- 次: task_08 の実装（`instructions/phase/75_mac_support/tasks/task_08_hook_dispatcher.md`・codex 実装 → verifier → reviewer → Windows 目視）→ task_08b（CGEventTap・Mac。未起票。起票時に受信側の vk の表〔§5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める）
 - 次: 段階 ③ task_08（CGEventTap のフック・修飾キー・配送の滞留 §5.1・KeyCaptureHook の after をディスパッチャへ〔区切り M1〕・ディスパッチャの型改訂〔M2〕・§4.1 の未実測の実測〔L2〕）。task_08 は未起票 → `/task_new` から。実装・実測は Mac（M1 の Windows 検証は 2026-11-13 に完了）
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
