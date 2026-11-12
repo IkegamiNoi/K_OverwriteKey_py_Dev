@@ -11,7 +11,7 @@ last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `ta
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② の区切りレビュー済み（deep-reviewer 修正して採用・Codex 指摘 0）→ task_07e（M2 一覧の範囲選択の封じ・M3 既定の高さを aqua だけ・文書の追従）完了・コミット済み。次は L1 = Mac の tests_ui の基準線の再計測（task_08 の前）。**
+focus: **phase 75 段階 ② の区切り完了（区切りレビュー → task_07e・L1 の基準線の再計測 = tests 1940 / 6 / 10 / 28・tests_ui 1271 / 55 / 13）。残りは M1 = Windows の標準検証と目視（ユーザーが Windows を使える時）→ 段階 ③ task_08。**
 mode: implementing
 
 ## last_action
@@ -29,7 +29,8 @@ verified:
   mac_visual: task_07d ①〜④ OK（ユーザー・④ はダイアログの「?」のツールチップ）
 
 ## next_action
-- 次: L1 = Mac の tests_ui の基準線をモジュールごとに再計測し `mac_test_baseline.md` を確定値にする（`test_keymap_list_operations` の失敗 3 のうち 2 件は範囲選択の失敗で原因欄の見直しが要る）→ M1 = Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e。ユーザーが Windows を使える時・task_08 の前）→ 段階 ③ task_08
+- 次: M1 = Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e。既定の高さ 820・プリセットとサンプル・ツールチップ・ペインの初期幅・一覧の Control+/ と Control+Shift+Home の封じ。ユーザーが Windows を使える時・task_08 の前）→ 段階 ③ task_08
+- `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
 - Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）
