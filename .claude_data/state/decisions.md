@@ -698,6 +698,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M3 起動時の既定の高さ（task_07d）が aqua に限定されておらず Windows でもフォントの増分・低い画面で変わる → **aqua だけに限る**（ユーザー判断「aqua だけに限る」。Windows は従来どおり 820）。暫定 57 §4 の注記を合わせて改める。
 - M2 `listbox_range_drag` の封じが aqua で効かない（`<<SelectAll>>` = Command+A・Listbox のクラスバインドは aqua でも Control+Shift+Home/End）→ 修正して採用。M2・M3 は枝番 task_07e で直す。
 - M4 codebase_map の追従・L2 後続タスクへの送り事項・L3 phase.md の文書のずれ → 採用（task_07e でメインが文書を直す）。
-- L1 tests_ui の基準線を task_08 の前にモジュールごとに再計測して確定値にする → 採用。M1 Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e）はユーザーが Windows を使える時にまとめて（task_08 の着手前）。
+- L1 tests_ui の基準線を task_08 の前にモジュールごとに再計測して確定値にする → 採用。M1 Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e）はユーザーが Windows を使える時にまとめて（task_08 の着手前）。 → **2026-11-13 実施・すべて OK**（tests 1997 / 0 / 0 / skip 7・tests_ui 1271 / 0 / 0・smoke OK・目視 6 項目 OK）。
 - L4〜L6・L9 は参考（保留）。L7 Command+Option+P の発火は task_09 の目視へ・L8 pyobjc の明記は task_10 へ。
 - 承認: 進め方「この進め方で（推奨）」。

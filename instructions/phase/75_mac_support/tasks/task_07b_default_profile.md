@@ -87,6 +87,7 @@ class DefaultProfile:
 - `main.py` を起動し、ホットキー・プリセット（アクションの編集のプリセット一覧）に Command 系の 8 件が出ること（ユーザー目視）
 
 **Windows**: 次に Windows で標準検証 4 種を行う機会にまとめて実施する（既定のプリセット・サンプルが従来どおり）。
+- 2026-11-13 実施（M1）: compile clean・tests 1997 件 失敗 0 / エラー 0 / skip 7・tests_ui 1271 件 失敗 0 / エラー 0・smoke OK（verifier）。目視 OK（ユーザー）
 
 ## 完了条件
 

@@ -4,20 +4,21 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-12T01:00:00
+last_updated: 2026-11-13T12:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.6・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `task-06-progression-a047bd`）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② の区切り完了（区切りレビュー → task_07e・L1 の基準線の再計測 = tests 1940 / 6 / 10 / 28・tests_ui 1271 / 55 / 13）。残りは M1 = Windows の標準検証と目視（ユーザーが Windows を使える時）→ 段階 ③ task_08。**
+focus: **phase 75 段階 ② 完了（M1 = Windows の標準検証 4 種と目視 6 項目 OK・2026-11-13）。次は段階 ③ task_08（起票から）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-13T10:00:00
+ts: 2026-11-13T12:00:00
 who: main
 summary: |
+  2026-11-13（Windows）: 段階 ② の区切り M1 = Windows の標準検証 4 種（compile clean・tests 1997 / 0 / 0 / skip 7・tests_ui 1271 / 0 / 0・smoke OK・verifier）と目視 6 項目（既定の高さ 820・プリセットとサンプル・ツールチップとフォント・ペインの初期幅・一覧の Control+/ と Control+Shift+Home の封じ・右クリック）すべて OK（ユーザー）。
   2026-11-11〜12 のコミット: task_05c・06（3878868）/ task_07c（9c4c098・Mac でペインの初期幅が適用されない）/ task_07（3598823・Mac のテストの基準線 `instructions/phase/75_mac_support/mac_test_baseline.md`）/ fa60f50（§7 の skip の範囲・task_07d 起票）/ task_07b（d26fac0・OS ごとの既定プリセット）。
   task_07d（コミット済み・目視 OK）: アプリ = ①コンパクト表示の trigger_panes に <Map> でも schedule_layout ②ツールチップは表示後に -topmost を再設定 ③起動時の既定の高さ = max(820, 3 枠が収まる高さ)・画面の高さ（wm_maxsize）で頭打ち ④aqua ではキーの文字を Helvetica。テスト = 窓の幅・既定のペイン幅・省略表示を Windows のフォント非依存に。codex-delegating-implementer・verifier（compile clean / tests 1939・失敗 6・エラー 10・skip 28 = 基準線どおり / smoke OK / 対象 tests_ui 7 モジュール 失敗 0）・reviewer 修正して採用（R1 = 上限を画面の高さに文書統一・R2 = test_full_view_panes の独立検証を復元 → 単独で OK）。
 result_files:
@@ -29,7 +30,7 @@ verified:
   mac_visual: task_07d ①〜④ OK（ユーザー・④ はダイアログの「?」のツールチップ）
 
 ## next_action
-- 次: M1 = Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e。既定の高さ 820・プリセットとサンプル・ツールチップ・ペインの初期幅・一覧の Control+/ と Control+Shift+Home の封じ。ユーザーが Windows を使える時・task_08 の前）→ 段階 ③ task_08
+- 次: 段階 ③ task_08（CGEventTap のフック・修飾キー・配送の滞留 §5.1・KeyCaptureHook の after をディスパッチャへ〔区切り M1〕・ディスパッチャの型改訂〔M2〕・§4.1 の未実測の実測〔L2〕）。task_08 は未起票 → `/task_new` から。実装・実測は Mac（M1 の Windows 検証は 2026-11-13 に完了）
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき

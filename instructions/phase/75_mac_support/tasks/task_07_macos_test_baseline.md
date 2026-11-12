@@ -75,6 +75,7 @@ quarantine はリンクを経由する置き場を拒む（`quarantine.py:211`�
 - `-m tests.smoke_app` が pass
 
 **Windows**: 次に Windows で標準検証 4 種を行う機会にまとめて実施する（件数・結果が不変であること。skip は win32 では効かない）。
+- 2026-11-13 実施（M1）: compile clean・tests 1997 件 失敗 0 / エラー 0 / skip 7・tests_ui 1271 件 失敗 0 / エラー 0・smoke OK（verifier）。目視 OK（ユーザー）
 
 ## 完了条件
 

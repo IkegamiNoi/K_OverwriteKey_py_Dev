@@ -52,6 +52,7 @@ Windows では従来どおり `<Configure>` で適用される（後述の確認
   - 2026-11-11 実施: verifier = compile clean・追加 4 件 pass・tests 1924 件 失敗 89 / エラー 15（基準同数）・smoke OK・tests_ui の pane 系 3 モジュール全件 pass・`test_pane_window_width_persistence` は失敗 4（窓幅の数値。task_07 の基準線へ）・`keymap` / `Nonex820` 0 件。目視 OK（ユーザー）。reviewer 採用（参考: `_apply_if_already_sized` の TclError 吸収は見送り）
 
 **Windows**: 次に Windows で標準検証 4 種を行う機会にまとめて実施する（tests_ui の pane 系が従来どおり pass すること）。
+- 2026-11-13 実施（M1）: compile clean・tests 1997 件 失敗 0 / エラー 0 / skip 7・tests_ui 1271 件 失敗 0 / エラー 0・smoke OK（verifier）。目視 OK（ユーザー）
 
 ## 完了条件
 

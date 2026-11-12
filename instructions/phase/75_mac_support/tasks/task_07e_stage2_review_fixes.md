@@ -50,6 +50,7 @@
 - `main.py` で一覧（キーマップ管理等）にフォーカスして Command+A・Control+Shift+Home / End を押しても選択が広がらない（ユーザー目視）
 
 **Windows**: 段階 ② の区切りの Windows 検証（M1）でまとめて実施する（既定の高さ 820・一覧の Control+/・Control+Shift+Home が従来どおり封じられる）。
+- 2026-11-13 実施（M1）: compile clean・tests 1997 件 失敗 0 / エラー 0 / skip 7・tests_ui 1271 件 失敗 0 / エラー 0・smoke OK（verifier）。目視 OK（ユーザー）
 
 ## 完了条件
 
