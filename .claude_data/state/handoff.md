@@ -48,28 +48,18 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【flaky は phase 32 で対処済】** `get_hook_pause_count()` が `1 != 0` / `resume_hook_after_dialog` が 0 回の赤（idea_33）は、
-破棄後の確認を `wait_for_hook_pause_count` へ置き換えて解消（負荷下で 9 モジュール × 6 回 + tests_ui 全体 × 1 回とも赤 0 件）。
-**再び出たら**、`update()` を伴わないテスト冒頭のカウント確認（`decisions_archive/32`「残るリスク」）を疑い、その冒頭にヘルパ（0）を入れる。
-それでも**赤くなったら まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
+**tests_ui の flaky**（`get_hook_pause_count()` が `1 != 0` 等）が出たら、まず再実行・単体実行で切り分け、`decisions_archive/32` の対処（`wait_for_hook_pause_count`）を当てる。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次: task_08 の実装（`instructions/phase/75_mac_support/tasks/task_08_hook_dispatcher.md`・codex 実装 → verifier → reviewer → Windows 目視）- その次: task_08b（CGEventTap・Mac。未起票。起票時に受信側の vk の表〔暫定 57 §5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める）- task_09 でキーボードUIの右クリックによる割り当てのクリアを Mac で目視（task_05c の残り）・`test_keymap_list_operations` の合成マウスイベント 2 件の調査- JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）- 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
+- 次: task_08 の実装（`instructions/phase/75_mac_support/tasks/task_08_hook_dispatcher.md`・codex 実装 → verifier → reviewer → Windows 目視）
 - その次: task_08b（CGEventTap・Mac。未起票。起票時に受信側の vk の表〔暫定 57 §5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを Mac で目視（task_05c の残り）・`test_keymap_list_operations` の合成マウスイベント 2 件の調査
 - JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
-
-## 直前のフェーズ（phase 74 = 記号キーのキー名の表示・判断は `decisions_archive/74_key_symbol_display.md`。以下は phase 72 までの罠）
-- 正本 = `features.md` §4.6「言語」「一覧の表示形式」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1〜§3 / `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」
-- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
-- **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
-- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
-- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
 
 ## 運用インフラ
 
@@ -79,6 +69,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
+- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
+- **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
+- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
+- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
 - **【phase 75】`.venv` のパスは OS で違う**（本書の `Scripts/python.exe` は Windows。Mac は `bin/python`）。Mac の `.venv` は Homebrew の 3.13 + `python-tk@3.13`（**Tk 9.1**・Q1 から変更・decisions.md）。**Tk 9 は長さの `cget` を単位つき（`10c`・`2.25p`）で返す → `tk_platform.screen_distance` を使う**。Tk の差の判定は `presentation/tk_platform.py` の 1 か所。
 - **blockers: 【回避中】Codex の書き込み実行の不具合**（2026-10-14 18:24 の Codex 更新〔0.162.x〕以降、書き込みのサンドボックス準備が `setup refresh had errors`〔node_repl.exe の ACL 更新が「使用中」で失敗〕・`~/.codex/.sandbox/sandbox.2026-10-14.log`）。
   **ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更して回避中**（Codex の更新で直ったら `elevated` に戻す = ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
@@ -86,7 +80,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠・phase 58 task_02 で実測】ttk.LabelFrame の `labelwidget` に既定の ttk.Label を使うと枠が 4px 高くなる**（vista・58 → 62px）。`style="TLabelframe.Label"` なら元と同じ
 - **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
 - **【罠・phase 51 で実証】keyboard ライブラリの `write` は送信前後に押下中のキーを離して修飾キーを押し直す**（拡張キーの right ctrl が left ctrl に化けて残った・probe）。合成の入力の扱いは `.venv` の小スクリプトで probe してから決める。**新しい tests_ui でテストごとに `tk.Tk()` を作り直すと後のモジュールのフォーカスが取れなくなる**（クラスで共有する）。Esc 等のキーの event_generate は `tests_ui/escape_delivery.acquire_focus` でフォーカスを取ってから
-- **【解消・phase 58】フル表示の高さ**: phase 50 の「フォント +3 で最小 931 px が画面に入らない」は 3 枠のスクロールで最小を下げて解消（+3 で 635 px）。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。
+- **Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。
 - **【罠・phase 49 で実証】共有 App の tests_ui で `<Enter>` を送ったら後始末で `<Leave>` も送る**（乗せた状態が次のテストに漏れてツールチップが重複する）。**実機目視の手順はカーソル・窓の位置まで考えて書く**。
 - **【罠・phase 48 で実証】遅延保存（after 500ms）を持つ部品は、書き込み回数を数えるテストに時間依存で混ざる**。テストでは先に `app.compact_window.cancel_save()`。
 - **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
@@ -94,7 +88,6 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **0 に縮んだ欄の子の `winfo_height` は古い値のまま**・見えていない行の `bbox` は None（テストで頼らない）。
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
-- **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**。
 - **【最重要・phase 28・29 で実証】Tk の挙動は推測せず probe で実測する**（`.venv` python の小スクリプトで数分）:
   ①未マップ時の `focus_set` は外から検出できない ②Escape はフォーカス窓へ再配送される
   ③同一 widget では `<Escape>` が `<KeyPress>` より優先して単独発火する（`add="+"` は登録順に両方発火）
@@ -107,21 +100,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   （自動テスト・レビュー・実機目視 A2 の単発押しでは退行 L3 が見えず、ユーザーの押しっぱなしで判明した）。
 - **【罠・phase 28 task_05d で実証】「上限つきで N 回再試行」は実時間の待ちが無いと意味がない**。
   再試行は実時間の期限（deadline）で切り、待機中も `app.update()` を回す。
-- **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**（phase 30 でも reviewer 2 回「指摘なし」→ Codex が high）。
-  **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。暫定仕様の改訂も `codex-adversarial-reviewer` を通す。
-  `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
-- **【罠・phase 40 で実証】Codex は仕様書の例示の値（`f5` 等）を文字どおり埋め込むことがある**。タスク定義に「例示」と明記し、`grep` で埋め込みを確かめる。
-- **【罠・phase 40 で実証】Codex はテストの期待値を仕様と逆に書くことがある**（単発で呼び出しが終わると呼び出し元の次の行まで送る前提 = 誤り。呼び出しは押下を消費する・`tests/test_sequence_runner_call.py` の test_01）。
-  連続実行の待機中の停止では停止の行の規則（`stop_ends_run`）を、file_line・呼び出しの途中には待機の規則を当てない。**実測で差し戻す**。
-- **【設計・phase 40 v0.8】待機は「直前に送った行の後の待ち」**: `settle_after_normal` の `wait_mode`（stop = in_call・従来 / wait = 送った後の先行処理で待つ / skip = 止めた後・停止の行の後）。
-  `advance` は in_call 外では送る前の待機を読み飛ばす。待機をまたぐ控えのカウンター操作は `StepResume.deferred_counters`。
 - **【罠・phase 42 で実証】Tk の標準の挙動は `bind <Class> <Event>` と `info body ::tk::...` で実測してから直す**（Listbox は押下で選択・離しで下線・ドラッグで選択だけ動く）。テストは `event_generate` でクラスバインドを通す。
 - **【罠・phase 41 で実証】Win32 の定番の前提も probe で確かめる**（前面の窓への IME 問い合わせは Windows 11 のメモ帳で常に 0。SendInput の文字は後から処理されるので、直後の状態変更は文字より先に効く）。
 - **【罠・phase 40 で実証】verifier の失敗報告の「実際の値」は文字化けの書き写しで誤ることがある**（`呼び出し先` → `呼び出し元`）。期待値を直す前に `PYTHONIOENCODING=utf-8` で単体実行して原文を見る。
 - **【運用・phase 40】ダイアログは操作中のアプリからフォーカスを奪うため、実行中の知らせはステータスバー（`notify_message`）にする**（暫定 29 v0.7）。
-- **【罠・phase 40】呼び出しの最初のステップは `after(0)` の予約**。テストでは `run_one` が要る。未使用のカウンターは辞書にキーが無い（`counters.get(name, 0)`）。
-- **【罠・phase 38 で 4 回実証】「戻す履歴が 1 段」をテストするときは状態が変わるシーケンスにする**（file_line 1 行だけでは位置もカウンターも変わらず
-  `commit_step` が積まない＝仕様どおり）。**subTest でループ前に `self.runner.method` を束縛しない**（`setUp()` で作り直した runner に届かない）。
 - **【傾向・phase 28 で実証】テストの「検出力」は変異検査で確かめる**（その仕様を壊すと**追加テストだけ**落ちるか）。
   `verifier` に頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）」を明示する。
 - **【罠・phase 27 で実証】テストに `focus_force()` のような「通してしまう前処理」があると、実使用の不具合を隠す**。
@@ -150,12 +132,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】Bash ツールは Git Bash**。長い heredoc・`sed` の複数行追記（`a\`）は壊れやすい（**壊れたら Write / Edit ツールを使う**）。
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
-- レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 73_welcome_first_launch / 72_multilingual_ui / 71_taskbar_status_icon）。
-- 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（カーソルグリッドの配色・題は旧称「画面の枠」のまま＝着手時に直す）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
-  idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
-  別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
+  （直近 3 件: 74_key_symbol_display / 73_welcome_first_launch / 72_multilingual_ui）。
+- 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
+- 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
   `_run_to_end_step` の停止 2 行 3 箇所（phase 31・refactor_check 不要）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
