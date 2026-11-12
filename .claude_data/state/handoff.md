@@ -25,6 +25,8 @@
 
 ## 現在の作業の 1 行サマリ
 **phase 75 段階 ③ 着手。暫定 57 v0.7（§5.1.1 ディスパッチャの契約・敵対的レビュー 3 回）を確定し、task_08 を 08（ディスパッチャ・OS 非依存）/ 08b（CGEventTap・Mac）に分割、task_08 を起票済み。次は task_08 の実装（Windows で可）。**Windows のブランチ = `claude/continue-ec893a`（2026-11-13 のコミット）/ Mac の worktree = `claude/task-06-progression-a047bd`。push と main へのマージはユーザー（PR は作らない）。Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests 1940・失敗 6・エラー 10・skip 28 / tests_ui はモジュールごと 1271・失敗 55・エラー 13）。
+Windows のブランチ = `claude/continue-ec893a`（2026-11-13 のコミット）/ Mac の worktree = `claude/task-06-progression-a047bd`。push と main へのマージはユーザー（PR は作らない）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests 1940・失敗 6・エラー 10・skip 28 / tests_ui はモジュールごと 1271・失敗 55・エラー 13）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -56,6 +58,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - 次: task_08 の実装（`instructions/phase/75_mac_support/tasks/task_08_hook_dispatcher.md`・codex 実装 → verifier → reviewer → Windows 目視）- その次: task_08b（CGEventTap・Mac。未起票。起票時に受信側の vk の表〔暫定 57 §5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める）- task_09 でキーボードUIの右クリックによる割り当てのクリアを Mac で目視（task_05c の残り）・`test_keymap_list_operations` の合成マウスイベント 2 件の調査- JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）- 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
+- その次: task_08b（CGEventTap・Mac。未起票。起票時に受信側の vk の表〔暫定 57 §5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める）
+- task_09 でキーボードUIの右クリックによる割り当てのクリアを Mac で目視（task_05c の残り）・`test_keymap_list_operations` の合成マウスイベント 2 件の調査
+- JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
+- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
+- 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
 
 ## 直前のフェーズ（phase 74 = 記号キーのキー名の表示・判断は `decisions_archive/74_key_symbol_display.md`。以下は phase 72 までの罠）
 - 正本 = `features.md` §4.6「言語」「一覧の表示形式」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1〜§3 / `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」
