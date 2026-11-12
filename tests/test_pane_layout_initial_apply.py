@@ -58,6 +58,7 @@ class PaneLayoutInitialApplyTests(unittest.TestCase):
         self.controller.min_widths = MinWidths(100, 100, 100)
         with patch.object(self.controller, "_measure"), \
                 patch.object(self.controller, "apply_layout") as layout, \
+                patch.object(controller_module, "is_aqua", return_value=True), \
                 patch.object(controller_module, "measure_window_fit_height", return_value=fit) as measure:
             self.controller._apply_if_already_sized()
             self.controller._apply_if_already_sized()
@@ -85,6 +86,18 @@ class PaneLayoutInitialApplyTests(unittest.TestCase):
                 self.app.geometry.assert_not_called()
                 self.app.wm_maxsize.assert_not_called()
                 measure.assert_not_called()
+
+    def test_initial_height_is_unchanged_when_not_aqua(self) -> None:
+        self._apply_initial_height(950, 1200)
+        self.app.geometry.reset_mock()
+        with patch.object(self.controller, "_measure"), \
+                patch.object(self.controller, "apply_layout"), \
+                patch.object(controller_module, "is_aqua", return_value=False), \
+                patch.object(controller_module, "measure_window_fit_height") as measure:
+            self.controller._applied = False
+            self.controller._apply_if_already_sized()
+        self.app.geometry.assert_not_called()
+        measure.assert_not_called()
 
 
 if __name__ == "__main__":

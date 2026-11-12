@@ -10,7 +10,7 @@ Windows 専用の keyseq を macOS でも同様に動かし、OS ごとの実装
 **OS 依存は `keyseq/infrastructure/os_backend/` に閉じ、domain・application とレイアウト JSON は変えない。JSON スキーマの変更なし（既定プリセットはプロファイルの注入で対応）。**
 
 - 起票元: ユーザー要望（2026-11-09）。
-- 主入力（暫定仕様）: [57_mac_support.md](../../history/57_mac_support.md)（v0.5・ユーザー確定済）
+- 主入力（暫定仕様）: [57_mac_support.md](../../history/57_mac_support.md)（v0.6・ユーザー確定済）
 - モード: **暫定仕様先行モード**。番号対応: phase 75 / 暫定 57 / decisions 75。
 
 ## 確定（ユーザー 2026-11-09）
@@ -19,7 +19,7 @@ Windows 専用の keyseq を macOS でも同様に動かし、OS ごとの実装
 
 - 4 段階（OS 境界 → Mac で起動 → Mac の入力 → ビルド）。
 - macOS の入力は `pyobjc` の CGEventTap。Windows の入力は `keyboard` のまま。
-- PyInstaller の onedir・アドホック署名・Apple Silicon のみ・Python 3.13（python.org 版）。
+- PyInstaller の onedir・アドホック署名・Apple Silicon のみ・Python 3.13（Homebrew 版 + `python-tk@3.13` = Tk 9.1・Q1 / decisions 2026-11-10）。
 - 段階 ① はタスクごとに Windows 実機で標準検証 4 種を行う。Windows 機を用意できない間は、選択点の導入のみに縮める。
 
 ## スコープ
@@ -64,18 +64,19 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_07: macOS のテストの基準線の記録（§7）。tests_ui はスタブのキー検証でモーダルが出て止まるため、その対処と `tests_ui/test_compact_sequence_view.py` の `int(cget("sashwidth"))` 4 か所の `screen_distance` 化を含める（task_05b レビューの参考 2）
 - task_07b: 既定プリセットのプロファイル注入（Q2）。既定データの型と Windows / macOS の 2 組を domain に置き、`OsBackend` が持つ既定を App の組み立てで `ConfigService` へ渡す（ユーザー判断 2026-11-11・task_07 から分割）
 - task_07d: Tk 9 / aqua の寸法の差の調査と修正（`mac_test_baseline.md` の「要調査」10 件: 窓の自動幅・ペイン幅・スクロールバー・ツールチップ・キーの文字の大きさ等）。task_07b の後・段階 ③ の前（ユーザー判断 2026-11-12）
+- task_07e: 段階 ② の区切りレビューの修正（M2 = 一覧の範囲選択の封じを aqua でも効かせる・M3 = 既定の高さを aqua だけに限る・M4 / L2 / L3 = 文書の追従）。task_08 の前（ユーザー判断 2026-11-13）
 
 **段階 ③: macOS の入力（開始条件 = task_06 の対応表の確定）**
 
-- task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。`KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）・ディスパッチャの型を §5.1 の「捨てるときの復元」を渡せる形へ暫定 57 と併せて改訂する（M2）
-- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）
-- task_10: 権限の案内（§5.2）
-- task_11: §5.4 の残りの機能と無効化の UI。aqua では最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認
+- task_08: CGEventTap のフック・修飾キー・配送の滞留の規則（§5.1）。`KeyCaptureHook` の `after` をディスパッチャへ切り替える（M1）・ディスパッチャの型を §5.1 の「捨てるときの復元」を渡せる形へ暫定 57 と併せて改訂する（M2）。§4.1 の未実測（右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged・自動リピートの値）を実測する（段階 ② の区切り L2）
+- task_09: キーの識別と送信の解決順、`Command` / `Option` の表示（§5.3）、Command の割り当て禁止（Q5）、`TkKeyTranslator` の修飾 keysym（task_04 から先送り）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）。テンキーの vk・Tk の keycode の実測（§4.1）・Command+Option+P でプリセット管理が開くかの目視（`menu_bar.py` の `<Command-Alt-p>`・段階 ② の区切り L7）
+- task_10: 権限の案内（§5.2）。`AXIsProcessTrusted` に使う `pyobjc-framework-ApplicationServices` を darwin のマーカーつきで依存に明記する（現在は pynput の推移依存・段階 ② の区切り L8）
+- task_11: §5.4 の残りの機能と無効化の UI。aqua では最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認。`test_modal_grab` の 4 件（aqua でモーダルの grab が残る）の調査（`mac_test_baseline.md`・段階 ② の区切り L2）
 
 **段階 ④: ビルド**
 
 - task_12: `app_data_root` への統一と同梱物のパス、再起動（§6.1・§6.2）。再起動の実装（現在 `windows/app_relaunch.py` のみ）の OS 共通の置き場を決める（M4）
-- task_13: `packaging/` と Windows / macOS のビルド、ビルド後の実機確認（各 OS で保存した設定の読み込みを含む）
+- task_13: `packaging/` と Windows / macOS のビルド、ビルド後の実機確認（各 OS で保存した設定の読み込みを含む）。`test_third_party` の同梱の第三者ライセンスの表（Windows のビルドの Python の版）の扱い（`mac_test_baseline.md`）
 
 **最終**
 
@@ -87,7 +88,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 |---|---|
 | 1 | task_01（AST テスト）・段階 ① |
 | 2 | 段階 ①（task_01〜04） |
-| 3 | task_05〜07b |
+| 3 | task_05〜07e（段階 ②） |
 | 4 | task_08〜10 |
 | 5 | task_11 |
 | 6, 7 | task_13 |

@@ -11,11 +11,11 @@ last_commit_location: `claude/task-06-progression-a047bd`（Mac の worktree `ta
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ② task_07d（Tk 9 / aqua の寸法の差）完了・コミット済み（Mac 目視 ①〜④ OK）。次は段階 ② の区切りレビュー。**
+focus: **phase 75 段階 ② の区切りレビュー済み（deep-reviewer 修正して採用・Codex 指摘 0）→ task_07e（M2 一覧の範囲選択の封じ・M3 既定の高さを aqua だけ・文書の追従）完了・コミット済み。次は L1 = Mac の tests_ui の基準線の再計測（task_08 の前）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-12T09:00:00
+ts: 2026-11-13T10:00:00
 who: main
 summary: |
   2026-11-11〜12 のコミット: task_05c・06（3878868）/ task_07c（9c4c098・Mac でペインの初期幅が適用されない）/ task_07（3598823・Mac のテストの基準線 `instructions/phase/75_mac_support/mac_test_baseline.md`）/ fa60f50（§7 の skip の範囲・task_07d 起票）/ task_07b（d26fac0・OS ごとの既定プリセット）。
@@ -29,9 +29,8 @@ verified:
   mac_visual: task_07d ①〜④ OK（ユーザー・④ はダイアログの「?」のツールチップ）
 
 ## next_action
-- 次: 段階 ② の区切り（phase.md のレビュー方針 = deep-reviewer + Codex レビュー）→ 段階 ③ task_08
+- 次: L1 = Mac の tests_ui の基準線をモジュールごとに再計測し `mac_test_baseline.md` を確定値にする（`test_keymap_list_operations` の失敗 3 のうち 2 件は範囲選択の失敗で原因欄の見直しが要る）→ M1 = Windows の標準検証 4 種と目視（05c・07c・07・07b・07d・07e。ユーザーが Windows を使える時・task_08 の前）→ 段階 ③ task_08
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
-- Windows の標準検証 4 種は task_05c・07c・07・07b・07d の分を次の機会にまとめて
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
 - Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）
 

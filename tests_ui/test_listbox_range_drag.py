@@ -313,6 +313,20 @@ class ListboxRangeDragTest(unittest.TestCase):
 
         self.assertFalse(self.box.bind("<Escape>"))
 
+    def test_select_all_and_none_virtual_events_are_suppressed(self):
+        for sequence in ("<Control-slash>", "<Control-backslash>", "<Shift-Control-Home>",
+                         "<Shift-Control-End>", "<Shift-Home>", "<Shift-End>",
+                         "<<SelectAll>>", "<<SelectNone>>"):
+            with self.subTest(sequence=sequence):
+                self.assertTrue(self.box.bind(sequence))
+
+        self.box.configure(selectmode=tk.EXTENDED)
+        self._click(1)
+        before = tuple(self.box.curselection())
+        self.box.event_generate("<<SelectAll>>")
+        self.root.update()
+        self.assertEqual(tuple(self.box.curselection()), before)
+
     def test_drag_autoscrolls_when_pointer_is_outside(self):
         self.box.configure(height=3)
         self.box.pack_configure(fill="x", expand=False)

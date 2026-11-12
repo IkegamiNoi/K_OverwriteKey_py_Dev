@@ -36,14 +36,15 @@ infrastructure
 - `keyseq/infrastructure/os_backend/windows/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）。`WindowsWindowBackend` / `WindowsTkKeyTranslator` / `WindowsAppIdentity` がモジュール属性経由で委譲する
 - `keyseq/infrastructure/os_backend/windows/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）。`WindowsAppIdentity.relaunch` が委譲する
 - `keyseq/infrastructure/os_backend/`: `get_backend()` が OS 実装をキャッシュし、`contracts.py` が `ImeBackend` / `WindowBackend` / `TkKeyTranslator`（VK 変換・テンキー判定）/ `AppIdentity` / `Capabilities` / `OsBackend` を定義。`OsBackend` の `ime` / `window` / `tk_keys` / `app` を公開し、`windows/` に Windows 実装を配置。窓を受ける API は Tk 窓オブジェクトを受け、`window_handle` の識別子は不透明な値として等値比較と重なり順指定だけに用いる
-- `os_backend/macos/backend.py`: macOS 用スタブ実装。フック登録は未対応エラーを返し、能力フラグはすべて False。
+- `keyseq/infrastructure/os_backend/macos/backend.py`: macOS 用スタブ実装（phase 75）。フック登録は未対応エラーを返し、能力フラグはすべて False。`default_profile` は `MACOS_DEFAULT_PROFILE`
+- `OsBackend.default_profile`（phase 75 task_07b）: OS ごとの既定のホットキー・プリセットとサンプル（`domain/default_profile.py` の `DefaultProfile`）。App の組み立てで `ConfigService(repository, default_profile=backend.default_profile)` へ渡し、既定の作成（`new_base_data` / `new_default_data`）と欠損時の補完（`ensure_config_compatibility(..., profile=)`）で使う
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
 
 ## presentation のフォルダ構成
 
-- `presentation/tk_platform.py`: Tk の windowingsystem に基づく修飾キー・右クリック・accelerator 表記の共通判定。
+- `keyseq/presentation/tk_platform.py`: Tk の windowingsystem（aqua か）に基づく共通判定（phase 75）。`is_aqua` / `primary_modifier`（Control ↔ Command）/ accelerator 表記 / `screen_distance`（Tk 9 の単位つきの長さを `winfo_pixels` で）/ `key_label_font_family`（キーボードUIのキーの文字のフォント。aqua では Helvetica）。右クリックは全 OS で `<Button-3>`（切替なし）
 
 計画04で **種類別フォルダ**（`controllers/` / `views/`）へ再編し、View 専用 Widget は
 `views/full_view/` / `views/compact_view/` の**所有者フォルダ**へ配置した。
@@ -980,7 +981,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - `main.py` → `App(first_launch_welcome=True)`。`app.py` の `_prepare_first_launch`（テーマの後・Welcome の結果の適用とサンプルの書き出し）/ `_finish_first_launch`（読込の後・空で始める・起動設定の書き出し・`deiconify`）
 - `presentation/welcome/`: `welcome_window.py`（`WelcomeWindow`。`reopen` で初回 / 再表示を切り替え・文言は `tr_in`）/ `first_launch.py`（`is_first_launch` / `run_first_launch_welcome` / `open_welcome_again`〔フックの停止・再開〕）/ `welcome_result.py`（`WelcomeResult`・`estimate_layout_id`）
 - `application/config_service/sample_install.py`: `install_sample`（`SampleInstallResult.status` = written / existing / incomplete / failed）/ `check_sample_complete` / `sample_keymap_set_path`。保存は `save_runtime_data(..., write_startup_entry=False)`。`orphan_scan.py` は `config/sample/keymap_sets` を参照元に含める
-- `domain/config.py`: `build_base_config` / `build_sample_config` / `normalize_identifier`。`keymap_set_io.py`: `start_empty`・`restore_default(parent=None)`（配列を保つ）
+- `domain/config.py`: `build_base_config(profile)` / `build_sample_config(profile)` / `normalize_identifier`（profile の既定は `WINDOWS_DEFAULT_PROFILE`・`domain/default_profile.py`）。`keymap_set_io.py`: `start_empty`・`restore_default(parent=None)`（配列を保つ）
 
 ## カーソルグリッド（phase 56・57）
 

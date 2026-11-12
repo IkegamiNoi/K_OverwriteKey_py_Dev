@@ -16,6 +16,7 @@ from .pane_measure import (
     measure_header_window_width, measure_min_widths, measure_window_fit_height,
     measure_window_min_height,
 )
+from keyseq.presentation.tk_platform import is_aqua
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -102,7 +103,7 @@ class PaneLayoutController:
         )
         self.apply_layout()
         self.app.update_idletasks()
-        if self.app.wm_state() == "normal":
+        if is_aqua(self.app) and self.app.wm_state() == "normal":
             height = min(max(820, measure_window_fit_height(self.app)), self.app.wm_maxsize()[1])
             self.app.geometry(f"{self.app.winfo_width()}x{height}")
             self.app.update_idletasks()
