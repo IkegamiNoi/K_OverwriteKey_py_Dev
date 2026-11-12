@@ -11,8 +11,8 @@ last_commit_location: `claude/task-08-progression-2214c7`（Windows の worktree
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）を実装・Windows 検証 pass・reviewer 採用でコミット済み。残りは Windows の実機目視（ユーザー）→ 次は task_08b（CGEventTap・Mac・未起票）。**
-mode: pending_review
+focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。次は task_08b（CGEventTap・Mac・未起票）。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-13T18:00:00
@@ -21,7 +21,7 @@ summary: |
   実施: task_08 = `presentation/hook_dispatcher.py`（即時版 / キュー版・上限 64・期限 1 秒・世代・優先）・`OsBackend.queued_hook_dispatch`（macOS True）・HookController（稼働番号・切替の予約番号・過負荷の印と 1 回の停止・`hook.overload.*` の警告・stop_hook で invalidate）・KeyCaptureHook（dispatch 注入・素通し中の集合）・App の配線。infrastructure（os_backend の項目 1 つ）と presentation を跨ぐ。codex-delegating-implementer（Sol + Luna サブエージェント使用）。新契約で壊れる既存テスト（tests_ui 3・tests 1）の最小追従をメイン判断で許可。
   reviewer: 採用（参考 1 = 解除と競合した素通し中の残留 → メインで `_handle is not None` のときだけ追加に修正・対象テスト再実行 OK / 参考 2 = 排出中のモーダルで排出が止まる → 08b の Mac 実機で確認 / 参考 3 = 予約番号の加算の競合は実害小 / hook_controller.py 404 → 459 行・分割はしていない〔報告のみ〕）。
   codebase_map の hook_controller・key_capture_hook・hook_dispatcher・os_backend 節を追従（メイン）。
-  完了判定: Windows の検証 pass・reviewer 採用。完了条件の実機目視（Windows）は未実施。
+  完了判定: Windows の検証 pass・reviewer 採用・Windows 目視 OK（ユーザー）→ task_08 完了。
 result_files:
   - keyseq/presentation/hook_dispatcher.py（新規）・app.py・controllers/hook_controller.py・key_capture_hook.py
   - keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py
@@ -34,10 +34,9 @@ verified:
   tests: pass 2022（失敗 0・エラー 0・skip 7・+25）
   tests_ui: pass 1271（失敗 0・エラー 0）
   smoke: pass
-  visual_windows: not_run（ユーザー）
+  visual_windows: OK（ユーザー）
 
 ## next_action
-- ユーザーが Windows で実機目視: キー置換・シーケンス・停止キー・キーマップの切替・キーの取得（記録）が従来どおりか。OK なら task_08 完了を current.md・decisions に記録
 - 次: task_08b（CGEventTap のフック・修飾キー・配送の滞留 §5.1・§4.1 の未実測の実測）を `/task_new` で起票。起票時に受信側の vk の表〔§5.3 受信・§5.3.1〕を 08b に含めるか task_09 のままかを決める。実装・実測は Mac。reviewer 参考 2（排出中のモーダル）も 08b の実機で確認
 - Mac で task_08 の tests が基準線（失敗 6・エラー 10）から増えないこと・smoke pass を確認（次に Mac を使うとき）
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）

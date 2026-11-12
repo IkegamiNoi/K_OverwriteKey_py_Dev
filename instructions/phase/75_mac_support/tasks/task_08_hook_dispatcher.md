@@ -110,3 +110,4 @@ Mac（次に Mac を使うとき・task_08b の前）: `tests` が基準線（�
 - 上記の Windows の確認 pass・**reviewer 採用**。
 - 実機目視（Windows）: キー置換・シーケンス・停止キー・キーマップの切替・キーの取得が従来どおり（ユーザー）。Mac のキュー版の実機での動作は task_08b でまとめて確認する。
 - `instructions/common/codebase_map.md` の `hook_controller.py`・`key_capture_hook.py`・os_backend 節に追従（メイン）。
+- 2026-11-13 実施: compile clean・tests 2022 件 失敗 0 / エラー 0 / skip 7・tests_ui 1271 件 失敗 0 / エラー 0・smoke OK（verifier）。reviewer 採用（参考 1 はメインで修正）。Windows 目視 OK（ユーザー）。codebase_map 追従済み。Mac の tests 基準線の確認は次に Mac を使うとき。
