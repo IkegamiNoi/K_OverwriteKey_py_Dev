@@ -106,11 +106,24 @@ class FullViewPanesTest(unittest.TestCase):
             "初期幅780では3枠の要求幅と境界線が収まらない（フォント・DPIを確認）",
         )
         keymap, trigger, sequence = self.boxes
-        self.assertEqual(keymap.winfo_width(), keymap.winfo_reqwidth())
         self.assertEqual(trigger.winfo_x(), keymap.winfo_x() + keymap.winfo_width() + 12)
-        self.assertEqual(
-            trigger.winfo_width(), trigger.winfo_reqwidth() + (self.app.winfo_width() - 780),
+        expected_keymap_width = keymap.winfo_reqwidth()
+        expected_trigger_width = trigger.winfo_reqwidth() + (self.app.winfo_width() - 780)
+        expected_sequence_width = (
+            self.panes.winfo_width() - expected_keymap_width - expected_trigger_width
+            - 2 * SASH_WIDTH
         )
+        sequence_min_width = self.app.pane_layout.min_widths.sequence
+        self.assertEqual(keymap.winfo_width(), expected_keymap_width)
+        if expected_sequence_width >= sequence_min_width:
+            self.assertEqual(trigger.winfo_width(), expected_trigger_width)
+        else:
+            self.assertEqual(sequence.winfo_width(), sequence_min_width)
+            self.assertEqual(
+                trigger.winfo_width(),
+                self.panes.winfo_width() - expected_keymap_width - sequence_min_width
+                - 2 * SASH_WIDTH,
+            )
         self.assertEqual(sequence.winfo_x(), trigger.winfo_x() + trigger.winfo_width() + 12)
         self.assertEqual(sequence.winfo_x() + sequence.winfo_width(), self.panes.winfo_width())
 

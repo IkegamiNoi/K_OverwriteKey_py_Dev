@@ -808,11 +808,20 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         def configure_content_and_cells(current, _variables):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=100))
+            measure = font.nametofont("TkDefaultFont", root=self.app).measure
+            short_texts = (
+                child_save_dialog_module._kind_label(short_row.kind), short_row.display_name,
+                short_row.target_path, short_row.share_text,
+                child_save_dialog_module._kind_label(long_row.kind),
+            )
+            long_texts = (long_name, long_path, long_share)
+            width = max(measure(text) for text in short_texts) + 1
+            self.assertLess(width, min(measure(text) for text in long_texts))
             for label in current.labels:
                 # bind_hover_tooltip を差し替えているため <Enter> は付かない。
                 # 文言のセルは幅の <Configure> で選ぶ。
                 if "<Configure>" in label.bindings:
-                    label.bindings["<Configure>"](SimpleNamespace(width=80))
+                    label.bindings["<Configure>"](SimpleNamespace(width=width))
             current.buttons["キャンセル"]()
 
         with patch.object(child_save_dialog_module, "bind_hover_tooltip") as bind_tooltip:

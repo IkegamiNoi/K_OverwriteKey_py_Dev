@@ -63,6 +63,8 @@ class WindowAppFixture:
     startup = {}
     screen_width = 1920
     measure_defaults = False
+    preserve_saved_width = False
+    saved_width_margin = 0
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -78,18 +80,25 @@ class WindowAppFixture:
             cls.addClassCleanup(patcher.stop)
             if name == "write_startup":
                 cls.writer = mocked
-        if cls.measure_defaults:
+        if cls.measure_defaults or cls.preserve_saved_width:
             with patch.object(app_module.ConfigService, "load_startup", return_value={}):
                 probe = App()
             try:
                 probe.update()
-                cls.default_desired = probe.pane_layout.desired
-                cls.default_trigger_width = probe.full_view.trigger_box.winfo_width()
-                cls.default_window_width = probe.winfo_width()
+                if cls.measure_defaults:
+                    cls.default_desired = probe.pane_layout.desired
+                    cls.default_trigger_width = probe.full_view.trigger_box.winfo_width()
+                    cls.default_window_width = probe.winfo_width()
+                header_width = probe.pane_layout.header_window_width
             finally:
                 probe.pane_layout.cancel_window_width_save()
                 probe.destroy()
-        with patch.object(app_module.ConfigService, "load_startup", return_value=dict(cls.startup)):
+        startup = dict(cls.startup)
+        if cls.preserve_saved_width and WINDOW_WIDTH_KEY in startup:
+            startup[WINDOW_WIDTH_KEY] = max(
+                startup[WINDOW_WIDTH_KEY], header_width + cls.saved_width_margin,
+            )
+        with patch.object(app_module.ConfigService, "load_startup", return_value=startup):
             cls.app = App()
         cls.addClassCleanup(cls.app.destroy)
         cls.addClassCleanup(cls.app.pane_layout.cancel_window_width_save)
@@ -105,9 +114,10 @@ class StartupAssertions:
     expected_width = DEFAULT_WINDOW_WIDTH
 
     def test_restored_width_without_write(self) -> None:
-        expected = self.expected_width
-        if expected == DEFAULT_WINDOW_WIDTH:
-            expected = max(DEFAULT_WINDOW_WIDTH, self.app.pane_layout.header_window_width)
+        expected = max(
+            min(self.expected_width, self.screen_width),
+            self.app.pane_layout.header_window_width,
+        )
         self.assertEqual(self.app.winfo_width(), expected)
         self.writer.assert_not_called()
 
@@ -116,12 +126,13 @@ class SavedWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.TestCa
     startup = {WINDOW_WIDTH_KEY: 1000}
     expected_width = 1000
     measure_defaults = True
+    preserve_saved_width = True
 
     def test_defaults_use_default_window_basis(self) -> None:
         self.assertEqual(self.app.pane_layout.desired, self.default_desired)
         self.assertEqual(
             self.app.full_view.trigger_box.winfo_width() - self.default_trigger_width,
-            1000 - self.default_window_width,
+            max(1000, self.app.pane_layout.header_window_width) - self.default_window_width,
         )
         self.writer.assert_not_called()
 
@@ -152,10 +163,13 @@ class NarrowSavedWidthStartupTest(WindowAppFixture, unittest.TestCase):
 class ClampedThenWidenedStartupTest(WindowAppFixture, unittest.TestCase):
     startup = {WINDOW_WIDTH_KEY: 900}
     screen_width = 700
+    preserve_saved_width = True
+    saved_width_margin = 1
 
     def test_clamped_then_widened_width_is_not_saved(self) -> None:
-        self.assertGreater(self.app.winfo_width(), 700)
-        self.assertLess(self.app.winfo_width(), 900)
+        applied_width = self.app.winfo_width()
+        self.assertGreater(applied_width, 700)
+        self.assertLess(applied_width, max(900, self.app.pane_layout.header_window_width + 1))
         self.writer.assert_not_called()
 
 

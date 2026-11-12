@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ② task_07d（Tk 9 / aqua の寸法の差）実装・検証・reviewer（修正して採用 → R1・R2 反映済み）まで完了・未コミット。残りは Mac の目視のみ（ユーザー不在で停止・2026-11-12 01:00）。**
+**phase 75 段階 ② task_07d（Tk 9 / aqua の寸法の差）完了・コミット済み（Mac 目視 OK・2026-11-12）。次は段階 ② の区切りレビュー（deep-reviewer + Codex レビュー）→ 段階 ③ task_08。**
 ブランチ `claude/task-06-progression-a047bd`（Mac の worktree）。task_05c・06・07c・07・07b はコミット済み。push と main へのマージはユーザー（PR は作らない）。
 Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests_ui は通しで流さずモジュールごと）。
 
@@ -57,7 +57,6 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【最初にユーザーへ確認】task_07d の Mac 目視**（`main.py`）: ①フル表示の各枠にスクロールバーが出ない高さで開く ②コンパクト表示で下の枠が適切な高さ ③キーボードUIを最小にして「Home」等がキーに収まる ④ツールチップがキーボードUIの上に出る。OK → task_07d の定義の「確認」に結果を書き、`mac_test_baseline.md` の「要調査」7 行を「task_07d で解消」に更新して `/task_commit`。NG → 症状を聞いて直す
 - その次: 段階 ② の区切りレビュー（deep-reviewer + Codex レビュー・phase.md のレビュー方針）→ 段階 ③ task_08
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - Windows の標準検証 4 種は task_05c・07c・07・07b・07d の分を次の機会にまとめて

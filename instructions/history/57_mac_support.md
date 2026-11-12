@@ -94,6 +94,8 @@ keyseq/infrastructure/os_backend/
   4. `TIS` / `NSWorkspace` のスレッド条件
 - Windows 専用テストは `skipUnless` を付ける。macOS のテスト基準は §7。
 
+- Mac のフォント（`.AppleSystemUIFont`）は Windows より大きく、次の 2 点を変える（ユーザー判断 2026-11-12・task_07d）: ①起動時の既定の窓の高さ = `max(820, 3 枠がスクロールバーなしで収まる高さ)`（画面の高さ〔`wm_maxsize`〕で頭打ち。Windows は 820 で収まるため不変）②キーボードUIのキーの文字のフォントは aqua では Helvetica（既定のフォントでは仕様の下限 7px でも「Home」が 1u = 27px のキーに収まらない。下限 7px は変えない）。
+
 ### §4.1 probe の結果（task_06・2026-11-11）
 
 環境: macOS 27.2 / arm64・US 配列の内蔵キーボード・Homebrew の Python 3.13.18・Tk 9.1.0・pyobjc 13.0。入力ソースはことえり（ローマ字入力）。

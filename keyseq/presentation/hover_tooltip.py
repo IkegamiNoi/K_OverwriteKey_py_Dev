@@ -52,6 +52,11 @@ class HoverTooltip:
             label = ttk.Label(window, text=text, padding=4, justify="left")
             self._label = label
             label.pack()
+            window.update_idletasks()
+            try:
+                window.wm_attributes("-topmost", True)
+            except Exception:
+                pass
         except Exception:
             self.close()
 

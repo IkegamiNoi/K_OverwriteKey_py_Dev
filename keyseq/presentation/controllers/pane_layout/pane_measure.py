@@ -30,6 +30,12 @@ def measure_window_min_height(app: App) -> int:
     )
 
 
+def measure_window_fit_height(app: App) -> int:
+    """最小高さのメイン領域の半分を H 全体に置き換え、3 枠が収まる高さを測る。"""
+    height = measure_main_area_basis_height(app)
+    return measure_window_min_height(app) - ceil(height / 2) + height
+
+
 def measure_main_area_basis_height(app: App) -> int:
     """3 枠の飾りと中身の要求高さからメイン領域の基準高さ H を測る。"""
     _sync_full_view_scroll_areas(app)

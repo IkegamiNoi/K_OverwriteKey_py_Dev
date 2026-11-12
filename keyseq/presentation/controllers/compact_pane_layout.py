@@ -29,6 +29,7 @@ class CompactPaneLayout:
     def install(self) -> None:
         panes = self.box.trigger_panes
         panes.bind("<Configure>", self._on_configure, add="+")
+        panes.bind("<Map>", lambda _event: self.schedule_layout(), add="+")
         panes.bind("<Button-1>", self._on_press, add="+")
         panes.bind("<ButtonRelease-1>", self._on_release, add="+")
         for event in ("<Button-2>", "<B2-Motion>", "<ButtonRelease-2>"):

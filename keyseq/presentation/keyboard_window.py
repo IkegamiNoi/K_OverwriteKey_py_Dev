@@ -30,6 +30,7 @@ from keyseq.presentation.keyboard_window_size import (
     size_from_width,
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
+from keyseq.presentation.tk_platform import key_label_font_family
 from keyseq.presentation.tk_keys import (
     TK_KEYSYM_TO_KEYBOARD_NAME,
     is_unresolved_capture_key,
@@ -454,7 +455,7 @@ class KeyboardWindow(tk.Toplevel):
 
         canvas.delete("all")
         self._key_bounds = []
-        font_family = tkfont.nametofont("TkDefaultFont").actual("family")
+        font_family = key_label_font_family(self)
         for spec in key_specs:
             x1 = spec.x * unit + pad
             y1 = spec.y * unit + pad
