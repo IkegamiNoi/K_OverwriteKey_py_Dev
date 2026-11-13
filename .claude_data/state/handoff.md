@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.7。§5.1.1 ディスパッチャの契約を 2026-11-13 に追加）を読む。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.8。§5.3.2 Mac 用のレイアウトの見本・§5.1 物理 Shift の例外を 2026-11-14 に追加）を読む。
    次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ③。task_08（フックのディスパッチャ）完了・task_08b（CGEventTap・受信の vk の表・CapsLock は素通し）起票済み。次は task_08b の実装を Mac で行う（2026-11-13 ユーザー判断: Quartz を実物で検証し、probe の実測・目視と同じ場で回すため）。**
-Windows のブランチ = `claude/task-08-progression-2214c7`（task_08・08b 起票のコミット）/ Mac の worktree = `claude/task-06-progression-a047bd`（**Windows のブランチの取り込みが先 = ユーザー作業**）。push と main へのマージはユーザー（PR は作らない）。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests 1940・失敗 6・エラー 10・skip 28 / tests_ui はモジュールごと 1271・失敗 55・エラー 13）。
+**phase 75 段階 ③。task_08b 完了（2026-11-14・Mac で実装・Windows 検証 pass）。暫定 57 v0.8（Mac 用のレイアウトの見本 §5.3.2・物理 Shift の例外 §5.1）。task_09（送信）・task_09a（Tk の取得・表示・入力ソース）起票済み。次は task_09 の実装を Mac で行う（2026-11-14 ユーザー判断）。順序 = task_09 → 09a → 09b → 10 → 11。**
+Windows のブランチ = `claude/continue-a0cc59`（task_08b の完了記録・暫定 57 v0.8・task_09 / 09a 起票のコミット）/ Mac の worktree = `claude/continue-0b2dfa`（task_08b の実装。**Windows のブランチの取り込みが先 = ユーザー作業**）。push と main へのマージはユーザー（PR は作らない）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_08b 後 2008 件・失敗 6・エラー 10・skip 28）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,10 +37,10 @@ Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_basel
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = task_08 完了時・2026-11-13**）:
-compile **clean** / tests **2022 pass**（skip 7）/ tests_ui **1271 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "...apply_if_already_sized"` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = task_08b 完了時・2026-11-14**）:
+compile **clean** / tests **2065 pass**（skip 7）/ tests_ui **1271 pass**（task_08 時）/ smoke **pass**（verifier）。tests_ui の `invalid command name "...apply_if_already_sized"` は破棄後の after のノイズで失敗ではない。
 **Mac（2026-11-13 再計測・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: tests 1940 件・失敗 6・エラー 10・skip 28 / tests_ui はモジュールごと（`mac_test_baseline.md` の手順）/ smoke pass。
-**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕 / tests_ui: 1270 → 1271）。Mac の基準線 1940 件は task_08 の取り込み前の値（取り込み後は増える）。
+**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕→ 2065〔task_08b〕 / tests_ui: 1270 → 1271）。Mac の基準線 1940 件は task_08 の取り込み前の値（取り込み後は増える）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,11 +55,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 前提（ユーザー作業）: `claude/task-08-progression-2214c7` を push → Mac の worktree へ取り込む（`git log` に `task_08b(phase 75): 起票` があること）
-- 次（**Mac で**）: task_08 の取り込み後の退行確認（tests が失敗 6・エラー 10 から増えない・smoke pass）→ task_08b の実装（`instructions/phase/75_mac_support/tasks/task_08b_macos_event_tap.md`・codex 実装 → verifier〔Mac の .venv〕→ reviewer）→ probe の実測（暫定 57 §4.1 へ追記）→ 目視 ①〜⑥ → 最後に Windows で tests・smoke を 1 回
-- task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
-- task_09 でキーボードUIの右クリックによる割り当てのクリアを Mac で目視（task_05c の残り）・`test_keymap_list_operations` の合成マウスイベント 2 件の調査
-- JIS の実測（暫定 57 §5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
+- 前提（ユーザー作業）: `claude/continue-a0cc59` を push → Mac の worktree へ取り込む（`git log` に `task_09・09a(phase 75): 起票` があること）
+- 次（**Mac で**）: 取り込み後の退行確認（tests が失敗 6・エラー 10 から増えない・smoke pass）→ task_09 の実装（`instructions/phase/75_mac_support/tasks/task_09_macos_key_send.md`・委任は codex-delegating-implementer の想定）→ verifier（Mac と Windows）→ reviewer → Mac 目視（置換・`!`・`ctrl+c`・文字送信・キュー版）
+- 続けて task_09a（`task_09a_macos_tk_capture_display.md`・目視に 08b から移した ③④・右クリックのクリア・Command+Option+P）→ task_09b（Mac 用のレイアウトの見本・`jis_mac` に `yen` / `ro` を置く）
+- `test_keymap_list_operations` の合成マウスイベント 2 件の調査・JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき・右 Option / 右 Control の実測は外付けキーボードで
 - 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
 

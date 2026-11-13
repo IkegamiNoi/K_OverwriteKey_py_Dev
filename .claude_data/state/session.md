@@ -7,7 +7,7 @@
 last_updated: 2026-11-14T13:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/continue-a0cc59`（Windows の worktree `continue-a0cc59`・task_08b の完了記録）。push はユーザー。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/continue-a0cc59`（Windows の worktree・task_09 / 09a 起票まで）。Mac の worktree `claude/continue-0b2dfa` へ取り込んでから task_09 を実装する。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
