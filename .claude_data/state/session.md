@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-13T18:00:00
+last_updated: 2026-11-13T18:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/task-08-progression-2214c7`（Windows の worktree `task-08-progression-2214c7`・task_08 のコミット）。Mac の worktree は `claude/task-06-progression-a047bd`。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。task_08b（CGEventTap・受信の vk の表・CapsLock は素通し）を起票済み。次は task_08b の実装（Windows で単体テストまで可・実測と目視は Mac）。**
+focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。task_08b（CGEventTap・受信の vk の表・CapsLock は素通し）を起票済み。次は task_08b の実装を **Mac で**行う（2026-11-13 ユーザー判断: Quartz を実物で検証し、probe の実測・目視と同じ場で回すため）。**
 mode: implementing
 
 ## last_action
@@ -37,8 +37,9 @@ verified:
   visual_windows: OK（ユーザー）
 
 ## next_action
-- 次: task_08b の実装（`instructions/phase/75_mac_support/tasks/task_08b_macos_event_tap.md`・codex 実装 → verifier〔Windows の tests・smoke〕→ reviewer）→ Mac で probe の実測（暫定 57 §4.1 へ追記）・tests の基準線・目視 ①〜⑥。task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
-- Mac で task_08 の tests が基準線（失敗 6・エラー 10）から増えないこと・smoke pass を確認（次に Mac を使うとき）
+- 前提（ユーザー作業）: Windows のブランチ `claude/task-08-progression-2214c7` を push → Mac の worktree（`claude/task-06-progression-a047bd`）へ取り込む（task_08 と 08b の起票が入っていること = `git log` に `task_08b(phase 75): 起票` があるか確認）
+- 次（**Mac で**）: まず task_08 の取り込み後の退行確認（tests が基準線〔失敗 6・エラー 10〕から増えない・smoke pass。tests_ui は通しで走らせない）→ task_08b の実装（`instructions/phase/75_mac_support/tasks/task_08b_macos_event_tap.md`・codex 実装 → verifier〔Mac の `../../../.venv/bin/python` で tests・smoke・対象モジュール〕→ reviewer）→ probe の実測（暫定 57 §4.1 へ追記）→ 目視 ①〜⑥ → 最後に Windows で tests・smoke を 1 回（08b は `macos/` の中だけなので影響確認のみ）
+- task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
