@@ -722,3 +722,4 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - reviewer 中（表に無い vk〔テンキー・F13 以降・vk 179〕がフックの抑止を返しても素通し）→ ユーザー判断「仕様どおり直す」= 常に素通しは CapsLock 57・fn 63 だけ。低（死んだ `_pressed_keys`・未知の flagsChanged を fn ビットで判定・テストの reload）→ 修正して採用（codex-implementer）。参考（CGEventSetFlags の省略・tap 開始前の押下・`_lifecycle` 保持中の stop の再入・`vk_for_name` の大小文字）→ 保留。
 - 既存テスト `test_macos_stub_contracts_and_factory` の OSError 前提は新契約で不成立（権限ありの Mac で実 tap が作られる）→ 偽の EventTap で開始・停止を確かめる形へ修正して採用（メイン・5 行）。
 - probe: 自動リピートは初回 0・以降 1。右 Option・右 Control は内蔵キーボードに無く文書値のまま。CapsLock は 2 回押下で tap に何も届かず（原因未確定・常に素通しなので影響なし）。暫定 57 §4.1 に記録。
+- Mac 目視（2026-11-14・ユーザー）: ①②⑥ OK。③④（左 Command・左 Shift の抑止）はキーボードUIで修飾キーを登録できず未確認（`TkKeyTranslator` の修飾 keysym が task_09）→ ユーザー判断「task_09 へ移す」。⑤は未報告。別件: キーボードレイアウトが Windows 用で Mac 向けのキーが一部無い（暫定 57 Q7 = レイアウト JSON 不変の範囲外）→ 無いキーの一覧をユーザーから受けて扱いを決める（未決）。

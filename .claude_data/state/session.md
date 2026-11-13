@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T10:00:00
+last_updated: 2026-11-14T10:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-0b2dfa`（Mac の worktree `continue-0b2dfa`・task_08b のコミット）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08b（CGEventTap・受信の vk の表・修飾キーの状態）を Mac で実装・検証 pass・reviewer 修正して採用・probe 実測を §4.1 へ記録・コミット済み。残りは Mac の実機目視 ①〜⑥（ユーザー）と Windows での tests・smoke 1 回 → 完了判定。**
+focus: **phase 75 段階 ③。task_08b（CGEventTap・受信の vk の表・修飾キーの状態）を Mac で実装・検証 pass・reviewer 修正して採用・probe 実測を §4.1 へ記録・コミット済み。Mac 目視 ①②⑥ OK・③④は task_09 へ移した（ユーザー判断）。残りは Windows での tests・smoke 1 回 → 完了判定。別件: Mac 向けのキーが無いレイアウトの扱いが未決。**
 mode: pending_review
 
 ## last_action
@@ -32,11 +32,11 @@ verified:
   tests_mac: 2008 件・失敗 6・エラー 10・skip 28（基準線どおり・既知のみ）
   smoke_mac: pass
   tests_windows: not_run
-  visual_mac: not_run
+  visual_mac: ①②⑥ OK（ユーザー）・③④は修飾キーを登録できず未確認 → task_09 へ移した（phase.md の task_09 行に追記）・⑤未報告
 
 ## next_action
-- Mac の実機目視 ①〜⑥（ユーザー・`tasks/task_08b_macos_event_tap.md` の「確認」節）: ①抑止したキーが前面アプリへ届かず置換先の処理が走る（キーマップ切替など送信を伴わない割り当てで）②停止キーで止まる ③左 Command を抑止しても続く文字キーが Command+文字にならず、外した後に別アプリで通常入力できる ④左 Shift 抑止・右 Shift 素通しで大文字が打て、離す順を変えても修飾が残らない ⑤CapsLock・fn は従来どおり ⑥フック停止で tap が外れる
-- 目視 OK 後: Windows で `-m compileall` / `-m unittest discover -s tests`（2022 + 追加分・失敗 0）/ `-m tests.smoke_app`（verifier）→ task_08b 完了判定 → current.md 更新 → 次は task_09（送信・テンキー・TkKeyTranslator）の起票
+- ユーザーから「Mac 向けのキーが無い」レイアウトの具体的なキーの一覧を受け、扱い（Mac 用プリセットのレイアウト追加か・task_09 に入れるか別 idea か）の案を出す。暫定 57 Q7（レイアウト JSON 不変）の範囲外なので仕様変更フロー（`spec_change_workflow.md`）で扱う
+- Windows で `-m compileall` / `-m unittest discover -s tests`（2022 + 追加分・失敗 0）/ `-m tests.smoke_app`（verifier）→ task_08b 完了判定 → current.md 更新 → 次は task_09（送信・テンキー・TkKeyTranslator）の起票
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
