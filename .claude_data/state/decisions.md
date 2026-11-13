@@ -730,3 +730,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - fn は置かず位置を空ける（常に素通しで割り当てできないため。表示だけのキーは形式の拡張になるので採らない）。
 - 時期: task_09b（task_09 の後）。§9 に 13 を追加。
 - Codex 敵対的レビュー（needs-attention・1 件）と採否（ユーザー「すべて推奨どおり」）: 中 = §9 の 13 が Q5（Command の割り当て禁止・`features.md` §4.6）と矛盾 → 13 を「Command・CapsLock は禁止の色で置換元キーにできない / Option・Control・英数・かなは動く」に分けて採用。メインの確認 = JIS の受信名の判定に `jis_mac_sample` を含める（同梱の layout_id は `jis` 等で `welcome_result.py:4` も id で判定）→ 採用。CapsLock は置かない → 既存の id で禁止の色として置くに変更（採用）。
+
+### 【task_09 起票】task_09 / 09a の分割と起票レビューの採否（2026-11-14）
+- 分割（メイン）: task_09 = 送信・選択中のレイアウトに合う受信名（`set_layout_key_ids`・JIS の判定 = id に `yen` / `ro`）・テンキー・物理の Shift / Ctrl / Alt / Win の状態 / task_09a = Tk のキー取得・入力ソースの切替（Q4）・Command / Option の表示（`key_symbols` へ組み立てで注入）・08b から移した目視 ③④（③は Q5 のため JSON に直接書いた既存データで行う・`features.md` §4.6 で既存データは検査しない）。
+- メインの判断: 送信だけの別名（`windows` / `left shift` 等）・`send_native_hotkey` は常に False（既存の代替の経路）・`MacWindowBackend.is_shift_down` / `is_ctrl_alt_win_down` を task_09 へ前倒し（phase 74 の Shift の足し方に要る）。
+- reviewer（修正して採用）: 必須 1 = JIS の逆引きが 2 表の重なりで None になる → 1 枚の表で引く・`jis` は既定値つき（採用）/ 必須 2 = 物理 Shift 押下中に Shift の要る文字が `1` になる → ユーザー判断「推奨どおり付ける」= 物理の Shift が押されていれば送るキーに Shift の共通ビットを付ける（暫定 57 §5.1 に例外として追記）/ 参考 2〜7（09b の yen・ro の要件・§9 の対応表・JIS 判定の共有の機構・domain の表のテスト隔離・契約テストのフィールド列挙・ホットキーの `!` の差は完了報告へ）を採用。参考 1（Shift 表と別名を昇格時に §5.3 へ）は task_14 で。

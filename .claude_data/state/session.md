@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T11:30:00
+last_updated: 2026-11-14T13:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-a0cc59`（Windows の worktree `continue-a0cc59`・task_08b の完了記録）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08b 完了（Windows 検証 pass）。Mac 用のレイアウトの見本を暫定 57 v0.8 §5.3.2 に追記し task_09b として phase.md に追加（ユーザー 2026-11-14）。次は task_09 の起票。**
+focus: **phase 75 段階 ③。task_09（送信）・task_09a（Tk の取得・表示・入力ソース）を起票（reviewer 修正して採用・反映済み）。次は task_09 の実装（Mac で行う。Quartz の実物の検証が要るため）。**
 mode: implementing
 
 ## last_action
@@ -36,7 +36,7 @@ verified:
 
 ## next_action
 - （済）Mac 向けのレイアウト = 暫定 57 v0.8 §5.3.2・task_09b（task_09 の後）
-- task_08b 完了（Windows 検証 pass）→ 次は task_09（送信・テンキー・TkKeyTranslator）の起票（`/task_new`）
+- task_09 の実装（codex-delegating-implementer の想定。Mac で実装・検証・目視）→ task_09a → task_09b
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
