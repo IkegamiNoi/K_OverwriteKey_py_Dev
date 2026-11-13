@@ -723,3 +723,10 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 既存テスト `test_macos_stub_contracts_and_factory` の OSError 前提は新契約で不成立（権限ありの Mac で実 tap が作られる）→ 偽の EventTap で開始・停止を確かめる形へ修正して採用（メイン・5 行）。
 - probe: 自動リピートは初回 0・以降 1。右 Option・右 Control は内蔵キーボードに無く文書値のまま。CapsLock は 2 回押下で tap に何も届かず（原因未確定・常に素通しなので影響なし）。暫定 57 §4.1 に記録。
 - Mac 目視（2026-11-14・ユーザー）: ①②⑥ OK。③④（左 Command・左 Shift の抑止）はキーボードUIで修飾キーを登録できず未確認（`TkKeyTranslator` の修飾 keysym が task_09）→ ユーザー判断「task_09 へ移す」。⑤は未報告。別件: キーボードレイアウトが Windows 用で Mac 向けのキーが一部無い（暫定 57 Q7 = レイアウト JSON 不変の範囲外）→ 無いキーの一覧をユーザーから受けて扱いを決める（未決）。
+
+### 【task_08b 完了・task_09b 追加】Mac 用のレイアウトの見本 = 暫定 57 v0.8（2026-11-14・ユーザー判断「この案で追記」）
+- task_08b 完了: Windows 検証 pass（compile clean / tests 2065・失敗 0・エラー 0・skip 7 / smoke OK・verifier）。
+- 既存の見本（jis / us / de）は Windows 用で Command・Option・fn が無い（ユーザー報告）→ Mac 用の見本 `us_mac` / `jis_mac` を足す（§5.3.2）。JSON の形式と id の語彙は変えない（Q7 の範囲内・Command = `windows_*`・Option = `alt_*`・英数 / かな = `muhenkan` / `henkan`）。
+- fn は置かず位置を空ける（常に素通しで割り当てできないため。表示だけのキーは形式の拡張になるので採らない）。
+- 時期: task_09b（task_09 の後）。§9 に 13 を追加。
+- Codex 敵対的レビュー（needs-attention・1 件）と採否（ユーザー「すべて推奨どおり」）: 中 = §9 の 13 が Q5（Command の割り当て禁止・`features.md` §4.6）と矛盾 → 13 を「Command・CapsLock は禁止の色で置換元キーにできない / Option・Control・英数・かなは動く」に分けて採用。メインの確認 = JIS の受信名の判定に `jis_mac_sample` を含める（同梱の layout_id は `jis` 等で `welcome_result.py:4` も id で判定）→ 採用。CapsLock は置かない → 既存の id で禁止の色として置くに変更（採用）。

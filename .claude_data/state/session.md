@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T11:00:00
+last_updated: 2026-11-14T11:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-a0cc59`（Windows の worktree `continue-a0cc59`・task_08b の完了記録）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08b 完了（2026-11-14・Windows 検証 pass = compile clean・tests 2065 件 失敗 0 エラー 0 skip 7・smoke OK）。次は task_09 の起票。その前に Mac 向けのキーが無いレイアウトの扱いを決める（ユーザーからキー一覧待ち）。**
-mode: waiting_user
+focus: **phase 75 段階 ③。task_08b 完了（Windows 検証 pass）。Mac 用のレイアウトの見本を暫定 57 v0.8 §5.3.2 に追記し task_09b として phase.md に追加（ユーザー 2026-11-14）。次は task_09 の起票。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-14T10:00:00
@@ -35,8 +35,8 @@ verified:
   visual_mac: ①②⑥ OK（ユーザー）・③④は修飾キーを登録できず未確認 → task_09 へ移した（phase.md の task_09 行に追記）・⑤未報告
 
 ## next_action
-- ユーザーから「Mac 向けのキーが無い」レイアウトの具体的なキーの一覧を受け、扱い（Mac 用プリセットのレイアウト追加か・task_09 に入れるか別 idea か）の案を出す。暫定 57 Q7（レイアウト JSON 不変）の範囲外なので仕様変更フロー（`spec_change_workflow.md`）で扱う
-- task_08b 完了（Windows 検証 pass）→ 次は task_09（送信・テンキー・TkKeyTranslator）の起票（`/task_new`）。レイアウトの件の結論を反映してから
+- （済）Mac 向けのレイアウト = 暫定 57 v0.8 §5.3.2・task_09b（task_09 の後）
+- task_08b 完了（Windows 検証 pass）→ 次は task_09（送信・テンキー・TkKeyTranslator）の起票（`/task_new`）
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
