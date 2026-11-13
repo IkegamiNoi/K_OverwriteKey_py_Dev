@@ -717,3 +717,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - CapsLock は常に素通しし、上位へは `name=""` で渡す（暫定 57 §5.1 の「別扱い」を確定。Mac では CapsLock を元キーに割り当てられない）。
 - フックの合成は Windows の keyboard ライブラリの `direct_callback` と同じ = 全体の抑止フックを登録順に呼び最初の False で抑止・後続を呼ばない → 次にキー単位の抑止フック（`keyboard/__init__.py:236`・`:253` をメインが実物で確認）。
 - 起票の整合レビュー（reviewer）: 修正して採用 → 必須 2 件（us_tkl の Mac に無い id の除外と修飾キーの id ↔ 受信名の対応・Quartz の遅延 import）と参考 3・4・5・6（通す flagsChanged もフラグの付け直し・CapsLock の届き方の注記・合成の順を実物に合わせる・phase.md の task_09 / task_10 の境界）をすべて反映。
+
+### 【task_08b 実装】reviewer 修正して採用・probe の実測（2026-11-14・Mac）
+- reviewer 中（表に無い vk〔テンキー・F13 以降・vk 179〕がフックの抑止を返しても素通し）→ ユーザー判断「仕様どおり直す」= 常に素通しは CapsLock 57・fn 63 だけ。低（死んだ `_pressed_keys`・未知の flagsChanged を fn ビットで判定・テストの reload）→ 修正して採用（codex-implementer）。参考（CGEventSetFlags の省略・tap 開始前の押下・`_lifecycle` 保持中の stop の再入・`vk_for_name` の大小文字）→ 保留。
+- 既存テスト `test_macos_stub_contracts_and_factory` の OSError 前提は新契約で不成立（権限ありの Mac で実 tap が作られる）→ 偽の EventTap で開始・停止を確かめる形へ修正して採用（メイン・5 行）。
+- probe: 自動リピートは初回 0・以降 1。右 Option・右 Control は内蔵キーボードに無く文書値のまま。CapsLock は 2 回押下で tap に何も届かず（原因未確定・常に素通しなので影響なし）。暫定 57 §4.1 に記録。

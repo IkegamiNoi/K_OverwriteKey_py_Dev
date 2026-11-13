@@ -109,7 +109,8 @@ keyseq/infrastructure/os_backend/
 | タイムアウト | コールバックが 1.5 秒かかる呼び出しが 2 回続くと `kCGEventTapDisabledByTimeout` が届いた（1 回では届かない）。`CGEventTapEnable(tap, True)` で 4 回とも復帰した | §5.1 |
 | 停止時の通知 | 自分で `CGEventTapEnable(tap, False)` したときも `kCGEventTapDisabledByUserInput` がコールバックへ届く | §5.1 |
 | 送信 | `CGEventSetFlags` で Command を付けた文字キー単体、Command キーの down / up で挟んだ文字キーのどちらも Command+文字になった。`kCGEventSourceUserData` に付けた印は自分の tap で読めた | §5.1・§5.4 |
-| 自動リピート | 文字キーの長押しを測っておらず `kCGKeyboardEventAutorepeat` は未確認 | task_08 |
+| 自動リピート | 文字キーの長押しで、最初の keyDown は `kCGKeyboardEventAutorepeat` = 0、続くリピートの keyDown は 1（task_08b・2026-11-14） | task_08b（リピートも `down` で渡す） |
+| 修飾キー（task_08b・2026-11-14） | 右 Command 54 / `0x10`（共通ビット `0x100000`）・右 Shift 60 / `0x04`・左 Shift 56 / `0x02`・左 Control 59 / `0x01` を再確認。手元の内蔵キーボードには**右 Option・右 Control のキーが無い**ため 61 / `0x40`・62 / `0x2000` は文書値のまま（外付けキーボードで実測できたら追記）。**CapsLock を 2 回押しても listen-only の tap に FlagsChanged（vk 57）は 1 件も届かなかった**（入力ソースはことえり。CapsLock が入力ソースの切替に割り当てられている等の可能性・原因は未確定）。CapsLock は常に素通しのため実装への影響は無い | task_08b |
 | スレッド | tap のコールバック（CFRunLoop のスレッド）から `NSWorkspace.frontmostApplication` と `TISCopyCurrentKeyboardInputSource` を呼べ、前面の切替にも追従した | §5.4 |
 | Tk の `after` | mainloop 中にメインスレッドが 1.5 秒止まると、別スレッドからの `after` の呼び出しも約 1.3 秒ブロックした。mainloop の外では `RuntimeError` | §5.1 の根拠 |
 | メインスレッドの停止 | メニューを開いたまま・窓のドラッグ中もメインスレッドの `after(10)` の刻みは 0.2 秒以上止まらず、キューの排出の遅延は最大 0.047 秒 | §5.1 |
@@ -117,7 +118,7 @@ keyseq/infrastructure/os_backend/
 | Tk の修飾 keysym | Command = `Meta_L` / `Meta_R`、Option = `Alt_L`、Control = `Control_L`、Shift = `Shift_L` / `Shift_R`、fn = `Super_L` | §5.3（task_09） |
 | マウスのボタン | 右クリック = `<Button-3>`（中クリックは未実測） | §4 |
 | fn | fn 単独の押下・離しで FlagsChanged（vk 63・フラグ `0x800000`）に加えて vk 179 の down / up が届く。F キー（例 vk 109）には fn のフラグ `0x800000` が付く | task_08（fn を修飾キーと誤認しない） |
-| 未実測 | 右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged（押していない）→ task_08。テンキーの vk・Tk の keycode（手元に無い）→ task_09。英数 / かな・JIS 専用キーの受信と Tk の記録（US 配列の機種）→ JIS キーボードを用意できたとき（§9 の 10）。中クリックの番号（押していない）→ task_11。自動リピートの値 → task_08 | 各タスク |
+| 未実測 | 右 Option 61・右 Control 62（キーの無い機種・task_08b で確認できず）→ 外付けキーボードを用意できたとき。CapsLock 57 が届く条件（task_08b で届かず）→ 必要になったとき。テンキーの vk・Tk の keycode（手元に無い）→ task_09。英数 / かな・JIS 専用キーの受信と Tk の記録（US 配列の機種）→ JIS キーボードを用意できたとき（§9 の 10）。中クリックの番号（押していない）→ task_11 | 各タスク |
 | Dock のアイコン | `iconphoto` で Dock のアイコンが変わる（ユーザー目視） | §5.4 |
 | 窓 | `overrideredirect` は効く。`winfo_id` / `wm frame` の値を pyobjc のオブジェクトとして扱うとプロセスが落ちる。NSWindow は `NSApp.windows()` の `TKWindow` の位置（Cocoa の座標は下が原点）で対応が取れた。`wm attributes` に `-transparentcolor` は無く `-transparent` がある | §5.4（task_11） |
 | Tk 9 の長さ | task_05b の Canvas・PanedWindow の `sashwidth` のほか、PanedWindow の `handlepad` / `handlesize`、Scale の `length` / `sliderlength` / `width` も単位つき。アプリはこれらを使っていない（grep 0 件） | 対応不要 |

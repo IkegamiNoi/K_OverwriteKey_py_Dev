@@ -4,45 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-13T18:30:00
+last_updated: 2026-11-14T10:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/task-08-progression-2214c7`（Windows の worktree `task-08-progression-2214c7`・task_08 のコミット）。Mac の worktree は `claude/task-06-progression-a047bd`。push はユーザー。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/continue-0b2dfa`（Mac の worktree `continue-0b2dfa`・task_08b のコミット）。push はユーザー。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_08（フックのディスパッチャ・暫定 57 §5.1.1）完了（Windows 検証 pass・reviewer 採用・Windows 目視 OK）。task_08b（CGEventTap・受信の vk の表・CapsLock は素通し）を起票済み。次は task_08b の実装を **Mac で**行う（2026-11-13 ユーザー判断: Quartz を実物で検証し、probe の実測・目視と同じ場で回すため）。**
-mode: implementing
+focus: **phase 75 段階 ③。task_08b（CGEventTap・受信の vk の表・修飾キーの状態）を Mac で実装・検証 pass・reviewer 修正して採用・probe 実測を §4.1 へ記録・コミット済み。残りは Mac の実機目視 ①〜⑥（ユーザー）と Windows での tests・smoke 1 回 → 完了判定。**
+mode: pending_review
 
 ## last_action
-ts: 2026-11-13T18:00:00
+ts: 2026-11-14T10:00:00
 who: main
 summary: |
-  実施: task_08 = `presentation/hook_dispatcher.py`（即時版 / キュー版・上限 64・期限 1 秒・世代・優先）・`OsBackend.queued_hook_dispatch`（macOS True）・HookController（稼働番号・切替の予約番号・過負荷の印と 1 回の停止・`hook.overload.*` の警告・stop_hook で invalidate）・KeyCaptureHook（dispatch 注入・素通し中の集合）・App の配線。infrastructure（os_backend の項目 1 つ）と presentation を跨ぐ。codex-delegating-implementer（Sol + Luna サブエージェント使用）。新契約で壊れる既存テスト（tests_ui 3・tests 1）の最小追従をメイン判断で許可。
-  reviewer: 採用（参考 1 = 解除と競合した素通し中の残留 → メインで `_handle is not None` のときだけ追加に修正・対象テスト再実行 OK / 参考 2 = 排出中のモーダルで排出が止まる → 08b の Mac 実機で確認 / 参考 3 = 予約番号の加算の競合は実害小 / hook_controller.py 404 → 459 行・分割はしていない〔報告のみ〕）。
-  codebase_map の hook_controller・key_capture_hook・hook_dispatcher・os_backend 節を追従（メイン）。
-  完了判定: Windows の検証 pass・reviewer 採用・Windows 目視 OK（ユーザー）→ task_08 完了。
+  実施: task_08b = `macos/key_table.py`・`modifier_state.py`・`event_tap.py`（新規）・`macos/backend.py` のフック 3 メソッドと合成（infrastructure の `macos/` 限定）。codex-delegating-implementer（Sol + Luna サブエージェント使用・自己申告）。既存の `test_macos_stub_contracts_and_factory`（旧スタブの OSError 前提。権限ありの Mac で実 tap が作られ失敗）を偽の EventTap で開始・停止を確かめる形へメインが修正。
+  reviewer: 修正して採用。中 = 表に無い vk を抑止できない → ユーザー判断「仕様どおり直す」（素通しは CapsLock 57・fn 63 だけ）。低 = `_pressed_keys` 削除・未知の flagsChanged は素通し・テストの reload 廃止 → codex-implementer で修正。
+  probe（2026-11-14）: 自動リピート = 初回 0・以降 1 / 右 Command 54 `0x10` 等を再確認 / 右 Option・右 Control は内蔵キーボードにキーが無く未実測（文書値のまま）/ CapsLock 2 回押下で FlagsChanged が 1 件も届かず（原因未確定・素通しなので影響なし）→ 暫定 57 §4.1 に追記。
+  codebase_map の os_backend 節（macos 4 ファイル）を追従（メイン）。
 result_files:
-  - keyseq/presentation/hook_dispatcher.py（新規）・app.py・controllers/hook_controller.py・key_capture_hook.py
-  - keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py
-  - keyseq/shared/i18n/locales/ja.json・en.json
-  - tests/test_hook_dispatcher.py（新規）・test_hook_coordinator.py・test_key_capture_hook.py・test_os_backend_contracts.py・test_call_link_lifecycle.py
-  - tests_ui/test_app_ime_shutdown.py・test_hook_controller_reserved_actions.py・test_sequence_control_review_fixes.py
-  - instructions/common/codebase_map.md
+  - keyseq/infrastructure/os_backend/macos/backend.py・event_tap.py・key_table.py・modifier_state.py
+  - tests/test_macos_key_table.py・test_macos_modifier_state.py・test_macos_keyboard_backend.py（新規）・test_os_backend_contracts.py
+  - instructions/phase/75_mac_support/diagnostics/probe_tap_08b.py（新規）
+  - instructions/history/57_mac_support.md（§4.1）・instructions/common/codebase_map.md
 verified:
-  compile: clean
-  tests: pass 2022（失敗 0・エラー 0・skip 7・+25）
-  tests_ui: pass 1271（失敗 0・エラー 0）
-  smoke: pass
-  visual_windows: OK（ユーザー）
+  compile: clean（Mac）
+  tests_mac: 2008 件・失敗 6・エラー 10・skip 28（基準線どおり・既知のみ）
+  smoke_mac: pass
+  tests_windows: not_run
+  visual_mac: not_run
 
 ## next_action
-- 前提（ユーザー作業）: Windows のブランチ `claude/task-08-progression-2214c7` を push → Mac の worktree（`claude/task-06-progression-a047bd`）へ取り込む（task_08 と 08b の起票が入っていること = `git log` に `task_08b(phase 75): 起票` があるか確認）
-- 次（**Mac で**）: まず task_08 の取り込み後の退行確認（tests が基準線〔失敗 6・エラー 10〕から増えない・smoke pass。tests_ui は通しで走らせない）→ task_08b の実装（`instructions/phase/75_mac_support/tasks/task_08b_macos_event_tap.md`・codex 実装 → verifier〔Mac の `../../../.venv/bin/python` で tests・smoke・対象モジュール〕→ reviewer）→ probe の実測（暫定 57 §4.1 へ追記）→ 目視 ①〜⑥ → 最後に Windows で tests・smoke を 1 回（08b は `macos/` の中だけなので影響確認のみ）
+- Mac の実機目視 ①〜⑥（ユーザー・`tasks/task_08b_macos_event_tap.md` の「確認」節）: ①抑止したキーが前面アプリへ届かず置換先の処理が走る（キーマップ切替など送信を伴わない割り当てで）②停止キーで止まる ③左 Command を抑止しても続く文字キーが Command+文字にならず、外した後に別アプリで通常入力できる ④左 Shift 抑止・右 Shift 素通しで大文字が打て、離す順を変えても修飾が残らない ⑤CapsLock・fn は従来どおり ⑥フック停止で tap が外れる
+- 目視 OK 後: Windows で `-m compileall` / `-m unittest discover -s tests`（2022 + 追加分・失敗 0）/ `-m tests.smoke_app`（verifier）→ task_08b 完了判定 → current.md 更新 → 次は task_09（送信・テンキー・TkKeyTranslator）の起票
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
-- JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき
+- 右 Option・右 Control の実測は外付けキーボード、JIS の実測（§5.3.1）は JIS キーボードを用意できたとき
 - Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）
 
 ## blockers

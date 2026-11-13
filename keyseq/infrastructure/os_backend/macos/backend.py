@@ -1,18 +1,84 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from threading import RLock
+from typing import Callable
+
 from keyseq.domain.default_profile import MACOS_DEFAULT_PROFILE
 from keyseq.infrastructure.os_backend.contracts import Capabilities, KeySend, OsBackend, ResolveLayoutScanCode
 
+from .event_tap import EventTap, KeyEvent
+from .key_table import vk_for_name
+
+
+@dataclass(frozen=True)
+class _Hook:
+    handle: object
+    callback: Callable[[object], bool | None]
+    suppress: bool
+    vk: int | None
+
 
 class MacKeyboardBackend:
+    def __init__(self) -> None:
+        self._hooks: list[_Hook] = []
+        self._lock = RLock()
+        self._lifecycle = RLock()
+        self._tap: EventTap | None = None
+
     def register_global_hook(self, callback, *, suppress: bool = False) -> object:
-        raise OSError("Global keyboard hooks will be implemented in task_08")
+        return self._register(callback, suppress, None)
 
     def register_key_hook(self, key: str, callback, *, suppress: bool) -> object:
-        raise OSError("Key hooks will be implemented in task_08")
+        vk = vk_for_name(key)
+        if vk is None:
+            raise ValueError(f"Unknown or ambiguous Mac key name: {key!r}")
+        return self._register(callback, suppress, vk)
+
+    def _register(self, callback, suppress: bool, vk: int | None) -> object:
+        hook = _Hook(object(), callback, suppress, vk)
+        with self._lifecycle:
+            with self._lock:
+                first = not self._hooks
+                self._hooks.append(hook)
+                if self._tap is None:
+                    self._tap = EventTap(self._dispatch)
+            if first:
+                try:
+                    self._tap.start()
+                except Exception:
+                    with self._lock:
+                        self._hooks.remove(hook)
+                    raise
+        return hook.handle
 
     def unregister_hook(self, handle: object) -> None:
-        pass
+        with self._lifecycle:
+            with self._lock:
+                found = next((h for h in self._hooks if h.handle is handle), None)
+                if found is None:
+                    return
+                self._hooks.remove(found)
+                stop = not self._hooks
+            if stop and self._tap is not None:
+                self._tap.stop()
+
+    def _dispatch(self, vk: int, event: KeyEvent) -> bool:
+        with self._lock:
+            hooks = tuple(self._hooks)
+        for hook in hooks:
+            if hook.suppress and hook.vk is None and not hook.callback(event):
+                return False
+        for hook in hooks:
+            if hook.suppress and hook.vk == vk:
+                if event.event_type == "down":
+                    hook.callback(event)
+                return False
+        for hook in hooks:
+            if not hook.suppress and (hook.vk is None or hook.vk == vk):
+                if hook.vk is None or event.event_type == "down":
+                    hook.callback(event)
+        return True
 
     def resolve_send(self, key: str, resolve_layout_scan_code: ResolveLayoutScanCode) -> KeySend:
         raise NotImplementedError

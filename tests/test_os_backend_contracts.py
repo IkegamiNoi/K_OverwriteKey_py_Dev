@@ -54,8 +54,11 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertTrue(backend.queued_hook_dispatch)
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
-        with self.assertRaises(OSError):
-            backend.keyboard.register_global_hook(lambda _event: None)
+        with patch("keyseq.infrastructure.os_backend.macos.backend.EventTap") as tap_factory:
+            handle = backend.keyboard.register_global_hook(lambda _event: None)
+            backend.keyboard.unregister_hook(handle)
+        tap_factory.return_value.start.assert_called_once_with()
+        tap_factory.return_value.stop.assert_called_once_with()
 
     def test_get_backend_creates_macos_stub(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
