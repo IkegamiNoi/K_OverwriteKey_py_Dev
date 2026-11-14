@@ -11,7 +11,7 @@ last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09 実�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09（送信・JIS の受信名・テンキー）を Mac で実装済み（reviewer 修正して採用・修正反映済み）。残り = Windows 検証（tests・tests_ui・smoke）と Mac 実機目視 1〜6 → 完了判定 → task_09a。**
+focus: **phase 75 段階 ③。task_09 は Mac で実装・検証・reviewer 修正して採用・Mac 実機目視 1〜6 OK。残り = Windows 検証（verifier・tests・tests_ui を 1 本・smoke）だけ → 完了判定 → task_09a。**
 mode: implementing
 
 ## last_action
@@ -31,11 +31,11 @@ verified:
   smoke_mac: pass
   tests_ui_mac: test_app_ui_flows / test_task05_overlap_ui / test_keymap_list_operations が失敗 3 / 2 / 3 → 0（修正前に計測）
   tests_windows: 未実施
-  visual_mac: 未実施
+  visual_mac: 1〜6 すべて OK（2026-11-14・ユーザー）。テンキーの有無は報告どおり OK 扱い
 
 ## next_action
 - （済）Mac 向けのレイアウト = 暫定 57 v0.8 §5.3.2・task_09b（task_09 の後）
-- task_09 の残り: Mac 実機目視（タスク定義の確認 1〜6）・Windows 検証（verifier・tests・tests_ui を 1 本・smoke）→ 完了判定 → task_09a → task_09b
+- task_09 の残り: Windows 検証（verifier・tests・tests_ui を 1 本・smoke）→ 完了判定 → task_09a → task_09b
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
 - `test_keymap_list_operations` は task_09 の実装後に Mac で失敗 0（合成マウスイベントの 2 件も解消・原因はキー検証側だったと見られる）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
