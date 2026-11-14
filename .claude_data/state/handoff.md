@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.8。§5.3.2 Mac 用のレイアウトの見本・§5.1 物理 Shift の例外を 2026-11-14 に追加）を読む。
-   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.10。§5.1 送るフラグ = 物理側 + 送信側〔v0.9〕・§5.3.3 修飾キーの表示名の適用範囲〔v0.10〕を 2026-11-14 に追加）を読む。
+   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,9 +24,10 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ③。task_08b 完了（2026-11-14・Mac で実装・Windows 検証 pass）。暫定 57 v0.8（Mac 用のレイアウトの見本 §5.3.2・物理 Shift の例外 §5.1）。task_09（送信）・task_09a（Tk の取得・表示・入力ソース）起票済み。次は task_09 の実装を Mac で行う（2026-11-14 ユーザー判断）。順序 = task_09 → 09a → 09b → 10 → 11。**
-Windows のブランチ = `claude/continue-a0cc59`（task_08b の完了記録・暫定 57 v0.8・task_09 / 09a 起票のコミット）/ Mac の worktree = `claude/continue-0b2dfa`（task_08b の実装。**Windows のブランチの取り込みが先 = ユーザー作業**）。push と main へのマージはユーザー（PR は作らない）。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_08b 後 2008 件・失敗 6・エラー 10・skip 28）。
+**phase 75 段階 ③。task_09（Mac 目視 OK）・09a（Mac 再目視 OK・3 は idea_57 と task_09c へ分離）・09c（修飾キーの表示名の適用範囲・暫定 57 v0.10 §5.3.3・reviewer 採用）を Mac で実装済み。残り = 09c の Mac 実機目視・09 / 09a / 09c の Windows 検証・Caps Lock の未決。**
+**presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
+Mac の worktree = `claude/continue-f5ebb7`（task_09c 実装 `f8a976a1` まで・未 push）。push と main へのマージはユーザー（PR は作らない）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_09c 後 2057 件・失敗 6・エラー 10・skip 28）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -39,8 +40,8 @@ Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_basel
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
 直近の実測（**Windows = task_08b 完了時・2026-11-14**）:
 compile **clean** / tests **2065 pass**（skip 7）/ tests_ui **1271 pass**（task_08 時）/ smoke **pass**（verifier）。tests_ui の `invalid command name "...apply_if_already_sized"` は破棄後の after のノイズで失敗ではない。
-**Mac（2026-11-13 再計測・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: tests 1940 件・失敗 6・エラー 10・skip 28 / tests_ui はモジュールごと（`mac_test_baseline.md` の手順）/ smoke pass。
-**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕→ 2065〔task_08b〕 / tests_ui: 1270 → 1271）。Mac の基準線 1940 件は task_08 の取り込み前の値（取り込み後は増える）。
+**Mac（task_09c 後・2026-11-14・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2057 件・失敗 6・エラー 10・skip 28（既知のみ）/ tests_ui はモジュールごと 15 本 失敗 0 / smoke pass。既知 1 件 = `tests_ui/test_prohibited_assign_keys_ui.py:166`（Caps Lock の未決）。
+**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕→ 2065〔task_08b〕 / tests_ui: 1270 → 1271）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,12 +56,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 前提（ユーザー作業）: `claude/continue-a0cc59` を push → Mac の worktree へ取り込む（`git log` に `task_09・09a(phase 75): 起票` があること）
-- 次（**Mac で**）: 取り込み後の退行確認（tests が失敗 6・エラー 10 から増えない・smoke pass）→ task_09 の実装（`instructions/phase/75_mac_support/tasks/task_09_macos_key_send.md`・委任は codex-delegating-implementer の想定）→ verifier（Mac と Windows）→ reviewer → Mac 目視（置換・`!`・`ctrl+c`・文字送信・キュー版）
-- 続けて task_09a（`task_09a_macos_tk_capture_display.md`・目視に 08b から移した ③④・右クリックのクリア・Command+Option+P）→ task_09b（Mac 用のレイアウトの見本・`jis_mac` に `yen` / `ro` を置く）
-- `test_keymap_list_operations` の合成マウスイベント 2 件の調査・JIS の実測（§5.3.1 の文書値の確定）は JIS キーボードを用意できたとき・右 Option / 右 Control の実測は外付けキーボードで
-- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
-- 3 言語目以降は idea_56 / 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」
+- **【確認事項・ユーザー】(1) task_09c の Mac 実機目視**: キーマップ一覧の切替キー・停止 / トグルキーの欄（幅 8 文字で `left Command` が欠けないか）・キーマップ編集 / まとめて設定の切替キーの欄・キーボードUIのタイトル・切替キーの重複のエラーで `Command` / `Option` と出るか。保存した設定のキー名は `windows` / `alt` のままか。
+- **【確認事項・ユーザー】(2) Caps Lock の未決**: Mac のキー表に `caps lock` が無いため、既存の Caps Lock の切替キーが「不明なキー名」で再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py:166`・正本 `features.md` §4.6「既存データは拒否しない」と食い違い）。案 A = Mac のキー表に `caps lock` を vk 57 の検証・送信だけの名前として足す / 案 B = Mac の仕様差として暫定 57 に記録しテストを Mac で skip。**メインがコードを確かめて推奨を付けてから**ユーザーへ出す。
+- (3) task_09・09a・09c の Windows 検証: ユーザーが push → Windows で verifier（compile・tests 失敗 0・tests_ui 1 本ずつ失敗 0・smoke）→ 完了判定。
+- 続き: task_09b（Mac 用のレイアウトの見本 us_mac / jis_mac）→ task_10 → task_11。idea_57（置換先に修飾キーを記録・Windows も同じ）は検討段階。
+- 別件: ブランチ `claude/gracious-brahmagupta-2e05b1` と `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）/ 3 言語目以降は idea_56
 
 ## 運用インフラ
 
