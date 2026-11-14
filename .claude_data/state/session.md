@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T13:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
+last_updated: 2026-11-14T15:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09 実装まで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09a は Mac 目視 1 回目の不具合 3 件を修正済み（暫定 57 v0.9 §5.1 = 送るフラグは物理側 + 送信側・一覧の hotkey 表示・Command+Option+P・reviewer 修正して採用・tests 2057 件 基準線どおり）。残り = Mac 再目視 3・4③④・5・Windows 検証（task_09 と合わせて）。未決 = Mac で既存の Caps Lock の切替キーが「不明なキー名」で再検証を通らない（仕様の判断待ち）。**
+focus: **phase 75 段階 ③。task_09a は Mac 再目視で 3 以外 OK（3 = キーボードUIの置換先の修飾キー = 当初からの仕様 → idea_57 へ分離・取得欄の windows / alt → task_09c）。暫定 57 v0.10 §5.3.3（修飾キーの表示名の適用範囲）を確定・task_09c 起票（reviewer 修正して採用・反映済み）。次 = task_09c の実装 → task_09 / 09a / 09c の Windows 検証。未決 = Mac で既存の Caps Lock の切替キーが「不明なキー名」で再検証を通らない。**
 mode: implementing
 
 ## last_action
