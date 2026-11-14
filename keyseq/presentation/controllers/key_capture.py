@@ -6,6 +6,7 @@ from tkinter import messagebox
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     capture_active_text, capture_idle_text,
@@ -170,7 +171,7 @@ class SingleKeyCaptureController:
                 label = self._label
                 messagebox.showerror(
                     tr("capture.error.title"),
-                    tr("capture.error.conflict", label=label, other_name=other_name, key=key),
+                    tr("capture.error.conflict", label=label, other_name=other_name, key=display_modifier_names(key)),
                 )
                 return "break"
 
@@ -179,7 +180,7 @@ class SingleKeyCaptureController:
             self._app.input_gateway.validate_key_name(key)
         except Exception as e:
             messagebox.showerror(
-                tr("capture.error.title"), tr("capture.error.unknown_key", key=key, error=e),
+                tr("capture.error.title"), tr("capture.error.unknown_key", key=display_modifier_names(key), error=e),
             )
             return "break"
 

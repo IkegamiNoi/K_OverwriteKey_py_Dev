@@ -5,6 +5,7 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Any, Callable
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_FILE_LINE,
     ACTION_TYPE_SYSTEM,
@@ -308,7 +309,7 @@ class ActionControlFields:
         self.call_target_var.set(placeholder)
 
     def _missing_call_display(self) -> str:
-        return tr("action_dialog.system.missing_target", target=self._missing_call_target)
+        return tr("action_dialog.system.missing_target", target=display_modifier_names(self._missing_call_target))
 
     def _build_call_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:
         display = self.call_target_var.get()
@@ -317,7 +318,7 @@ class ActionControlFields:
             if self._missing_call_target and display == self._missing_call_display():
                 error = self.call_check(self._missing_call_target) if self.call_check else None
                 messagebox.showerror(tr("action_dialog.error.input_title"), error or
-                                     tr("action_dialog.error.call_target_missing", target=self._missing_call_target))
+                                     tr("action_dialog.error.call_target_missing", target=display_modifier_names(self._missing_call_target)))
             else:
                 messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.call_target_required"))
             return None
@@ -342,7 +343,7 @@ class ActionControlFields:
                 error = (self.control_target_validator(self._missing_call_target)
                          if self.control_target_validator else None)
                 messagebox.showerror(tr("action_dialog.error.input_title"), error or
-                                     tr("action_dialog.error.control_target_missing", target=self._missing_call_target))
+                                     tr("action_dialog.error.control_target_missing", target=display_modifier_names(self._missing_call_target)))
             else:
                 messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.control_target_required"))
             return None

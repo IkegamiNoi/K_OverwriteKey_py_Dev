@@ -760,3 +760,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 再目視: 4③④・5 OK。3 のうちキーボードUIで置換先に修飾キーを記録できないのは `keyboard_window.py:618` の当初（2026-03）からの読み飛ばしで Windows も同じ → idea_57 へ分離（ユーザー「推奨どおり」）。取得の欄で `windows` / `alt` のまま → 表示の適用範囲を仕様に定める。
 - §5.3.3（v0.10）: 差し替え表は組み立てで 1 回注入・各箇所は `key_symbols` を通すだけ。適用 = 一覧・停止 / トグル・記録専用の欄（表示用の変数を別に持つ）・キーボードUIのタイトル・キー名を差し込むすべての文言。適用しない = 手で打てる欄。記号の表示（正本 §4.6）とは別の規則。Codex 敵対的レビュー 1 件（実在しない「キーマップ編集のキー置換一覧」）を反映して確定（ユーザー）。正本 §4.6 の同じ記述はフェーズ末に直す。
 - task_09c 起票レビュー（reviewer 修正して採用）: 中 3（文言の対象を「すべて」へ・比較は元のキー名・停止 / トグルの表示用の変数は `ui_vars` に 1 回）・低 3 を反映（ユーザー「推奨どおり反映」）。
+
+### 【task_09c 実装】reviewer 採用（2026-11-14・Mac）
+- codex-delegating-implementer（サブエージェント 2 名・自己申告）。判定候補: keyboard_layouts.py（レイアウトの id）・save_plan_execution.py（保存計画の識別子）は対象外、action_control_fields / keymap_switch_batch / call_context / hotkey_service / sequence_steps / input_acceptance は対象（値がトリガーキー・切替キー・hotkey の構成キー）。
+- メイン修正 1 件: 新規 tests_ui のテストデータに keymaps の km1 が無く切替キーが引けなかった（`keymap_service.py:219`）。
+- reviewer 採用。低 3 件は任意のため反映しない（保留）: L1 ダイアログの `key_var` に master が無い（既存）・L2 `call_context` の chain を要素ごとでなく連結後に置き換え（要素はキー名だけで実害なし）・L3 正規表現が名前の語にも効くがキー名の箇所にだけ適用。

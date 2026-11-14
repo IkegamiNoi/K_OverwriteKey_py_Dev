@@ -7,6 +7,7 @@ from typing import Any
 from keyseq.application.key_overlap import analyze_key_overlaps
 from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.shared.i18n import tr
 
 
@@ -33,7 +34,7 @@ def validate_switch_batch(
         )
         current_key = current_switches.get(keymap_id, "")
         if is_prohibited_assign_key(key) and key != current_key:
-            return index, tr("application.keymap_switch_batch.prohibited", key=key)
+            return index, tr("application.keymap_switch_batch.prohibited", key=display_modifier_names(key))
         error = _validate_row_key(
             key,
             index,
@@ -105,16 +106,16 @@ def _validate_row_key(
     if not key:
         return row_number, tr("application.keymap_switch_batch.required")
     if key == stop_key and stop_key:
-        return row_number, tr("application.keymap_switch_batch.conflict_stop", key=key)
+        return row_number, tr("application.keymap_switch_batch.conflict_stop", key=display_modifier_names(key))
     if key == toggle_key and toggle_key:
-        return row_number, tr("application.keymap_switch_batch.conflict_toggle", key=key)
+        return row_number, tr("application.keymap_switch_batch.conflict_toggle", key=display_modifier_names(key))
     if key in trigger_keys:
-        return row_number, tr("application.keymap_switch_batch.conflict_trigger", key=key)
+        return row_number, tr("application.keymap_switch_batch.conflict_trigger", key=display_modifier_names(key))
     if key in source_keys:
-        return row_number, tr("application.keymap_switch_batch.conflict_mapping", key=key)
+        return row_number, tr("application.keymap_switch_batch.conflict_mapping", key=display_modifier_names(key))
     existing_target_name = external_switches.get(key)
     if existing_target_name:
-        return row_number, tr("application.keymap_switch_batch.in_use_target", key=key, name=existing_target_name)
+        return row_number, tr("application.keymap_switch_batch.in_use_target", key=display_modifier_names(key), name=existing_target_name)
     if key in previous_keys:
-        return row_number, tr("application.keymap_switch_batch.in_use", key=key)
+        return row_number, tr("application.keymap_switch_batch.in_use", key=display_modifier_names(key))
     return None

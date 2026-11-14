@@ -8,7 +8,7 @@ from typing import Callable
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_identifier, normalize_key_name
-from keyseq.domain.key_symbols import display_key_name
+from keyseq.domain.key_symbols import display_key_name, display_modifier_names
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.numpad_keys import is_numpad_key_name
@@ -663,4 +663,5 @@ class KeyboardWindow(tk.Toplevel):
 
     def _update_title(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")
-        self.title(keyboard_window_title(layout_name, self._editing_source_key))
+        editing_key = display_modifier_names(self._editing_source_key) if self._editing_source_key else None
+        self.title(keyboard_window_title(layout_name, editing_key))

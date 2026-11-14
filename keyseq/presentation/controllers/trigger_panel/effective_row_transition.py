@@ -7,6 +7,7 @@ from keyseq.domain.trigger_duplicates import (
     effective_rows_by_key,
     replaced_effective_keys,
 )
+from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.shared.i18n import tr
 
 
@@ -27,7 +28,7 @@ def apply_effective_row_transition(
     removed = effective_rows_by_key(before).keys() - effective_rows_by_key(after).keys()
     for key in sorted(replaced):
         if app.sequence_runner.has_active_execution(key):
-            app._set_flash_message(tr("trigger_panel.effective_row.running", key=key))
+            app._set_flash_message(tr("trigger_panel.effective_row.running", key=display_modifier_names(key)))
             return False
     apply()
     for key in sorted(replaced | removed):

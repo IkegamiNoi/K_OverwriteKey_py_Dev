@@ -11,6 +11,7 @@ last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09 実�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
+presence: away（戻る予定 未定）
 focus: **phase 75 段階 ③。task_09a は Mac 再目視で 3 以外 OK（3 = キーボードUIの置換先の修飾キー = 当初からの仕様 → idea_57 へ分離・取得欄の windows / alt → task_09c）。暫定 57 v0.10 §5.3.3（修飾キーの表示名の適用範囲）を確定・task_09c 起票（reviewer 修正して採用・反映済み）。次 = task_09c の実装 → task_09 / 09a / 09c の Windows 検証。未決 = Mac で既存の Caps Lock の切替キーが「不明なキー名」で再検証を通らない。**
 mode: implementing
 

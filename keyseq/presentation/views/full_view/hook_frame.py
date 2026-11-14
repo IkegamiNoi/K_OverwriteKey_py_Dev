@@ -30,7 +30,7 @@ class FullHookFrame(ttk.LabelFrame):
         self.full_hook_line2.pack(side="top", fill="x")
         # フック停止トリガー（フル：取得/クリアあり）
         ttk.Label(self.full_hook_line2, text=tr("view.hook.stop_key_label")).grid(row=0, column=0, sticky="w")
-        self.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
+        self.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.stop_key_display_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
         self.stop_key_capture_btn = ttk.Button(self.full_hook_line2, text=capture_idle_text(), command=app.toggle_stop_key_capture)
         self.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
@@ -39,7 +39,7 @@ class FullHookFrame(ttk.LabelFrame):
 
         # 一時停止/再開キー（フル：取得/クリアあり）
         ttk.Label(self.full_hook_line2, text=tr("view.hook.toggle_key_label")).grid(row=1, column=0, sticky="w")
-        self.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
+        self.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.toggle_key_display_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
         self.toggle_key_capture_btn = ttk.Button(self.full_hook_line2, text=capture_idle_text(), command=app.toggle_toggle_key_capture)
         self.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))

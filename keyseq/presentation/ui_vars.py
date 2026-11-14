@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.presentation.keyboard_layouts import DEFAULT_LAYOUT_ID
 from keyseq.shared.i18n import resolve_language
 
@@ -14,6 +15,18 @@ class UiVars:
         self.keyboard_always_on_top_var = tk.BooleanVar(master=master, value=False)
         self.stop_key_var = tk.StringVar(master=master, value=str(master.data.get(HOOK_STOP_KEY, "")))
         self.toggle_key_var = tk.StringVar(master=master, value=str(master.data.get(HOOK_TOGGLE_KEY, "")))
+        self.stop_key_display_var = tk.StringVar(
+            master=master, value=display_modifier_names(self.stop_key_var.get()),
+        )
+        self.toggle_key_display_var = tk.StringVar(
+            master=master, value=display_modifier_names(self.toggle_key_var.get()),
+        )
+        self.stop_key_var.trace_add(
+            "write", lambda *_: self.stop_key_display_var.set(display_modifier_names(self.stop_key_var.get())),
+        )
+        self.toggle_key_var.trace_add(
+            "write", lambda *_: self.toggle_key_display_var.set(display_modifier_names(self.toggle_key_var.get())),
+        )
         self.hook_keys_individual_var = tk.BooleanVar(
             master=master,
             value=bool(master.data.get("hook_keys_individual", False)),
