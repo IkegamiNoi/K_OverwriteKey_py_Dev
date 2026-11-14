@@ -86,10 +86,26 @@ class MacKeyboardBackendTests(unittest.TestCase):
         key_hook.assert_not_called()
 
     def test_unknown_key_fails_without_starting_tap(self):
-        for name in ("unknown", "caps lock", "fn", "num 0"):
+        # ``num 0`` is a supported keypad key in task09.
+        for name in ("unknown", "caps lock", "fn"):
             with self.assertRaises(ValueError):
                 self.keyboard.register_key_hook(name, Mock(), suppress=True)
         self.tap_class.assert_not_called()
+
+    def test_numpad_key_is_a_known_hook_name(self):
+        handle = self.keyboard.register_key_hook("num 0", Mock(), suppress=True)
+        self.tap_class.assert_called_once()
+        self.keyboard.unregister_hook(handle)
+
+    def test_key_hook_uses_layout_at_registration(self):
+        self.keyboard.set_layout_key_ids(frozenset({"yen"}))
+        callback = Mock()
+        self.keyboard.register_key_hook("[", callback, suppress=False)
+        self.keyboard.set_layout_key_ids(frozenset())
+        self.keyboard._dispatch(33, key_event())
+        callback.assert_not_called()
+        self.keyboard._dispatch(30, key_event())
+        callback.assert_called_once()
 
     def test_import_does_not_load_pyobjc(self):
         original_import = builtins.__import__
@@ -113,18 +129,41 @@ class MacKeyboardBackendTests(unittest.TestCase):
                 sys.modules.pop(name, None)
             sys.modules.update(originals)
 
+    def test_physical_flags_logs_only_first_failure(self):
+        with patch.object(backend, "_PHYSICAL_FLAGS_FAILURE_LOGGED", False):
+            with self.assertLogs(backend.__name__, level="ERROR") as captured:
+                self.assertEqual(backend._physical_flags(SimpleNamespace(
+                    CGEventSourceFlagsState=Mock(side_effect=OSError("first")),
+                    kCGEventSourceStateHIDSystemState=7,
+                )), 0)
+                self.assertEqual(backend._physical_flags(SimpleNamespace(
+                    CGEventSourceFlagsState=Mock(side_effect=OSError("second")),
+                    kCGEventSourceStateHIDSystemState=7,
+                )), 0)
+            self.assertEqual(len(captured.records), 1)
+
 
 def fake_quartz():
     q = SimpleNamespace(
         kCGEventKeyDown=10, kCGEventKeyUp=11, kCGEventFlagsChanged=12,
         kCGEventTapDisabledByTimeout=0xFFFFFFFE, kCGEventTapDisabledByUserInput=0xFFFFFFFF,
         kCGEventSourceUserData="mark", kCGKeyboardEventKeycode="vk",
+        kCGEventSourceStateHIDSystemState=7, kCGHIDEventTap=8,
         kCGSessionEventTap=1, kCGHeadInsertEventTap=0, kCGEventTapOptionDefault=0,
         kCFRunLoopCommonModes="common", kCFRunLoopDefaultMode="default",
     )
     q.CGEventGetIntegerValueField = lambda event, field: event.get(field, 0)
     q.CGEventGetFlags = lambda event: event.get("flags", 0)
     q.CGEventSetFlags = Mock(side_effect=lambda event, flags: event.update(flags=flags))
+    q.CGEventCreateKeyboardEvent = Mock(side_effect=lambda _source, vk, down: {
+        "vk": vk, "down": down,
+    })
+    q.CGEventSetIntegerValueField = Mock(
+        side_effect=lambda event, field, value: event.update({field: value})
+    )
+    q.CGEventPost = Mock()
+    q.CGEventKeyboardSetUnicodeString = Mock()
+    q.CGEventSourceFlagsState = Mock(return_value=0)
     for name in ("CGEventTapCreate", "CGEventTapEnable", "CFRunLoopGetCurrent",
                  "CFRunLoopStop", "CFMachPortInvalidate", "CFRunLoopAddSource",
                  "CFRunLoopRemoveSource", "CFMachPortCreateRunLoopSource", "CFRunLoopRunInMode"):
@@ -309,6 +348,185 @@ class EventTapTests(unittest.TestCase):
             self.tap.stop()
         self.q.CFRunLoopStop.assert_called_once()
         self.tap._thread.join.assert_called_once_with(timeout=1.0)
+
+    def test_layout_changes_received_name(self):
+        selected = {"jis": False}
+        tap = EventTap(self.callback, quartz=self.q,
+                       is_jis_layout=lambda: selected["jis"])
+        tap._tap = self.native_tap
+        event = {"vk": 50, "flags": 0}
+        tap._handle_event(None, self.q.kCGEventKeyDown, event, None)
+        self.assertEqual(self.callback.call_args.args[1].name, "`")
+        selected["jis"] = True
+        tap._handle_event(None, self.q.kCGEventKeyDown, event, None)
+        self.assertEqual(self.callback.call_args.args[1].name, "zenkaku_hankaku")
+
+
+class MacKeyboardSendTests(unittest.TestCase):
+    def setUp(self):
+        self.q = fake_quartz()
+        self.keyboard = backend.MacKeyboardBackend(quartz=self.q)
+
+    def resolve(self, key, scan_code=None):
+        def resolver(_name):
+            if scan_code is None:
+                raise ValueError("no layout key")
+            return scan_code
+        return self.keyboard.resolve_send(key, resolver)
+
+    def test_resolve_send_uses_shift_then_name_then_unique_layout_scan_code(self):
+        shifted = self.resolve("!")
+        self.assertEqual((shifted.kind, shifted.values), ("mac_shift", (18,)))
+        named = self.resolve("a", 31)
+        self.assertEqual((named.kind, named.values), ("mac", (0,)))
+        layout = self.resolve("custom key", 30)
+        self.assertEqual((layout.kind, layout.values), ("mac", (0,)))
+
+    def test_resolve_send_rejects_ambiguous_and_missing_layout_scan_codes(self):
+        for name, scan in (("ambiguous", 82), ("missing", 112),
+                           ("too small", 0), ("too large", 256),
+                           ("boolean", True), ("string", "30")):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "Unknown key name"):
+                self.resolve(name, scan)
+
+    def test_send_marks_events_and_tracks_only_its_own_modifier_flags(self):
+        ctrl = self.resolve("ctrl")
+        letter = self.resolve("c")
+        self.keyboard._tap = EventTap(self.keyboard._dispatch, quartz=self.q)
+        physical = self.keyboard._tap._modifiers
+        physical.on_flags_changed(59, 0x01)
+        self.assertTrue(physical.mark_suppressed(59, True))
+        self.assertEqual(physical.rewrite_flags(0x40001), 0)
+        self.keyboard.press_send(ctrl)
+        self.keyboard.press_send(letter)
+        first, second = [call.args[1] for call in self.q.CGEventPost.call_args_list]
+        self.assertEqual(first["mark"], OWN_EVENT_MARK)
+        self.assertEqual(second["mark"], OWN_EVENT_MARK)
+        self.assertEqual(second["flags"], 0x40000 | 0x01)
+        self.q.CGEventSourceFlagsState.return_value = 0x40000
+        self.keyboard.press_send(letter)
+        third = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(third["flags"], 0x40000 | 0x01)
+        self.keyboard.release_send(ctrl)
+        self.keyboard.press_send(letter)
+        fourth = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(fourth["flags"], 0)
+        for call in self.q.CGEventPost.call_args_list:
+            self.assertEqual(call.args[1]["mark"], OWN_EVENT_MARK)
+
+    def test_left_and_right_modifiers_are_tracked_independently(self):
+        left, right, letter = (self.resolve("ctrl"), self.resolve("right ctrl"),
+                               self.resolve("c"))
+        self.keyboard.press_send(left)
+        self.keyboard.press_send(right)
+        self.keyboard.press_send(letter)
+        both = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(both["flags"], 0x40000 | 0x01 | 0x2000)
+        self.keyboard.release_send(left)
+        self.keyboard.press_send(letter)
+        only_right = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(only_right["flags"], 0x40000 | 0x2000)
+        self.keyboard.release_send(right)
+        self.keyboard.press_send(letter)
+        self.assertEqual(self.q.CGEventPost.call_args.args[1]["flags"], 0)
+
+    def test_physical_shift_is_added_only_for_shifted_send(self):
+        self.q.CGEventSourceFlagsState.return_value = 0x20000 | 0x02
+        self.keyboard.press_send(self.resolve("!"))
+        shifted = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(shifted["flags"], 0x20000)
+        self.keyboard.press_send(self.resolve("a"))
+        plain = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(plain["flags"], 0)
+
+    def test_identity_shift_helpers_and_native_hotkey(self):
+        expected = (("left", 75, True), ("right ctrl", 29, True),
+                    ("num enter", 28, True))
+        for name, scan_code, extended in expected:
+            with self.subTest(name=name):
+                self.assertEqual(self.keyboard.identity_of(self.resolve(name)),
+                                 (scan_code, extended))
+        shifted = self.resolve("!")
+        self.assertTrue(self.keyboard.needs_shift(shifted))
+        self.assertFalse(self.keyboard.needs_shift(self.resolve("a")))
+        self.keyboard.press_shift()
+        self.keyboard.release_shift()
+        self.assertEqual([call.args[1]["vk"] for call in self.q.CGEventPost.call_args_list],
+                         [56, 56])
+        self.assertFalse(self.keyboard.send_native_hotkey("ctrl+c", (), lambda _key: None))
+
+    def test_write_text_chunks_by_utf16_units_without_splitting_characters(self):
+        text = "a" * 20 + "😀x"
+        self.keyboard.press_send(self.resolve("ctrl"))
+        self.q.CGEventPost.reset_mock()
+        self.keyboard.write_text(text)
+        calls = self.q.CGEventKeyboardSetUnicodeString.call_args_list
+        self.assertEqual([call.args[2] for call in calls],
+                         ["a" * 20, "a" * 20, "😀x", "😀x"])
+        self.assertEqual([call.args[1] for call in calls], [20, 20, 3, 3])
+        for call in self.q.CGEventPost.call_args_list:
+            self.assertEqual(call.args[1]["mark"], OWN_EVENT_MARK)
+            self.assertEqual(call.args[1]["flags"], 0x40000 | 0x01)
+        self.assertEqual([call.args[1]["down"] for call in self.q.CGEventPost.call_args_list],
+                         [True, False, True, False])
+        self.assertTrue(all(set_call.args[0] is post_call.args[1]
+                            for set_call, post_call in zip(
+                                calls, self.q.CGEventPost.call_args_list)))
+
+    def test_write_text_keeps_utf16_chunks_within_limit(self):
+        text = "😀" * 11 + "z"
+        self.keyboard.write_text(text)
+        calls = self.q.CGEventKeyboardSetUnicodeString.call_args_list
+        chunks = [calls[index].args[2] for index in range(0, len(calls), 2)]
+        lengths = [calls[index].args[1] for index in range(0, len(calls), 2)]
+        self.assertEqual(chunks, ["😀" * 10, "😀z"])
+        self.assertEqual(lengths, [20, 3])
+        self.assertTrue(all(length <= 20 for length in lengths))
+        self.assertEqual("".join(chunks), text)
+
+    def test_layout_selection_affects_sending_names_and_aliases(self):
+        self.keyboard.set_layout_key_ids(frozenset({"yen"}))
+        self.assertEqual(self.resolve("@").values, (33,))
+        for alias, vk in (("windows", 55), ("left shift", 56),
+                          ("left ctrl", 59), ("left alt", 58)):
+            with self.subTest(alias=alias):
+                self.assertEqual(self.resolve(alias).values, (vk,))
+
+    def test_set_layout_key_ids_updates_event_tap_name_lookup(self):
+        seen = []
+        with patch.object(backend, "EventTap") as tap_factory:
+            self.keyboard.register_global_hook(lambda event: seen.append(event) or True)
+            callback = tap_factory.call_args.args[0]
+            jis_lookup = tap_factory.call_args.kwargs["is_jis_layout"]
+        tap = EventTap(callback, quartz=self.q, is_jis_layout=jis_lookup)
+        tap._tap = object()
+        event = {"vk": 50, "flags": 0}
+        tap._handle_event(None, self.q.kCGEventKeyDown, event, None)
+        self.assertEqual(seen[-1].name, "`")
+        self.keyboard.set_layout_key_ids(frozenset({"ro"}))
+        tap._handle_event(None, self.q.kCGEventKeyDown, event, None)
+        self.assertEqual(seen[-1].name, "zenkaku_hankaku")
+
+    def test_window_modifier_queries_return_false_when_quartz_fails(self):
+        window = backend.MacWindowBackend(quartz=self.q)
+        self.q.CGEventSourceFlagsState.side_effect = RuntimeError("unavailable")
+        with self.assertLogs(backend.__name__, level="ERROR"):
+            self.assertFalse(window.is_shift_down())
+            self.assertFalse(window.is_ctrl_alt_win_down())
+
+    def test_window_physical_modifier_queries_use_common_flags(self):
+        window = backend.MacWindowBackend(quartz=self.q)
+        for flags, shift, other in ((0x20000, True, False),
+                                    (0x40000, False, True),
+                                    (0x80000, False, True),
+                                    (0x100000, False, True),
+                                    (0, False, False)):
+            with self.subTest(flags=flags):
+                self.q.CGEventSourceFlagsState.return_value = flags
+                self.assertEqual(window.is_shift_down(), shift)
+                self.assertEqual(window.is_ctrl_alt_win_down(), other)
+        self.assertTrue(all(call.args == (7,) for call in
+                            self.q.CGEventSourceFlagsState.call_args_list))
 
 
 if __name__ == "__main__":

@@ -21,6 +21,29 @@ JIS_LAYOUT_PATH = (
 
 
 class LayoutControllerScanCodeTest(unittest.TestCase):
+    def setUp(self):
+        backend_patch = patch(
+            "keyseq.presentation.controllers.layout_controller.get_backend"
+        )
+        self.backend = backend_patch.start().return_value
+        self.addCleanup(backend_patch.stop)
+
+    def test_refresh_notifies_backend_on_selection_and_logs_notification_failure(self):
+        controller, _held_inputs, _hook = self._selection_controller()
+        controller.set_keyboard_layout_selection("new")
+        self.backend.keyboard.set_layout_key_ids.assert_called_once_with(
+            frozenset({"new_key"})
+        )
+
+        self.backend.keyboard.set_layout_key_ids.side_effect = RuntimeError("failed")
+        with self.assertLogs(
+            "keyseq.presentation.controllers.layout_controller", level="ERROR"
+        ) as logged:
+            controller.set_keyboard_layout_selection("old")
+        self.assertIn("failed", logged.output[0])
+        self.assertEqual(controller.keyboard_layout_id, "old")
+        self.assertEqual(controller._active_layout.keys[0].id, "old_key")
+
     def _controller(self, layout, *, debug_enabled=True):
         controller = LayoutController.__new__(LayoutController)
         controller._app = SimpleNamespace(data={"debug_jis_special_key_events": debug_enabled})

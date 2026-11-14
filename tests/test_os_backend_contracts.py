@@ -19,6 +19,27 @@ from keyseq.domain.default_profile import (
 
 
 class OsBackendContractTests(unittest.TestCase):
+    def test_layout_key_ids_contract_is_present_on_both_platforms(self) -> None:
+        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
+
+        self.assertEqual(
+            list(inspect.signature(KeyboardBackend.set_layout_key_ids).parameters),
+            ["self", "key_ids"],
+        )
+        keyboard = MacKeyboardBackend()
+        self.assertIsNone(keyboard.set_layout_key_ids(frozenset({"yen"})))
+        # Windows adapter can be inspected without loading its native dependencies.
+        source = (Path(__file__).resolve().parents[1] /
+                  "keyseq/infrastructure/os_backend/windows/keyboard_backend.py").read_text(
+                      encoding="utf-8-sig"
+                  )
+        tree = ast.parse(source)
+        adapter = next(n for n in tree.body if isinstance(n, ast.ClassDef)
+                       and n.name == "WindowsKeyboardBackend")
+        method = next(n for n in adapter.body if isinstance(n, ast.FunctionDef)
+                      and n.name == "set_layout_key_ids")
+        self.assertEqual([arg.arg for arg in method.args.args], ["self", "key_ids"])
+
     def test_os_backend_fields_include_profile_with_windows_constructor_default(self) -> None:
         self.assertEqual(
             [field.name for field in fields(OsBackend)],

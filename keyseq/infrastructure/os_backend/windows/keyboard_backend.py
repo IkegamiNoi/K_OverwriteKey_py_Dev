@@ -129,6 +129,9 @@ def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
 
 
 class WindowsKeyboardBackend:
+    def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
+        pass
+
     def register_global_hook(
         self,
         callback: Callable[[object], bool | None],

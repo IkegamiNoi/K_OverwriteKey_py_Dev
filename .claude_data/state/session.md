@@ -4,41 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T13:00:00
+last_updated: 2026-11-14T10:50:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.7・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/continue-a0cc59`（Windows の worktree・task_09 / 09a 起票まで）。Mac の worktree `claude/continue-0b2dfa` へ取り込んでから task_09 を実装する。push はユーザー
+last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09 実装まで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09（送信）・task_09a（Tk の取得・表示・入力ソース）を起票（reviewer 修正して採用・反映済み）。次は task_09 の実装（Mac で行う。Quartz の実物の検証が要るため）。**
+focus: **phase 75 段階 ③。task_09（送信・JIS の受信名・テンキー）を Mac で実装済み（reviewer 修正して採用・修正反映済み）。残り = Windows 検証（tests・tests_ui・smoke）と Mac 実機目視 1〜6 → 完了判定 → task_09a。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-14T10:00:00
+ts: 2026-11-14T10:50:00
 who: main
 summary: |
-  実施: task_08b = `macos/key_table.py`・`modifier_state.py`・`event_tap.py`（新規）・`macos/backend.py` のフック 3 メソッドと合成（infrastructure の `macos/` 限定）。codex-delegating-implementer（Sol + Luna サブエージェント使用・自己申告）。既存の `test_macos_stub_contracts_and_factory`（旧スタブの OSError 前提。権限ありの Mac で実 tap が作られ失敗）を偽の EventTap で開始・停止を確かめる形へメインが修正。
-  reviewer: 修正して採用。中 = 表に無い vk を抑止できない → ユーザー判断「仕様どおり直す」（素通しは CapsLock 57・fn 63 だけ）。低 = `_pressed_keys` 削除・未知の flagsChanged は素通し・テストの reload 廃止 → codex-implementer で修正。
-  probe（2026-11-14）: 自動リピート = 初回 0・以降 1 / 右 Command 54 `0x10` 等を再確認 / 右 Option・右 Control は内蔵キーボードにキーが無く未実測（文書値のまま）/ CapsLock 2 回押下で FlagsChanged が 1 件も届かず（原因未確定・素通しなので影響なし）→ 暫定 57 §4.1 に追記。
-  codebase_map の os_backend 節（macos 4 ファイル）を追従（メイン）。
+  実施: task_09 = `MacKeyboardBackend` の送信系（resolve_send の 4 段・印・自分の修飾の記録によるフラグ・物理 Shift の例外・identity_of・write_text・send_native_hotkey=False）・JIS の受信名（set_layout_key_ids・is_jis_layout）・テンキー 16 個・送信だけの別名・Shift の要る文字の表・MacWindowBackend.is_shift_down / is_ctrl_alt_win_down・layout_controller から id の集合を渡す 1 か所。codex-delegating-implementer（Sol + Luna 2 体・自己申告）。
+  reviewer: 修正して採用。中 = write_text の分割単位（UTF-16 の 20 単位へ）・低 = 物理フラグ失敗ログを 1 回に → ユーザー判断「推奨どおり直す」→ codex-implementer。Codex の新テストの期待値誤り 1 件をメインが修正。codebase_map の os_backend 節を追従（メイン）。
 result_files:
-  - keyseq/infrastructure/os_backend/macos/backend.py・event_tap.py・key_table.py・modifier_state.py
-  - tests/test_macos_key_table.py・test_macos_modifier_state.py・test_macos_keyboard_backend.py（新規）・test_os_backend_contracts.py
-  - instructions/phase/75_mac_support/diagnostics/probe_tap_08b.py（新規）
-  - instructions/history/57_mac_support.md（§4.1）・instructions/common/codebase_map.md
+  - keyseq/infrastructure/os_backend/contracts.py・windows/keyboard_backend.py・macos/backend.py・event_tap.py・key_table.py
+  - keyseq/presentation/controllers/layout_controller.py
+  - tests/test_macos_key_table.py・test_macos_keyboard_backend.py・test_os_backend_contracts.py・test_layout_controller_scan_code.py
+  - instructions/common/codebase_map.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2008 件・失敗 6・エラー 10・skip 28（基準線どおり・既知のみ）
+  tests_mac: 2031 件・失敗 6・エラー 10・skip 28（既知のみ・修正後の macOS 2 モジュール 53 件 OK はメインで再実行）
   smoke_mac: pass
-  tests_windows: 2065 件・失敗 0・エラー 0・skip 7（2026-11-14 verifier）/ compile clean / smoke OK
-  visual_mac: ①②⑥ OK（ユーザー）・③④は修飾キーを登録できず未確認 → task_09 へ移した（phase.md の task_09 行に追記）・⑤未報告
+  tests_ui_mac: test_app_ui_flows / test_task05_overlap_ui / test_keymap_list_operations が失敗 3 / 2 / 3 → 0（修正前に計測）
+  tests_windows: 未実施
+  visual_mac: 未実施
 
 ## next_action
 - （済）Mac 向けのレイアウト = 暫定 57 v0.8 §5.3.2・task_09b（task_09 の後）
-- task_09 の実装（codex-delegating-implementer の想定。Mac で実装・検証・目視）→ task_09a → task_09b
+- task_09 の残り: Mac 実機目視（タスク定義の確認 1〜6）・Windows 検証（verifier・tests・tests_ui を 1 本・smoke）→ 完了判定 → task_09a → task_09b
 - task_08 のキュー版の実機確認（reviewer 参考 2 = 排出中のモーダル）は task_09 の目視でまとめて
-- `test_keymap_list_operations` の合成マウスイベントの 2 件は要調査（task_09 で）
+- `test_keymap_list_operations` は task_09 の実装後に Mac で失敗 0（合成マウスイベントの 2 件も解消・原因はキー検証側だったと見られる）
 - task_09 でキーボードUIの右クリックによる割り当てのクリアを目視（task_05c の残り）
 - 右 Option・右 Control の実測は外付けキーボード、JIS の実測（§5.3.1）は JIS キーボードを用意できたとき
 - Mac で tests_ui を流すときは `mac_test_baseline.md` の手順（モジュールごと・4 モジュール除外）

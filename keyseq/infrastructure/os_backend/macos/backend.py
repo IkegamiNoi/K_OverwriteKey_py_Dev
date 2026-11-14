@@ -1,14 +1,53 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from threading import RLock
-from typing import Callable
+from typing import Callable, Sequence
 
 from keyseq.domain.default_profile import MACOS_DEFAULT_PROFILE
 from keyseq.infrastructure.os_backend.contracts import Capabilities, KeySend, OsBackend, ResolveLayoutScanCode
 
-from .event_tap import EventTap, KeyEvent
-from .key_table import vk_for_name
+from .event_tap import EventTap, KeyEvent, OWN_EVENT_MARK, load_quartz
+from .key_table import (
+    COMMON_FLAGS, KEY_TABLE, MODIFIERS, SHIFTED_JIS, SHIFTED_US,
+    is_jis_layout, vk_for_name,
+)
+
+
+_LOG = logging.getLogger(__name__)
+_PHYSICAL_FLAGS_FAILURE_LOGGED = False
+_EXTENDED_VKS = frozenset((54, 55, 61, 62, 75, 76, 114, 115, 116, 117,
+                           119, 121, 123, 124, 125, 126))
+
+
+def _physical_flags(quartz=None) -> int:
+    global _PHYSICAL_FLAGS_FAILURE_LOGGED
+    try:
+        q = quartz if quartz is not None else load_quartz()
+        return int(q.CGEventSourceFlagsState(q.kCGEventSourceStateHIDSystemState))
+    except Exception:
+        if not _PHYSICAL_FLAGS_FAILURE_LOGGED:
+            _LOG.exception("Could not read physical keyboard modifiers")
+            _PHYSICAL_FLAGS_FAILURE_LOGGED = True
+        return 0
+
+
+def _unicode_chunks(text: str) -> list[tuple[str, int]]:
+    chunks = []
+    current = []
+    units = 0
+    for character in text:
+        character_units = 2 if ord(character) > 0xFFFF else 1
+        if units + character_units > 20:
+            chunks.append(("".join(current), units))
+            current = []
+            units = 0
+        current.append(character)
+        units += character_units
+    if current:
+        chunks.append(("".join(current), units))
+    return chunks
 
 
 @dataclass(frozen=True)
@@ -20,17 +59,24 @@ class _Hook:
 
 
 class MacKeyboardBackend:
-    def __init__(self) -> None:
+    def __init__(self, *, quartz=None) -> None:
         self._hooks: list[_Hook] = []
         self._lock = RLock()
         self._lifecycle = RLock()
         self._tap: EventTap | None = None
+        self._quartz = quartz
+        self._jis = False
+        self._send_lock = RLock()
+        self._sent_modifiers: set[int] = set()
+
+    def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
+        self._jis = is_jis_layout(key_ids)
 
     def register_global_hook(self, callback, *, suppress: bool = False) -> object:
         return self._register(callback, suppress, None)
 
     def register_key_hook(self, key: str, callback, *, suppress: bool) -> object:
-        vk = vk_for_name(key)
+        vk = vk_for_name(key, jis=self._jis)
         if vk is None:
             raise ValueError(f"Unknown or ambiguous Mac key name: {key!r}")
         return self._register(callback, suppress, vk)
@@ -42,7 +88,10 @@ class MacKeyboardBackend:
                 first = not self._hooks
                 self._hooks.append(hook)
                 if self._tap is None:
-                    self._tap = EventTap(self._dispatch)
+                    self._tap = EventTap(
+                        self._dispatch, quartz=self._quartz,
+                        is_jis_layout=lambda: self._jis,
+                    )
             if first:
                 try:
                     self._tap.start()
@@ -81,16 +130,105 @@ class MacKeyboardBackend:
         return True
 
     def resolve_send(self, key: str, resolve_layout_scan_code: ResolveLayoutScanCode) -> KeySend:
-        raise NotImplementedError
+        jis = self._jis
+        shifted = SHIFTED_JIS if jis else SHIFTED_US
+        if key in shifted:
+            vk = vk_for_name(shifted[key], jis=jis)
+            if vk is not None:
+                return KeySend("mac_shift", (vk,), key)
+        vk = vk_for_name(key, jis=jis)
+        if vk is not None:
+            return KeySend("mac", (vk,), key)
+        if resolve_layout_scan_code is not None:
+            try:
+                scan = resolve_layout_scan_code(key)
+            except Exception:
+                _LOG.exception("Could not resolve layout scan code for %r", key)
+                scan = None
+            if isinstance(scan, int) and not isinstance(scan, bool) and 1 <= scan <= 255:
+                matches = [vk for vk, spec in KEY_TABLE.items() if spec.scan_code == scan]
+                if len(matches) == 1:
+                    return KeySend("mac", (matches[0],), key)
+        raise ValueError(f"Unknown key name: {key!r}")
 
-    def press_send(self, send: KeySend) -> None: raise NotImplementedError
-    def release_send(self, send: KeySend) -> None: raise NotImplementedError
-    def identity_of(self, send: KeySend) -> tuple[int, bool]: raise NotImplementedError
-    def needs_shift(self, send: KeySend) -> bool: raise NotImplementedError
-    def press_shift(self) -> None: raise NotImplementedError
-    def release_shift(self) -> None: raise NotImplementedError
-    def send_native_hotkey(self, hotkey: str, keys, resolve_layout_scan_code: ResolveLayoutScanCode) -> bool: raise NotImplementedError
-    def write_text(self, text: str) -> None: raise NotImplementedError
+    def _native_api(self):
+        if self._quartz is None:
+            self._quartz = load_quartz()
+        return self._quartz
+
+    def _send_flags(self) -> int:
+        flags = 0
+        for vk in self._sent_modifiers:
+            kind, _side, bit = MODIFIERS[vk]
+            flags |= COMMON_FLAGS[kind] | bit
+        return flags
+
+    def _post_event(self, q, event, flags: int) -> None:
+        if event is None:
+            raise OSError("Could not create keyboard event")
+        q.CGEventSetIntegerValueField(event, q.kCGEventSourceUserData, OWN_EVENT_MARK)
+        q.CGEventSetFlags(event, flags)
+        q.CGEventPost(q.kCGHIDEventTap, event)
+
+    def _send(self, send: KeySend, down: bool) -> None:
+        with self._send_lock:
+            q = self._native_api()
+            vk = send.values[0]
+            event = q.CGEventCreateKeyboardEvent(None, vk, down)
+            if event is None:
+                raise OSError("Could not create keyboard event")
+            previous = self._sent_modifiers.copy()
+            if vk in MODIFIERS:
+                if down:
+                    self._sent_modifiers.add(vk)
+                else:
+                    self._sent_modifiers.discard(vk)
+            flags = self._send_flags()
+            if send.kind == "mac_shift":
+                flags |= _physical_flags(q) & COMMON_FLAGS["shift"]
+            try:
+                self._post_event(q, event, flags)
+            except Exception:
+                self._sent_modifiers = previous
+                raise
+
+    def press_send(self, send: KeySend) -> None:
+        self._send(send, True)
+
+    def release_send(self, send: KeySend) -> None:
+        self._send(send, False)
+
+    def identity_of(self, send: KeySend) -> tuple[int, bool]:
+        vk = send.values[0]
+        return KEY_TABLE[vk].scan_code, vk in _EXTENDED_VKS
+
+    def needs_shift(self, send: KeySend) -> bool:
+        return send.kind == "mac_shift"
+
+    def press_shift(self) -> None:
+        self.press_send(KeySend("mac", (56,), "shift"))
+
+    def release_shift(self) -> None:
+        self.release_send(KeySend("mac", (56,), "shift"))
+
+    def send_native_hotkey(
+        self, hotkey: str, keys: Sequence[str], resolve_layout_scan_code: ResolveLayoutScanCode
+    ) -> bool:
+        return False
+
+    def write_text(self, text: str) -> None:
+        with self._send_lock:
+            if not text:
+                return
+            q = self._native_api()
+            for chunk, length in _unicode_chunks(text):
+                for down in (True, False):
+                    event = q.CGEventCreateKeyboardEvent(None, 0, down)
+                    if event is None:
+                        raise OSError("Could not create Unicode keyboard event")
+                    q.CGEventKeyboardSetUnicodeString(event, length, chunk)
+                    self._post_event(q, event, self._send_flags())
+
     def repeat_timing(self) -> tuple[int, int]: return (500, 33)
 
 
@@ -107,6 +245,9 @@ class MacMouseBackend:
 
 
 class MacWindowBackend:
+    def __init__(self, *, quartz=None) -> None:
+        self._quartz = quartz
+
     def is_own_process_foreground(self) -> bool: return False
     def foreground_own_window(self): return None
     def window_handle(self, window): return window.winfo_id()
@@ -114,8 +255,12 @@ class MacWindowBackend:
     def list_monitor_rects(self): return []
     def make_click_through_overlay(self, window): return False
     def is_mouse_button_down(self): return False
-    def is_shift_down(self): return False
-    def is_ctrl_alt_win_down(self): return False
+    def is_shift_down(self) -> bool:
+        return bool(_physical_flags(self._quartz) & COMMON_FLAGS["shift"])
+
+    def is_ctrl_alt_win_down(self) -> bool:
+        mask = COMMON_FLAGS["control"] | COMMON_FLAGS["option"] | COMMON_FLAGS["command"]
+        return bool(_physical_flags(self._quartz) & mask)
 
 
 class MacTkKeyTranslator:

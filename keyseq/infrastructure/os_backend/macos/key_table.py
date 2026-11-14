@@ -11,7 +11,7 @@ class MacKey:
     name: str
 
 
-# Apple Events.h kVK_* values; names remain US identities regardless of IME.
+# Base US identities; JIS overrides are applied below, independent of IME.
 _KEY_ROWS = (
     (0, 30, "a"), (1, 31, "s"), (2, 32, "d"), (3, 33, "f"),
     (4, 35, "h"), (5, 34, "g"), (6, 44, "z"), (7, 45, "x"),
@@ -43,6 +43,56 @@ KEY_TABLE: dict[int, MacKey] = {
     vk: MacKey(scan, False, name) for vk, scan, name in _KEY_ROWS
 }
 
+# Apple Events.h kVK_ANSI_Keypad* values, paired with the compatibility
+# scan codes used by the application's numpad layouts.
+_KEYPAD_ROWS = (
+    (82, 82, "num 0"), (83, 79, "num 1"), (84, 80, "num 2"),
+    (85, 81, "num 3"), (86, 75, "num 4"), (87, 76, "num 5"),
+    (88, 77, "num 6"), (89, 71, "num 7"), (91, 72, "num 8"),
+    (92, 73, "num 9"), (65, 83, "num decimal"),
+    (67, 55, "num multiply"), (78, 74, "num subtract"),
+    (69, 78, "num add"), (75, 53, "num divide"),
+    (76, 28, "num enter"),
+)
+KEY_TABLE.update({
+    vk: MacKey(scan, True, name) for vk, scan, name in _KEYPAD_ROWS
+})
+
+_JIS_ROWS = (
+    (50, 41, "zenkaku_hankaku"), (24, 13, "^"), (33, 26, "@"),
+    (30, 27, "["), (42, 43, "]"), (39, 40, ":"),
+)
+JIS_KEY_TABLE: dict[int, MacKey] = {
+    vk: MacKey(scan, False, name) for vk, scan, name in _JIS_ROWS
+}
+
+_SHIFTED_ROWS_US = (
+    ("!", "1"), ("@", "2"), ("#", "3"), ("$", "4"),
+    ("%", "5"), ("^", "6"), ("&", "7"), ("*", "8"),
+    ("(", "9"), (")", "0"), ("_", "-"), ("+", "="),
+    ("{", "["), ("}", "]"), ("|", "\\"), (":", ";"),
+    ('"', "'"), ("<", ","), (">", "."), ("?", "/"), ("~", "`"),
+)
+SHIFTED_US: dict[str, str] = dict(_SHIFTED_ROWS_US)
+
+_SHIFTED_ROWS_JIS = (
+    ("!", "1"), ('"', "2"), ("#", "3"), ("$", "4"),
+    ("%", "5"), ("&", "6"), ("'", "7"), ("(", "8"),
+    (")", "9"), ("=", "-"), ("~", "^"), ("`", "@"),
+    ("{", "["), ("+", ";"), ("*", ":"), ("}", "]"),
+    ("_", "ro"), ("|", "yen"), ("<", ","), (">", "."),
+    ("?", "/"),
+)
+SHIFTED_JIS: dict[str, str] = dict(_SHIFTED_ROWS_JIS)
+
+_SEND_ALIASES = {
+    "windows": 55,
+    "left shift": 56,
+    "left ctrl": 59,
+    "left alt": 58,
+}
+_JIS_OVERRIDDEN_VKS = frozenset(JIS_KEY_TABLE)
+
 MODIFIER_NAMES = {
     "shift_l": "shift", "shift_r": "right shift",
     "ctrl_l": "ctrl", "ctrl_r": "right ctrl",
@@ -63,6 +113,29 @@ COMMON_FLAGS = {
 }
 
 
-def vk_for_name(name: str) -> int | None:
-    matches = [vk for vk, key in KEY_TABLE.items() if key.name == name]
+def is_jis_layout(key_ids: frozenset[str]) -> bool:
+    """Return whether layout IDs identify the Japanese JIS physical layout."""
+    return "yen" in key_ids or "ro" in key_ids
+
+
+def key_for_vk(vk: int, *, jis: bool) -> MacKey | None:
+    """Resolve a physical virtual key to its name for the active layout."""
+    if jis:
+        override = JIS_KEY_TABLE.get(vk)
+        if override is not None:
+            return override
+    return KEY_TABLE.get(vk)
+
+
+def vk_for_name(name: str, *, jis: bool = False) -> int | None:
+    if name in _SEND_ALIASES:
+        return _SEND_ALIASES[name]
+    keys = KEY_TABLE.items()
+    if jis:
+        keys = (
+            (vk, key) for vk, key in KEY_TABLE.items()
+            if vk not in _JIS_OVERRIDDEN_VKS
+        )
+        keys = (*keys, *JIS_KEY_TABLE.items())
+    matches = [vk for vk, key in keys if key.name == name]
     return matches[0] if len(matches) == 1 else None

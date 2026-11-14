@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from tkinter import filedialog, messagebox
 
@@ -24,6 +25,7 @@ from keyseq.presentation.keyboard_window_size import (
 
 
 _TOPMOST_WATCH_MS = 200
+_LOG = logging.getLogger(__name__)
 
 
 class LayoutController:
@@ -217,6 +219,12 @@ class LayoutController:
         self._active_layout = (
             entry.layout if entry is not None else BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID]
         )
+        try:
+            get_backend().keyboard.set_layout_key_ids(
+                frozenset(key.id for key in self._active_layout.keys)
+            )
+        except Exception:
+            _LOG.exception("Could not notify keyboard backend of active layout")
 
     def get_fallback_keyboard_layout_id(self, *, exclude: str | None = None) -> str:
         excluded = (exclude or "").strip()

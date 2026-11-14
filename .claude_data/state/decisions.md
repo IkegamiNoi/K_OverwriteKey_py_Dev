@@ -735,3 +735,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 分割（メイン）: task_09 = 送信・選択中のレイアウトに合う受信名（`set_layout_key_ids`・JIS の判定 = id に `yen` / `ro`）・テンキー・物理の Shift / Ctrl / Alt / Win の状態 / task_09a = Tk のキー取得・入力ソースの切替（Q4）・Command / Option の表示（`key_symbols` へ組み立てで注入）・08b から移した目視 ③④（③は Q5 のため JSON に直接書いた既存データで行う・`features.md` §4.6 で既存データは検査しない）。
 - メインの判断: 送信だけの別名（`windows` / `left shift` 等）・`send_native_hotkey` は常に False（既存の代替の経路）・`MacWindowBackend.is_shift_down` / `is_ctrl_alt_win_down` を task_09 へ前倒し（phase 74 の Shift の足し方に要る）。
 - reviewer（修正して採用）: 必須 1 = JIS の逆引きが 2 表の重なりで None になる → 1 枚の表で引く・`jis` は既定値つき（採用）/ 必須 2 = 物理 Shift 押下中に Shift の要る文字が `1` になる → ユーザー判断「推奨どおり付ける」= 物理の Shift が押されていれば送るキーに Shift の共通ビットを付ける（暫定 57 §5.1 に例外として追記）/ 参考 2〜7（09b の yen・ro の要件・§9 の対応表・JIS 判定の共有の機構・domain の表のテスト隔離・契約テストのフィールド列挙・ホットキーの `!` の差は完了報告へ）を採用。参考 1（Shift 表と別名を昇格時に §5.3 へ）は task_14 で。
+
+### 【task_09 実装】reviewer 修正して採用（2026-11-14・Mac）
+- 実装: codex-delegating-implementer（Sol medium + Luna サブエージェント 2 体・自己申告）。10 ファイル（`os_backend/` + `layout_controller.py` の 1 か所 + テスト）。
+- reviewer（修正して採用）: 中 = `write_text` がコードポイント 20 個で分割（Mac の上限は UTF-16 の 20 単位）→ ユーザー判断「推奨どおり直す」= UTF-16 の単位で詰めて文字を割らない（`_unicode_chunks`）/ 低 = `_physical_flags` の失敗ログが送信ごとに出る → 最初の 1 回だけ（同判断）/ 低 = None 検査の重複・`_EXTENDED_VKS` の数値列は見送り / 参考 = JIS 選択中の `\` は名前で引けない（`yen` / `ro` に移る・実害小）。修正は codex-implementer。
+- Codex の新テストの期待値の誤り 1 件（write_text の押下・離しの 2 回を数えていない）をメインが修正（実装は正しい）。
+- 差（タスク定義どおり残す）: ホットキー経路の Shift の要る文字（例 `ctrl+!`）に Shift を足さない。テンキー 16 個の vk・JIS の対応は文書値のまま未実測。

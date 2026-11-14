@@ -6,7 +6,7 @@ import logging
 from threading import RLock, Thread, current_thread
 from typing import Callable
 
-from .key_table import KEY_TABLE, MODIFIERS, MacKey
+from .key_table import MODIFIERS, MacKey, key_for_vk
 from .modifier_state import ModifierState
 
 
@@ -32,8 +32,10 @@ class KeyEvent:
 
 
 class EventTap:
-    def __init__(self, callback: Callable[[int, KeyEvent], bool], *, quartz=None) -> None:
+    def __init__(self, callback: Callable[[int, KeyEvent], bool], *, quartz=None,
+                 is_jis_layout: Callable[[], bool] = lambda: False) -> None:
         self._callback = callback
+        self._is_jis_layout = is_jis_layout
         self._quartz = quartz
         self._lock = RLock()
         self._tap = None
@@ -160,7 +162,7 @@ class EventTap:
             kind = self._event_kind(event_type, vk, flags)
             if kind is None:
                 return event
-        key = KEY_TABLE.get(vk, _UNKNOWN)
+        key = key_for_vk(vk, jis=self._is_jis_layout()) or _UNKNOWN
         translated = KeyEvent(kind, key.scan_code, key.name, key.is_keypad)
         suppressed = self._call_backend(tap, vk, translated)
         with self._lock:
