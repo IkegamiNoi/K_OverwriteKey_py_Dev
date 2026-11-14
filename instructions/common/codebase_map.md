@@ -40,6 +40,7 @@ infrastructure
 - `keyseq/infrastructure/os_backend/macos/event_tap.py`: 単一の active な CGEventTap（専用スレッドの CFRunLoop）。Quartz は `load_quartz()` で遅延 import（注入可）。無効化通知で再有効化と修飾状態の消去・自分の印（`OWN_EVENT_MARK`）のイベントは素通し・CapsLock（57）と fn（63）は常に素通し・例外時は素通し。通すイベントのフラグは `ModifierState.rewrite_flags` で付け直す
 - `keyseq/infrastructure/os_backend/macos/key_table.py`: 受信の表 `vk → MacKey(scan_code, is_keypad, name)`（Windows の keyboard ライブラリと同じ値・US の名前・テンキー 16 個）・JIS の受信名の上書き表と `is_jis_layout`（id に `yen` か `ro`）・`key_for_vk(vk, jis=)` / `vk_for_name(name, jis=)`（JIS は上書きした vk を除いた 1 枚の表）・送信だけの別名・Shift の要る文字の表（US / JIS）・修飾キーの keycode と機種依存ビットの定数（pyobjc を import しない）
 - `keyseq/infrastructure/os_backend/macos/modifier_state.py`: 修飾キーの左右別の押下・抑止中の管理（FlagsChanged → down / up・down を抑止したら対の up も抑止・`rewrite_flags`・`clear`）。pyobjc を import しない
+- `keyseq/infrastructure/os_backend/macos/input_source.py`: TIS（入力ソース）の ctypes の口（Carbon.framework / CoreFoundation を初回に読む・現在 / ASCII 可能の取得・ASCII 可能か・ID の文字列・選択・CFRelease）。`MacImeBackend` が取得中の入力ソースの切替（ASCII 可能へ・読み直しの ID で確認・切替先の ID のままのときだけ戻す・暫定 57 §8 Q4）に使う。`MacTkKeyTranslator` は aqua の keycode の上位 8 ビットを vk として `key_table.key_for_vk` で解釈（0xFF は解釈しない・JIS は `MacKeyboardBackend` の判定を読む・phase 75 task_09a）
 - `OsBackend.queued_hook_dispatch`（phase 75 task_08・既定 False）: 真ならフックの受け渡しをキュー版のディスパッチャにする（`presentation/hook_dispatcher.py`）。Windows は False（即時版 = `after(0)`）
 - `OsBackend.default_profile`（phase 75 task_07b）: OS ごとの既定のホットキー・プリセットとサンプル（`domain/default_profile.py` の `DefaultProfile`）。App の組み立てで `ConfigService(repository, default_profile=backend.default_profile)` へ渡し、既定の作成（`new_base_data` / `new_default_data`）と欠損時の補完（`ensure_config_compatibility(..., profile=)`）で使う
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
@@ -189,7 +190,7 @@ keyseq/presentation/
     keymap_set_history_text.py # 読み込み履歴の表示文言キーと、不在ファイルの名前・確認文・失敗理由等の呼出時翻訳。公開定数は dialogs / config_io の表示時に翻訳（phase 72 task_05）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
-    tk_keys.py                 # Tk のキーイベント → キー名（テンキーは get_backend().tk_keys.numpad_name に委譲・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）
+    tk_keys.py                 # Tk のキーイベント → キー名（テンキーは get_backend().tk_keys.numpad_name に委譲・key_hold の左右）・aqua では `Meta_L` / `Meta_R` = Command → `windows`・`Super_L` / `Super_R` = fn → `??`（`tk_platform.is_aqua(event.widget)`・phase 75）/ `is_unresolved_capture_key`（`??`・phase 60）
 ```
 
 - **FullView と CompactView で Widget は共通化しない**（部品構成・配置が異なるため View ごとに専用 Widget を持つ）。
@@ -874,7 +875,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 送信先の表示名: `keyboard_layouts.KeyboardLayout.key_display_names`（正規化済みの組の tuple）・`key_display_name(key)` → `keyboard_window.redraw` が kind == keymap の枠で引く（描画のたびに今のレイアウトから引く）
   - 最小と当て直し: `keyboard_window` の `_extent` / `_minimum`・`update_layout` は `layout_id`・比率・最小のいずれかの変化で当て直す・最大化 / 最小化中は `_ratio_pending` で保留し、保留中の Configure は当て直しの予約に回す（補正・記録にしない）
   - 幅の記録: `KeyboardWindow(get_saved_width=, on_width_settled=)` のコールバック（キーボードUIは config を読み書きしない）→ `controllers/layout_controller.py` の `_get_saved_keyboard_window_width` / `_save_keyboard_window_width`（`StartupIo.write_startup` 1 本）。記録は `_settle_size` の利用者の操作の補正の確定でだけ（`_record_settled_width`・保留を解く経路では書かない）
-  - 記号キーの表示（phase 74・仕様 = `features.md` §4.6「記号キーのキー名の表示」）: `domain/key_symbols.py` の `display_key_name`（表示専用・保存値は変えない）。`keyboard_window.redraw`（`key_display_names` が優先）・`domain/config.format_trigger_list_item`・`domain/key_hold.format_key_hold_value` から呼ぶ
+  - 記号キーの表示（phase 74・仕様 = `features.md` §4.6「記号キーのキー名の表示」）: `domain/key_symbols.py` の `display_key_name`（表示専用・保存値は変えない）。修飾キーの語の差し替え表（`set_modifier_display_names`・既定は空・macOS は `windows` → `Command`・`alt` → `Option`・`alt gr` は不変）を `OsBackend.modifier_display_names` から `app.py` が 1 回注入（phase 75）。`keyboard_window.redraw`（`key_display_names` が優先）・`domain/config.format_trigger_list_item`・`domain/key_hold.format_key_hold_value` から呼ぶ
   - キー置換の Shift 付きの記号（phase 74・仕様 = `key_input.md`）: 記録 = `keyboard_window._record_key` の `_SHIFTED_TARGET_NAMES`（Shift ありの `yen` / `ro` → `bar` / `underscore`）/ 送信 = `action_executor._send_mapped_key` → `InputGateway.send_mapped_key`（`_needs_shift` = keyboard の先頭候補の修飾）
   - 見本: `config/user/keylayout/us_tkl.json`（内蔵の US TKL と同じ行・`us_tkl_sample`・`git add -f`）・jis.json の `key_display_names` と `label` の改行
   - テスト: `tests/test_keyboard_layout_files.py`（表の読込・見本と内蔵の一致）・`test_keyboard_key_text.py`・`test_keyboard_window_size.py` / `tests_ui/test_keyboard_key_text.py`・`test_app_ui_flows.py`（`test_keyboard_window_*`・`write_startup` と `_startup_settings` を差し替えて実 config に書かない）

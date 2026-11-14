@@ -1,5 +1,18 @@
 """Shared display symbols for common keyboard key names."""
 
+import re
+
+
+_MODIFIER_DISPLAY_NAMES: dict[str, str] = {}
+_MODIFIER_WORD = re.compile(r"\bwindows\b|\balt\b(?!\s+gr\b)", re.IGNORECASE)
+
+
+def set_modifier_display_names(mapping: dict[str, str]) -> None:
+    """Set display-only modifier names without changing stored key names."""
+    global _MODIFIER_DISPLAY_NAMES
+    _MODIFIER_DISPLAY_NAMES = dict(mapping)
+
+
 KEY_SYMBOLS: dict[str, str] = {
     "backslash": "\\",
     "slash": "/",
@@ -42,4 +55,10 @@ KEY_SYMBOLS: dict[str, str] = {
 
 def display_key_name(key_name: str) -> str:
     """Return the common display symbol, preserving unknown input verbatim."""
-    return KEY_SYMBOLS.get(key_name.strip().lower(), key_name)
+    symbol = KEY_SYMBOLS.get(key_name.strip().lower())
+    if symbol is not None:
+        return symbol
+    return _MODIFIER_WORD.sub(
+        lambda match: _MODIFIER_DISPLAY_NAMES.get(match.group().lower(), match.group()),
+        key_name,
+    )

@@ -1,5 +1,6 @@
 """key_hold 編集欄の作成・編集・検証。実際のキーやマウスは操作しない。"""
 import tkinter as tk
+import sys
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -79,6 +80,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         })
         self.assertEqual(self.root.input_gateway.validated, ["left shift"])
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode（VK）を前提にする")
     def test_key_hold_recording_distinguishes_numpad_digit(self) -> None:
         dialog = self.make_dialog(mode=None)
         fields = dialog.key_hold_fields
@@ -86,6 +88,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         fields._on_key_press(SimpleNamespace(keysym="End", keycode=97, state=0))
         self.assertEqual(fields.key_var.get(), "num 1")
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode（VK）を前提にする")
     def test_hotkey_recording_distinguishes_numpad_digit(self) -> None:
         dialog = self.make_dialog(mode=None)
         dialog._start_recording()

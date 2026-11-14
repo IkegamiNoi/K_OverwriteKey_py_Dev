@@ -742,3 +742,11 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - Codex の新テストの期待値の誤り 1 件（write_text の押下・離しの 2 回を数えていない）をメインが修正（実装は正しい）。
 - 差（タスク定義どおり残す）: ホットキー経路の Shift の要る文字（例 `ctrl+!`）に Shift を足さない。テンキー 16 個の vk・JIS の対応は文書値のまま未実測。
 - Mac 実機目視（2026-11-14・ユーザー）: タスク定義の確認 1〜6 すべて OK（置換・`!`・物理 Shift 押下中の `!`・抑止中の `ctrl+c`・文字送信・自分の送信の再捕捉なし・キュー版・テンキー）。残りは Windows 検証。
+
+### 【task_09a 実装】reviewer 修正して採用・TIS は ctypes（2026-11-14・Mac）
+- 実装: codex-delegating-implementer（Sol medium + Luna 1 体・自己申告）。
+- reviewer（修正して採用）: 高 = TIS を pyobjc の `HIToolbox` / `Carbon` から import する前提が不成立（venv に無い・メインが実測で `ModuleNotFoundError` を確認。ctypes で Carbon を読むと現在の入力ソースの ID が取れることも実測）→ ユーザー判断「推奨どおり」= ctypes（`macos/input_source.py`・依存追加なし・pynput と同じ方式）・同一判定は入力ソースの ID の文字列・参照は CFRelease・入手失敗のログは 1 回。タスク定義を改訂 / 中 = CF オブジェクトの `==` 比較 → ID 比較で解消 / 低 = `tk_keys` の `hasattr` → `getattr`（同判断）/ 低 = private 属性の読み取り（タスク定義どおり許容）。
+- tests_ui のテンキー 4 件（Windows の Tk keycode 96 / 97 前提）は Windows 以外で skip（同判断・Mac の同じ確認は `tests/test_macos_tk_key_translator.py`）。
+- 修正後の確認でメインが直した点: Codex の修正に IndentationError（`_restore_capture_source` の return）と `get_own_open_status` の口の入手失敗の分岐の欠け → メインが修正。テストの期待値の誤り 2 件（tk_keys の widget に `object()`・IME の解放の数）と境界テストの `ctypes` の許可（`macos/` にも許す）をメインが修正（実装は正しい）。tests は 2049 件・失敗 6・エラー 10（基準線どおり。IME のテストを 6 件へまとめ直したため 2054 から減）。
+- 実機 probe: ctypes の口で現在の入力ソースの ID が取れ、切替・戻しが True（入力ソースが英字だったため、かなからの実際の切替は目視 2 で確かめる）。
+- 未決（仕様の判断待ち）: macOS では `caps lock` がキーの表に無く（常に素通し・§5.1）、既存の Caps Lock の切替キーが変わっていなくても `validate_key_name` の「不明なキー名」で再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py:166`・`features.md` §4.6 の「既存データは検査しない」と Mac だけ食い違う）。

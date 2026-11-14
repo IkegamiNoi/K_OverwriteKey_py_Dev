@@ -33,7 +33,7 @@ aqua の Tk の `keycode` は `(vk << 24) | … | 文字コード`（§4.1）。
 - `set_own_open_status(window, False)`: 元の入力ソースを記録し、ASCII 可能な入力ソース（`TISCopyCurrentASCIICapableKeyboardInputSource`）へ切り替え（`TISSelectInputSource`）、**読み直して切替先になったかを確かめる**。なっていれば切替先を記録して `True`、失敗なら記録を消して `False`（取得は止めない・vk が失われたキーは `??`）。
 - `set_own_open_status(window, True)`: 記録があり、**現在の入力ソースが記録した切替先と同じときだけ**元の入力ソースへ戻す（取得中にユーザーが自分で変えたら戻さない）。どちらでも記録を消す。戻したら `True`。
 - 例外は `logging` で残して `None` / `False` を返す（取得を止めない）。`Capabilities.ime_control` は変えない（文字送信は IME を経由しない・Q4）。`disable_for_text` / `restore_after_text` / `restore_ime_now` は何もしないまま。
-- TIS の関数は Carbon（pyobjc の `HIToolbox` または `Carbon`）から遅延 import する。入手できない場合は `None` / `False` を返す（Windows のテストでは import しない）。
+- TIS の関数は **ctypes で Carbon.framework と CoreFoundation を読む**（`macos/input_source.py`・初回呼び出し時に遅延・依存の追加なし。pyobjc 13 に HIToolbox / Carbon のバインディングは無く import できない = 2026-11-14 実測・ユーザー判断「推奨どおり」で改訂）。入力ソースの同一判定は ID の文字列（`kTISPropertyInputSourceID`）で行い、Copy で得た参照は使い終わったら `CFRelease`。入手できない場合は `None` / `False` を返しログは 1 回だけ（Windows のテストでは ctypes のライブラリを読まない）。
 
 ### `domain/key_symbols.py` + 組み立て（`Command` / `Option` の表示・§5.3 末尾）
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Protocol, Sequence, TYPE_CHECKING
 
 from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
@@ -128,3 +128,4 @@ class OsBackend:
     mouse: MouseBackend
     default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE
     queued_hook_dispatch: bool = False
+    modifier_display_names: dict[str, str] = field(default_factory=dict)

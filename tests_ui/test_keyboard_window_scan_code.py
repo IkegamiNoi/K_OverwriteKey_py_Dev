@@ -1,4 +1,5 @@
 import unittest
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -74,6 +75,7 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         self.assertEqual(result, "kana")
         convert.assert_called_once_with(0x15)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode（VK）を前提にする")
     def test_numpad_and_keysym_table_take_precedence(self):
         window = SimpleNamespace(_layout=resolve_keyboard_layout())
         with patch(
@@ -91,6 +93,7 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         self.assertEqual(enter, "enter")
         convert.return_value.tk_keys.vk_to_scan_code.assert_not_called()
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の Tk keycode（VK）を前提にする")
     def test_numpad_layout_name_does_not_override_extended_insert(self):
         layout = KeyboardLayout(
             layout_id="numpad_scan_code_collision",

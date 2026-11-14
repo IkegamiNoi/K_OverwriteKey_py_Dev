@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from keyseq.infrastructure.os_backend import get_backend
+from keyseq.presentation import tk_platform
 
 
 UNRESOLVED_KEY_NAME = "??"
@@ -22,6 +23,8 @@ TK_KEYSYM_TO_KEYBOARD_NAME = {
     "shift_r": "shift",
     "alt_l": "alt",
     "alt_r": "alt",
+    "meta_l": "windows",
+    "meta_r": "windows",
     "super_l": "windows",
     "super_r": "windows",
     "win_l": "windows",
@@ -37,9 +40,11 @@ TK_KEYSYM_TO_KEYBOARD_NAME = {
 }
 
 
-def normalize_tk_keysym(keysym: str) -> str:
+def normalize_tk_keysym(keysym: str, *, widget=None) -> str:
     """Tk の keysym を keyboard ライブラリの単キー表記に寄せる。"""
     k = (keysym or "").lower()
+    if k in {"super_l", "super_r"} and widget is not None and tk_platform.is_aqua(widget):
+        return UNRESOLVED_KEY_NAME
     return TK_KEYSYM_TO_KEYBOARD_NAME.get(k, k)
 
 
@@ -50,7 +55,10 @@ def normalize_tk_key_event(event: object) -> str:
     )
     if numpad_name:
         return numpad_name
-    return normalize_tk_keysym(getattr(event, "keysym", ""))
+    widget = getattr(event, "widget", None)
+    if not hasattr(widget, "tk"):
+        widget = None
+    return normalize_tk_keysym(getattr(event, "keysym", ""), widget=widget)
 
 
 _KEY_HOLD_MODIFIER_KEYSYMS = {
@@ -60,6 +68,8 @@ _KEY_HOLD_MODIFIER_KEYSYMS = {
     "shift_r": "right shift",
     "alt_l": "left alt",
     "alt_r": "right alt",
+    "meta_l": "left windows",
+    "meta_r": "right windows",
     "super_l": "left windows",
     "win_l": "left windows",
     "super_r": "right windows",
@@ -67,10 +77,13 @@ _KEY_HOLD_MODIFIER_KEYSYMS = {
 }
 
 
-def normalize_key_hold_tk_keysym(keysym: str) -> str:
+def normalize_key_hold_tk_keysym(keysym: str, *, widget=None) -> str:
     """key_hold の記録用。修飾キーは左右を区別した名前にする（暫定 35 §2-20）。"""
     k = (keysym or "").lower()
-    return _KEY_HOLD_MODIFIER_KEYSYMS.get(k, normalize_tk_keysym(keysym))
+    normalized = normalize_tk_keysym(keysym, widget=widget)
+    if normalized == UNRESOLVED_KEY_NAME:
+        return normalized
+    return _KEY_HOLD_MODIFIER_KEYSYMS.get(k, normalized)
 
 
 def normalize_key_hold_tk_key_event(event: object) -> str:
@@ -80,4 +93,7 @@ def normalize_key_hold_tk_key_event(event: object) -> str:
     )
     if numpad_name:
         return numpad_name
-    return normalize_key_hold_tk_keysym(getattr(event, "keysym", ""))
+    widget = getattr(event, "widget", None)
+    if not hasattr(widget, "tk"):
+        widget = None
+    return normalize_key_hold_tk_keysym(getattr(event, "keysym", ""), widget=widget)

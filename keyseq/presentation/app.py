@@ -98,6 +98,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.domain.numpad_keys import numpad_name_from_event
+from keyseq.domain.key_symbols import set_modifier_display_names
 from keyseq.infrastructure.input_gateway import (
     InputGateway, keyboard_repeat_timing,
 )
@@ -114,6 +115,7 @@ class App(tk.Tk):
         window_backend = backend.window
 
         self.repository = JsonRepository()
+        set_modifier_display_names(backend.modifier_display_names)
         self.config_service = ConfigService(self.repository, default_profile=backend.default_profile)
 
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

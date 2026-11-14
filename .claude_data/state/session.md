@@ -11,7 +11,7 @@ last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09 実�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09 は Mac で実装・検証・reviewer 修正して採用・Mac 実機目視 1〜6 OK。残り = Windows 検証（verifier・tests・tests_ui を 1 本・smoke）だけ → 完了判定 → task_09a。**
+focus: **phase 75 段階 ③。task_09a（Tk のキー取得・入力ソースの切替〔ctypes の TIS〕・Command / Option の表示）を Mac で実装・reviewer 修正して採用・修正反映済み。残り = Mac 実機目視 1〜5・Windows 検証（task_09 と合わせて）。未決 = Mac で既存の Caps Lock の切替キーが「不明なキー名」で再検証を通らない（tests_ui 1 件・仕様の判断待ち）。**
 mode: implementing
 
 ## last_action

@@ -1,6 +1,7 @@
 import unittest
 import sys
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
@@ -84,6 +85,53 @@ class TkKeysTest(unittest.TestCase):
         self.assertEqual(normalize_tk_keysym("Return"), "enter")
         self.assertEqual(normalize_tk_keysym("minus"), "-")
         self.assertEqual(normalize_key_hold_tk_keysym("Shift_L"), "left shift")
+
+    def test_aqua_command_and_fn_keysyms(self):
+        widget = SimpleNamespace(tk=None)  # Tk の widget と同じく tk を持つ（is_aqua は patch）
+        with patch("keyseq.presentation.tk_keys.tk_platform.is_aqua", return_value=True):
+            self.assertEqual(normalize_tk_keysym("Meta_L", widget=widget), "windows")
+            self.assertEqual(normalize_key_hold_tk_keysym("Meta_L", widget=widget), "left windows")
+            self.assertEqual(normalize_tk_keysym("Meta_R", widget=widget), "windows")
+            self.assertEqual(normalize_key_hold_tk_keysym("Meta_R", widget=widget), "right windows")
+            self.assertEqual(normalize_tk_keysym("Super_L", widget=widget), "??")
+            self.assertEqual(normalize_key_hold_tk_keysym("Super_L", widget=widget), "??")
+            self.assertEqual(normalize_tk_keysym("Super_R", widget=widget), "??")
+            self.assertEqual(normalize_key_hold_tk_keysym("Super_R", widget=widget), "??")
+            self.assertEqual(
+                normalize_tk_key_event(SimpleNamespace(keysym="Meta_L", widget=widget)),
+                "windows",
+            )
+            self.assertEqual(
+                normalize_key_hold_tk_key_event(SimpleNamespace(keysym="Super_L", widget=widget)),
+                "??",
+            )
+            self.assertEqual(
+                normalize_tk_key_event(SimpleNamespace(keysym="Meta_R", widget=widget)),
+                "windows",
+            )
+            self.assertEqual(
+                normalize_key_hold_tk_key_event(SimpleNamespace(keysym="Meta_R", widget=widget)),
+                "right windows",
+            )
+            self.assertEqual(
+                normalize_tk_key_event(SimpleNamespace(keysym="Super_R", widget=widget)),
+                "??",
+            )
+
+    def test_non_aqua_super_remains_windows(self):
+        widget = object()
+        with patch("keyseq.presentation.tk_keys.tk_platform.is_aqua", return_value=False):
+            self.assertEqual(normalize_tk_keysym("Super_L", widget=widget), "windows")
+            self.assertEqual(normalize_key_hold_tk_keysym("Super_L", widget=widget), "left windows")
+
+    def test_widgetless_super_keeps_legacy_mapping(self):
+        self.assertEqual(normalize_tk_keysym("Super_L"), "windows")
+        self.assertEqual(normalize_key_hold_tk_keysym("Super_R"), "right windows")
+        self.assertEqual(normalize_tk_key_event(SimpleNamespace(keysym="Super_L")), "windows")
+        self.assertEqual(
+            normalize_key_hold_tk_key_event(SimpleNamespace(keysym="Super_R")),
+            "right windows",
+        )
 
 
 if __name__ == "__main__":

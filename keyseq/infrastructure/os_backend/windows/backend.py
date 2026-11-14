@@ -96,4 +96,5 @@ def create_backend() -> OsBackend:
         WindowsKeyboardBackend(), WindowsMouseBackend(),
         default_profile=WINDOWS_DEFAULT_PROFILE,
         queued_hook_dispatch=False,
+        modifier_display_names={},
     )

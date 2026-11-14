@@ -77,7 +77,10 @@ def _violations(path: str, source: str) -> set[str]:
     os_imports = judge_os_imports(source)
     windows_path = path.startswith("infrastructure/os_backend/windows/")
     macos_path = path.startswith("infrastructure/os_backend/macos/")
-    if (os_imports & WINDOW_IMPORTS and not windows_path) or (os_imports & MAC_IMPORTS and not macos_path):
+    windows_imports = os_imports & WINDOW_IMPORTS
+    if macos_path:
+        windows_imports -= {"ctypes"}  # macOS の入力ソース（TIS）は ctypes で Carbon を読む（phase 75 task_09a）
+    if (windows_imports and not windows_path) or (os_imports & MAC_IMPORTS and not macos_path):
         found.add("windows_import")
     if not path.startswith("infrastructure/os_backend/") and judge_private_backend_imports(source):
         found.add("private_backend_import")

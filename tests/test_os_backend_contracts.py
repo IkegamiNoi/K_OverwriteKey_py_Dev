@@ -46,6 +46,7 @@ class OsBackendContractTests(unittest.TestCase):
             [
                 "capabilities", "ime", "window", "tk_keys", "app", "keyboard",
                 "mouse", "default_profile", "queued_hook_dispatch",
+                "modifier_display_names",
             ],
         )
         legacy_constructor = OsBackend(
@@ -53,6 +54,7 @@ class OsBackendContractTests(unittest.TestCase):
         )
         self.assertIs(legacy_constructor.default_profile, WINDOWS_DEFAULT_PROFILE)
         self.assertFalse(legacy_constructor.queued_hook_dispatch)
+        self.assertEqual(legacy_constructor.modifier_display_names, {})
 
     def test_macos_stub_contracts_and_factory(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import (
@@ -74,7 +76,11 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertTrue(backend.queued_hook_dispatch)
+        self.assertEqual(
+            backend.modifier_display_names, {"windows": "Command", "alt": "Option"}
+        )
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
+        self.assertIs(backend.tk_keys._keyboard, backend.keyboard)
         with patch("keyseq.infrastructure.os_backend.macos.backend.EventTap") as tap_factory:
             handle = backend.keyboard.register_global_hook(lambda _event: None)
             backend.keyboard.unregister_hook(handle)
@@ -100,6 +106,8 @@ class OsBackendContractTests(unittest.TestCase):
         from keyseq.infrastructure.os_backend.windows.backend import WindowsAppIdentity, WindowsTkKeyTranslator, WindowsWindowBackend
         from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
         from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
+        from keyseq.infrastructure.os_backend.windows.backend import create_backend as create_windows_backend
+        self.assertEqual(create_windows_backend().modifier_display_names, {})
         for protocol, implementation in (
             (WindowBackend, WindowsWindowBackend),
             (TkKeyTranslator, WindowsTkKeyTranslator),
