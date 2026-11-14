@@ -1,4 +1,5 @@
 import unittest
+from keyseq.domain.key_symbols import set_modifier_display_names
 
 from keyseq.domain.config import (
     build_base_config,
@@ -18,6 +19,8 @@ from keyseq.domain.config import (
 
 
 class NormalizeKeyNameTest(unittest.TestCase):
+    def tearDown(self):
+        set_modifier_display_names({})
     def test_strip_and_lower(self):
         self.assertEqual(normalize_key_name("  F1 "), "f1")
 
@@ -600,10 +603,21 @@ class FormatListItemTest(unittest.TestCase):
         self.assertEqual(format_trigger_list_item(0, {"key": "f1", "label": "label"}), "01. f1: label")
 
     def test_action_hotkey(self):
+        set_modifier_display_names({"windows": "Command", "alt": "Option"})
         self.assertEqual(
-            format_action_list_item(0, {"type": "hotkey", "value": "ctrl+c"}),
-            "01. [hotkey] ctrl+c",
+            format_action_list_item(0, {"type": "hotkey", "value": "windows+c"}),
+            "01. [hotkey] Command+c",
         )
+
+    def test_action_text_keeps_modifier_words_unchanged(self):
+        set_modifier_display_names({"windows": "Command", "alt": "Option"})
+        try:
+            self.assertEqual(
+                format_action_list_item(0, {"type": "text", "value": "press alt"}),
+                "01. [text] press alt",
+            )
+        finally:
+            set_modifier_display_names({})
 
     def test_action_mouse_click(self):
         action = {"type": "mouse_click", "x": 10, "y": 20, "button": "left", "clicks": 2}

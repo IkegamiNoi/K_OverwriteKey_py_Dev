@@ -93,3 +93,16 @@ Mac（`../../../.venv/bin/python`）:
 - 上記の Windows・Mac の確認 pass・**reviewer 採用**。
 - 実機目視は Mac で本タスクで実施（ユーザー）。
 - `instructions/common/codebase_map.md` の os_backend 節・`tk_keys.py`・`key_symbols.py` の記述に追従（メイン）。
+
+## 目視後の修正（2026-11-14・ユーザー判断「推奨どおり」）
+
+Mac 目視の結果: 2・5 の右クリックは OK。1 の「切替キー・トリガーで修飾キーを記録」は確認項目の誤り（修飾キー単独は記録しない = Windows と同じ・`features.md` §4.6）。不具合 3 つを直す。
+
+1. **送るフラグ（暫定 57 v0.9 §5.1）**: 通過させる物理キー・自分が送るキーのどちらも、フラグを「物理側（押されていて抑止中でない修飾）+ 送信側（`MacKeyboardBackend` が down を送ってまだ up を送っていない修飾 = `_sent_modifiers`）」で付け直す。`mac_shift` の例外（物理 Shift の共通ビット）は残す。
+   - 現状: `event_tap.py` の `ModifierState.rewrite_flags` は抑止が無いと素通しで送信側を足さない / `backend.py` の `_send_flags` は送信側だけ。
+   - 症状: `y` → `shift` / `ctrl` / `option` / `command` の置換が効かない・物理 Command / Shift + 置換したキーが組み合わさらない。
+   - 口: `MacKeyboardBackend` が `EventTap` を作るときに送信側のフラグを返す関数を渡し、`EventTap` は物理側のフラグを返す関数を持つ（tap が無いときは物理側 = 0）。フラグの和の計算は 1 か所（`modifier_state.py`）。
+2. **一覧の表示**: アクション一覧の `hotkey` / `key` 等のキー名を表示する値（`domain/config.py` の `format_action_list_item`）に、`key_symbols` の修飾キーの差し替え表を適用する（`windows+c` → `Command+c`。保存値は変えない）。キー置換の一覧（置換元・置換先の名前を出す箇所）があればそこも同じ。
+3. **Command+Option+P**: `menu_bar.py:101` の `<Command-Alt-p>` は aqua で Option+P が `π` になり一致しない（見込み）。aqua のときは Command+Option の押下を keycode の上位 8 ビット = vk 35（P）で判定してプリセット管理を開く。Windows は不変。
+
+確認: Mac で tests が基準線から増えない・smoke pass・追加テスト（フラグの和・一覧の表示・ショートカットの判定）。再目視 = 3（一覧・キーボードUIで修飾キーへの置換）・4③④・5 の Command+Option+P。

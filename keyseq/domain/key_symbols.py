@@ -13,6 +13,13 @@ def set_modifier_display_names(mapping: dict[str, str]) -> None:
     _MODIFIER_DISPLAY_NAMES = dict(mapping)
 
 
+def display_modifier_names(text: str) -> str:
+    """Apply only the configured modifier name replacements."""
+    return _MODIFIER_WORD.sub(
+        lambda match: _MODIFIER_DISPLAY_NAMES.get(match.group().lower(), match.group()), text
+    )
+
+
 KEY_SYMBOLS: dict[str, str] = {
     "backslash": "\\",
     "slash": "/",
@@ -58,7 +65,4 @@ def display_key_name(key_name: str) -> str:
     symbol = KEY_SYMBOLS.get(key_name.strip().lower())
     if symbol is not None:
         return symbol
-    return _MODIFIER_WORD.sub(
-        lambda match: _MODIFIER_DISPLAY_NAMES.get(match.group().lower(), match.group()),
-        key_name,
-    )
+    return display_modifier_names(key_name)

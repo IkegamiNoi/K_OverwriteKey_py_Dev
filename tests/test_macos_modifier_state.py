@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import unittest
 
-from keyseq.infrastructure.os_backend.macos.modifier_state import ModifierState
+from keyseq.infrastructure.os_backend.macos.modifier_state import ModifierState, modifier_flags
 
 
 class ModifierStateTests(unittest.TestCase):
+    def test_modifier_flags_builds_common_and_side_bits(self) -> None:
+        self.assertEqual(modifier_flags(set(), base=0x100008), 0)
+        self.assertEqual(modifier_flags({56}), 0x20000 | 0x02)
+
     def test_flags_changed_tracks_each_side_independently(self) -> None:
         state = ModifierState()
 
@@ -43,7 +47,7 @@ class ModifierStateTests(unittest.TestCase):
         self.assertTrue(state.mark_suppressed(56, True))
         state.on_flags_changed(60, 0x02 | 0x04)
 
-        rewritten = state.rewrite_flags(0x02 | 0x04 | 0x20000)
+        rewritten = state.rewrite_flags(0x02 | 0x04 | 0x20000, state.physical_modifiers(), frozenset())
         self.assertEqual(rewritten, 0x04 | 0x20000)
 
     def test_suppressed_command_is_removed_from_later_key_flags(self) -> None:
@@ -52,7 +56,7 @@ class ModifierStateTests(unittest.TestCase):
         self.assertTrue(state.mark_suppressed(55, True))
 
         flags = 0x08 | 0x100000 | 0x08  # Command device and common bits
-        self.assertEqual(state.rewrite_flags(flags), 0)
+        self.assertEqual(state.rewrite_flags(flags, state.physical_modifiers(), frozenset()), 0)
 
     def test_non_modifier_flags_survive_rewrite(self) -> None:
         state = ModifierState()
@@ -60,12 +64,12 @@ class ModifierStateTests(unittest.TestCase):
         state.mark_suppressed(55, True)
 
         non_modifier = 0x10000 | 0x800000 | 0x4000
-        self.assertEqual(state.rewrite_flags(0x08 | 0x100000 | non_modifier), non_modifier)
+        self.assertEqual(state.rewrite_flags(0x08 | 0x100000 | non_modifier, state.physical_modifiers(), frozenset()), non_modifier)
 
     def test_flags_are_unchanged_without_suppressed_modifier(self) -> None:
         state = ModifierState()
         flags = 0x08 | 0x20000 | 0x10000 | 0x800000
-        self.assertEqual(state.rewrite_flags(flags), flags)
+        self.assertEqual(state.rewrite_flags(flags, state.physical_modifiers(), frozenset()), flags)
 
     def test_left_shift_bit_is_removed_while_forwarding_right_shift_change(self) -> None:
         state = ModifierState()
@@ -74,7 +78,7 @@ class ModifierStateTests(unittest.TestCase):
 
         flags = 0x02 | 0x04 | 0x20000
         state.on_flags_changed(60, flags)
-        self.assertEqual(state.rewrite_flags(flags), 0x04 | 0x20000)
+        self.assertEqual(state.rewrite_flags(flags, state.physical_modifiers(), frozenset()), 0x04 | 0x20000)
 
     def test_all_eight_modifier_device_bits_determine_transitions(self) -> None:
         for vk, bit in ((55, 0x08), (54, 0x10), (56, 0x02), (60, 0x04),
@@ -83,7 +87,7 @@ class ModifierStateTests(unittest.TestCase):
                 state = ModifierState()
                 self.assertEqual(state.on_flags_changed(vk, bit), ("down",))
                 state.mark_suppressed(vk, True)
-                self.assertEqual(state.rewrite_flags(0x1E0000 | bit), 0)
+                self.assertEqual(state.rewrite_flags(0x1E0000 | bit, state.physical_modifiers(), frozenset()), 0)
                 self.assertEqual(state.on_flags_changed(vk, 0x1E0000), ("up",))
                 self.assertTrue(state.mark_suppressed(vk, False))
 
@@ -94,7 +98,7 @@ class ModifierStateTests(unittest.TestCase):
         state.clear()
 
         flags = 0x02 | 0x20000
-        self.assertEqual(state.rewrite_flags(flags), flags)
+        self.assertEqual(state.rewrite_flags(flags, state.physical_modifiers(), frozenset()), flags)
         self.assertEqual(state.on_flags_changed(56, 0x02), ("down",))
         self.assertFalse(state.mark_suppressed(56, False))
 

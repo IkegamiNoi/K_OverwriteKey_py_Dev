@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
-from threading import RLock
+from threading import Lock, RLock
 from typing import Callable, Sequence
 
 from keyseq.domain.default_profile import MACOS_DEFAULT_PROFILE
@@ -14,6 +14,7 @@ from .key_table import (
     MacKey, is_jis_layout, key_for_vk, vk_for_name,
 )
 from .input_source import InputSourceAPI
+from .modifier_state import modifier_flags
 
 
 _LOG = logging.getLogger(__name__)
@@ -69,6 +70,7 @@ class MacKeyboardBackend:
         self._jis = False
         self._send_lock = RLock()
         self._sent_modifiers: set[int] = set()
+        self._sent_modifiers_lock = Lock()
 
     def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
         self._jis = is_jis_layout(key_ids)
@@ -91,6 +93,7 @@ class MacKeyboardBackend:
                 if self._tap is None:
                     self._tap = EventTap(
                         self._dispatch, quartz=self._quartz,
+                        sent_modifiers=self._sent_modifier_snapshot,
                         is_jis_layout=lambda: self._jis,
                     )
             if first:
@@ -158,11 +161,11 @@ class MacKeyboardBackend:
         return self._quartz
 
     def _send_flags(self) -> int:
-        flags = 0
-        for vk in self._sent_modifiers:
-            kind, _side, bit = MODIFIERS[vk]
-            flags |= COMMON_FLAGS[kind] | bit
-        return flags
+        return modifier_flags(self._sent_modifiers)
+
+    def _sent_modifier_snapshot(self) -> frozenset[int]:
+        with self._sent_modifiers_lock:
+            return frozenset(self._sent_modifiers)
 
     def _post_event(self, q, event, flags: int) -> None:
         if event is None:
@@ -172,25 +175,30 @@ class MacKeyboardBackend:
         q.CGEventPost(q.kCGHIDEventTap, event)
 
     def _send(self, send: KeySend, down: bool) -> None:
+        tap = self._tap
+        physical = tap.physical_modifiers() if tap is not None else frozenset()
         with self._send_lock:
             q = self._native_api()
             vk = send.values[0]
             event = q.CGEventCreateKeyboardEvent(None, vk, down)
             if event is None:
                 raise OSError("Could not create keyboard event")
-            previous = self._sent_modifiers.copy()
-            if vk in MODIFIERS:
-                if down:
-                    self._sent_modifiers.add(vk)
-                else:
-                    self._sent_modifiers.discard(vk)
-            flags = self._send_flags()
+            with self._sent_modifiers_lock:
+                previous = self._sent_modifiers.copy()
+                if vk in MODIFIERS:
+                    if down:
+                        self._sent_modifiers.add(vk)
+                    else:
+                        self._sent_modifiers.discard(vk)
+                sent_modifiers = frozenset(self._sent_modifiers)
+            flags = modifier_flags(physical | sent_modifiers)
             if send.kind == "mac_shift":
                 flags |= _physical_flags(q) & COMMON_FLAGS["shift"]
             try:
                 self._post_event(q, event, flags)
             except Exception:
-                self._sent_modifiers = previous
+                with self._sent_modifiers_lock:
+                    self._sent_modifiers = previous
                 raise
 
     def press_send(self, send: KeySend) -> None:

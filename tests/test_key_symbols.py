@@ -1,7 +1,7 @@
 import unittest
 
 from keyseq.domain.key_symbols import (
-    KEY_SYMBOLS, display_key_name, set_modifier_display_names,
+    KEY_SYMBOLS, display_key_name, display_modifier_names, set_modifier_display_names,
 )
 
 
@@ -39,6 +39,12 @@ class DisplayKeyNameTests(unittest.TestCase):
     def test_modifier_display_names_default_to_empty(self):
         self.assertEqual(display_key_name("left windows"), "left windows")
         self.assertEqual(display_key_name("alt"), "alt")
+        self.assertEqual(display_modifier_names("windows+c"), "windows+c")
+
+    def test_modifier_only_replacement_preserves_alt_gr(self):
+        set_modifier_display_names({"windows": "Command", "alt": "Option"})
+        self.assertEqual(display_modifier_names("windows+c"), "Command+c")
+        self.assertEqual(display_modifier_names("alt gr"), "alt gr")
 
     def test_modifier_display_names_replace_words_without_changing_saved_names(self):
         names = {"windows": "Command", "alt": "Option"}

@@ -1,7 +1,7 @@
 import tkinter as tk
 from keyseq.shared.i18n import available_languages, tr
 from keyseq.presentation.welcome.first_launch import open_welcome_again
-from keyseq.presentation.tk_platform import accelerator_text, primary_modifier
+from keyseq.presentation.tk_platform import accelerator_text, primary_modifier, is_aqua
 
 
 def build_menu_bar(app):
@@ -98,5 +98,17 @@ def bind_menu_shortcuts(app):
     app.bind(f"<{modifier}-O>", app._on_shortcut_load, add="+")
     app.bind(f"<{modifier}-Shift-s>", app._on_shortcut_save_as, add="+")
     app.bind(f"<{modifier}-Shift-S>", app._on_shortcut_save_as, add="+")
-    app.bind(f"<{modifier}-Alt-p>", app._on_shortcut_open_preset_manager, add="+")
-    app.bind(f"<{modifier}-Alt-P>", app._on_shortcut_open_preset_manager, add="+")
+    if is_aqua(app):
+        app.bind("<Command-Option-KeyPress>", lambda event: _on_aqua_preset_shortcut(app, event), add="+")
+    else:
+        app.bind(f"<{modifier}-Alt-p>", app._on_shortcut_open_preset_manager, add="+")
+        app.bind(f"<{modifier}-Alt-P>", app._on_shortcut_open_preset_manager, add="+")
+
+
+def is_aqua_preset_keycode(keycode: int) -> bool:
+    return ((keycode >> 24) & 0xFF) == 35
+
+
+def _on_aqua_preset_shortcut(app, event):
+    if is_aqua_preset_keycode(event.keycode):
+        return app._on_shortcut_open_preset_manager(event)

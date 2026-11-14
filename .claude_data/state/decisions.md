@@ -750,3 +750,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 修正後の確認でメインが直した点: Codex の修正に IndentationError（`_restore_capture_source` の return）と `get_own_open_status` の口の入手失敗の分岐の欠け → メインが修正。テストの期待値の誤り 2 件（tk_keys の widget に `object()`・IME の解放の数）と境界テストの `ctypes` の許可（`macos/` にも許す）をメインが修正（実装は正しい）。tests は 2049 件・失敗 6・エラー 10（基準線どおり。IME のテストを 6 件へまとめ直したため 2054 から減）。
 - 実機 probe: ctypes の口で現在の入力ソースの ID が取れ、切替・戻しが True（入力ソースが英字だったため、かなからの実際の切替は目視 2 で確かめる）。
 - 未決（仕様の判断待ち）: macOS では `caps lock` がキーの表に無く（常に素通し・§5.1）、既存の Caps Lock の切替キーが変わっていなくても `validate_key_name` の「不明なキー名」で再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py:166`・`features.md` §4.6 の「既存データは検査しない」と Mac だけ食い違う）。
+
+### 【task_09a 目視後の修正】暫定 57 v0.9 §5.1・reviewer 修正して採用（2026-11-14・Mac）
+- Mac 目視 1 回目: 2・5 の右クリック OK。1 の「切替キー・トリガーで修飾キーを記録」は確認項目の誤り（修飾キー単独は記録しない = Windows と同じ）。不具合 = 修飾キーを置換先にした割り当てが効かない・物理 Command / Shift + 置換キーが組み合わさらない・一覧で `windows` / `alt` のまま・Command+Option+P が開かない。
+- 判断（ユーザー「推奨どおり」）: §5.1 を v0.9 へ改訂。通すキー・自分が送るキーのフラグ = 物理側（押されていて抑止中でない）+ 送信側（自分が down を送った）。Windows の OS の修飾状態に揃える。`write_text` は送信側だけ（文字入力がショートカット化しないため）。
+- 実装: codex-implementer（3 回の resume）。メイン修正 1 件（空の ModifierState で物理側が落ちる → 純関数 `modifier_flags`）。reviewer 修正して採用: 中 = 一覧の置換を hotkey の値だけに・中 = `_sent_modifiers` 専用ロック（write_text 中に tap が待たされない）・低 = write_text の扱いを仕様に明記 → ユーザー「推奨どおり直す」→ 反映。

@@ -33,8 +33,10 @@ class KeyEvent:
 
 class EventTap:
     def __init__(self, callback: Callable[[int, KeyEvent], bool], *, quartz=None,
+                 sent_modifiers: Callable[[], set[int] | frozenset[int]] = set,
                  is_jis_layout: Callable[[], bool] = lambda: False) -> None:
         self._callback = callback
+        self._sent_modifiers = sent_modifiers
         self._is_jis_layout = is_jis_layout
         self._quartz = quartz
         self._lock = RLock()
@@ -134,6 +136,10 @@ class EventTap:
     def _clear_state(self) -> None:
         self._modifiers.clear()
 
+    def physical_modifiers(self) -> frozenset[int]:
+        with self._lock:
+            return self._modifiers.physical_modifiers()
+
     def _handle_event(self, _proxy, event_type, event, _refcon):
         try:
             with self._lock:
@@ -172,7 +178,9 @@ class EventTap:
                 suppressed = self._modifiers.mark_suppressed(vk, suppressed)
             if suppressed and vk not in (CAPS_LOCK_VK, FN_VK):
                 return None
-            q.CGEventSetFlags(event, self._modifiers.rewrite_flags(flags))
+            q.CGEventSetFlags(event, self._modifiers.rewrite_flags(
+                flags, self._modifiers.physical_modifiers(), self._sent_modifiers()
+            ))
         return event
 
     def _call_backend(self, tap, vk: int, event: KeyEvent) -> bool:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import builtins
 import importlib
 import sys
+from threading import Event, Thread
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -212,7 +213,7 @@ class EventTapTests(unittest.TestCase):
             self.tap._modifiers.mark_suppressed(55, True)
             event, result = self.deliver(kind=kind)
             self.assertIs(result, event)
-            self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008), 0x100008)
+            self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008, self.tap._modifiers.physical_modifiers(), frozenset()), 0x100008)
         self.assertEqual(self.q.CGEventTapEnable.call_count, 2)
         self.q.CGEventTapEnable.assert_called_with(self.native_tap, True)
         self.callback.assert_not_called()
@@ -278,7 +279,7 @@ class EventTapTests(unittest.TestCase):
             with self.assertLogs(event_tap.__name__, level="ERROR"):
                 event, result = self.deliver()
             self.assertIs(result, event)
-            self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008), 0)
+            self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008, self.tap._modifiers.physical_modifiers(), frozenset()), 0)
 
     def test_create_failure_and_successful_start_are_lazy(self):
         tap = EventTap(self.callback, quartz=self.q)
@@ -310,7 +311,7 @@ class EventTapTests(unittest.TestCase):
         self.q.CGEventTapEnable.assert_called_once_with(self.native_tap, False)
         self.q.CFRunLoopStop.assert_called_once()
         thread.join.assert_called_once_with(timeout=1.0)
-        self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008), 0x100008)
+        self.assertEqual(self.tap._modifiers.rewrite_flags(0x100008, self.tap._modifiers.physical_modifiers(), frozenset()), 0x100008)
 
     def test_unknown_flags_changed_key_is_not_sent_to_callback(self):
         event, result = self.deliver(vk=179, kind=self.q.kCGEventFlagsChanged, flags=0x800000)
@@ -396,7 +397,7 @@ class MacKeyboardSendTests(unittest.TestCase):
         physical = self.keyboard._tap._modifiers
         physical.on_flags_changed(59, 0x01)
         self.assertTrue(physical.mark_suppressed(59, True))
-        self.assertEqual(physical.rewrite_flags(0x40001), 0)
+        self.assertEqual(physical.rewrite_flags(0x40001, physical.physical_modifiers(), frozenset()), 0)
         self.keyboard.press_send(ctrl)
         self.keyboard.press_send(letter)
         first, second = [call.args[1] for call in self.q.CGEventPost.call_args_list]
@@ -413,6 +414,46 @@ class MacKeyboardSendTests(unittest.TestCase):
         self.assertEqual(fourth["flags"], 0)
         for call in self.q.CGEventPost.call_args_list:
             self.assertEqual(call.args[1]["mark"], OWN_EVENT_MARK)
+
+    def test_send_includes_physical_command_and_suppressed_ctrl_only_uses_sent_ctrl(self):
+        self.keyboard._tap = SimpleNamespace(physical_modifiers=lambda: {55})
+        self.keyboard.press_send(self.resolve("b"))
+        event = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(event["flags"], 0x100000 | 0x08)
+
+        self.q.CGEventPost.reset_mock()
+        self.keyboard._sent_modifiers.clear()
+        self.keyboard._tap = SimpleNamespace(physical_modifiers=lambda: set())
+        self.keyboard.press_send(self.resolve("ctrl"))
+        self.keyboard.press_send(self.resolve("c"))
+        letter = self.q.CGEventPost.call_args.args[1]
+        self.assertEqual(letter["flags"], 0x40000 | 0x01)
+
+    def test_send_works_without_event_tap(self):
+        self.keyboard._tap = None
+        self.keyboard.press_send(self.resolve("b"))
+        self.assertEqual(self.q.CGEventPost.call_count, 1)
+
+    def test_sent_modifier_snapshot_does_not_wait_for_send_lock(self):
+        lock_held = Event()
+        release_lock = Event()
+        result = []
+
+        def hold_send_lock():
+            with self.keyboard._send_lock:
+                lock_held.set()
+                release_lock.wait()
+
+        holder = Thread(target=hold_send_lock)
+        holder.start()
+        self.assertTrue(lock_held.wait(timeout=1))
+        snapshot = Thread(target=lambda: result.append(self.keyboard._sent_modifier_snapshot()))
+        snapshot.start()
+        snapshot.join(timeout=1)
+        release_lock.set()
+        holder.join(timeout=1)
+        self.assertFalse(snapshot.is_alive())
+        self.assertEqual(result, [frozenset()])
 
     def test_left_and_right_modifiers_are_tracked_independently(self):
         left, right, letter = (self.resolve("ctrl"), self.resolve("right ctrl"),
