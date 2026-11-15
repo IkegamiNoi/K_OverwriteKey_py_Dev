@@ -22,6 +22,7 @@ JIS_LAYOUT_PATH = (
 
 # テンキーの判定は実際の backend のまま（走査コードの解決だけを差し替える）。
 _REAL_NUMPAD_NAME = get_backend().tk_keys.numpad_name
+_REAL_MODIFIER_NAME = get_backend().tk_keys.modifier_name
 
 
 class KeyboardWindowScanCodeTest(unittest.TestCase):
@@ -44,7 +45,8 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.tk_keys.get_backend",
             return_value=SimpleNamespace(tk_keys=SimpleNamespace(
-                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock(return_value=scan_code)
+                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock(return_value=scan_code),
+                modifier_name=_REAL_MODIFIER_NAME,
             )),
         ) as backend:
             result = KeyboardWindow._normalize_tk_key(window, event)
@@ -89,7 +91,8 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.tk_keys.get_backend",
             return_value=SimpleNamespace(tk_keys=SimpleNamespace(
-                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock()
+                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock(),
+                modifier_name=_REAL_MODIFIER_NAME,
             )),
         ) as convert:
             numpad = KeyboardWindow._normalize_tk_key(
@@ -140,6 +143,19 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
 
         callback.assert_called_once_with("source", "a")
         self.assertEqual(result, "break")
+
+    def test_mac_modifier_layout_ids_keep_windows_ids_unchanged(self):
+        from keyseq.presentation.keyboard_window import _LOOKUP_KEY_BY_ID
+
+        expected = {
+            "command_l": "left command", "command_r": "right command",
+            "option_l": "option", "option_r": "right option",
+            "windows_l": "left windows", "windows_r": "right windows",
+            "alt_l": "alt", "alt_r": "right alt",
+        }
+        for key_id, name in expected.items():
+            with self.subTest(key_id=key_id):
+                self.assertEqual(_LOOKUP_KEY_BY_ID[key_id], name)
 
 
 if __name__ == "__main__":

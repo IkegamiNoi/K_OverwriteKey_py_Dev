@@ -6,7 +6,7 @@ from keyseq.shared.i18n import tr
 
 from . import key_hold, mouse_scroll, sequence_control
 from .default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
-from .key_symbols import display_key_name, display_modifier_names
+from .key_symbols import display_key_name
 from .screen_grid import normalize_grid
 
 
@@ -519,9 +519,6 @@ def format_action_list_item(
             value_display = f"({x}, {y}) {button} x{clicks}"
     else:
         value_display = action.get("value", "")
-    if action_type == "hotkey" and isinstance(value_display, str):
-        value_display = display_modifier_names(value_display)
-
     tag = ACTION_LIST_TAGS.get(action_type, action_type)
 
     label = (action.get("label") or "").strip()

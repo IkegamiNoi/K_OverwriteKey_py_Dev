@@ -23,6 +23,27 @@ _NUMPAD_NAMES_BY_NON_EXTENDED_KEYCODE = {
     46: "num decimal",
 }
 
+_MODIFIER_NAMES = {
+    "control_l": ("ctrl", "left ctrl"),
+    "control_r": ("ctrl", "right ctrl"),
+    "shift_l": ("shift", "left shift"),
+    "shift_r": ("shift", "right shift"),
+    "alt_l": ("alt", "left alt"),
+    "alt_r": ("alt", "right alt"),
+    "meta_l": ("windows", "left windows"),
+    "meta_r": ("windows", "right windows"),
+    "super_l": ("windows", "left windows"),
+    "super_r": ("windows", "right windows"),
+    "win_l": ("windows", "left windows"),
+    "win_r": ("windows", "right windows"),
+}
+
+
+def modifier_name(keysym: str, *, sided: bool) -> str | None:
+    """Return the Windows key name for a Tk modifier keysym."""
+    result = _MODIFIER_NAMES.get((keysym or "").lower())
+    return result[1 if sided else 0] if result is not None else None
+
 
 def numpad_name_from_tk_event(keycode: object, state: object) -> str:
     """Windows Tk keycode / extended bit からテンキー名を決める。"""

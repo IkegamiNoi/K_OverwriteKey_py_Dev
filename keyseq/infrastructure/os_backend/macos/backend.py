@@ -296,6 +296,23 @@ class MacTkKeyTranslator:
         key = self._key(vk)
         return key.name if key is not None and len(key.name) == 1 else ""
 
+    def modifier_name(self, keysym: str, *, sided: bool) -> str | None:
+        key = (keysym or "").lower()
+        if key in {"super_l", "super_r"}:
+            return "??"
+        names = {
+            "control_l": ("ctrl", "left ctrl"),
+            "control_r": ("ctrl", "right ctrl"),
+            "shift_l": ("shift", "left shift"),
+            "shift_r": ("shift", "right shift"),
+            "meta_l": ("command", "left command"),
+            "meta_r": ("command", "right command"),
+            "alt_l": ("option", "left option"),
+            "alt_r": ("option", "right option"),
+        }
+        result = names.get(key)
+        return result[1 if sided else 0] if result is not None else None
+
 
 class MacImeBackend:
     def __init__(self, *, tis=None) -> None:
@@ -399,5 +416,4 @@ def create_backend() -> OsBackend:
         MacTkKeyTranslator(keyboard), MacAppIdentity(), keyboard, MacMouseBackend(),
         default_profile=MACOS_DEFAULT_PROFILE,
         queued_hook_dispatch=True,
-        modifier_display_names={"windows": "Command", "alt": "Option"},
     )

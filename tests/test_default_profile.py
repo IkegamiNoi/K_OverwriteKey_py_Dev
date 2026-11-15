@@ -37,20 +37,20 @@ class DefaultProfileTest(unittest.TestCase):
 
     def test_macos_profile_values(self):
         self.assertEqual(MACOS_DEFAULT_PROFILE.hotkey_presets, (
-            ("Command+Tab", "windows+tab"),
-            ("Command+Space", "windows+space"),
-            ("Command+Q", "windows+q"),
-            ("Command+W", "windows+w"),
-            ("Command+H", "windows+h"),
-            ("Command+M", "windows+m"),
-            ("Option+Command+Esc", "alt+windows+esc"),
+            ("Command+Tab", "command+tab"),
+            ("Command+Space", "command+space"),
+            ("Command+Q", "command+q"),
+            ("Command+W", "command+w"),
+            ("Command+H", "command+h"),
+            ("Command+M", "command+m"),
+            ("Option+Command+Esc", "option+command+esc"),
             ("Ctrl+↑", "ctrl+up"),
         ))
         self.assertEqual(len(MACOS_DEFAULT_PROFILE.hotkey_presets), 8)
-        self.assertEqual(MACOS_DEFAULT_PROFILE.select_line, ("windows+left", "windows+shift+right"))
-        self.assertEqual(MACOS_DEFAULT_PROFILE.copy, "windows+c")
-        self.assertEqual(MACOS_DEFAULT_PROFILE.paste, "windows+v")
-        self.assertEqual(MACOS_DEFAULT_PROFILE.switch_app, "windows+tab")
+        self.assertEqual(MACOS_DEFAULT_PROFILE.select_line, ("command+left", "command+shift+right"))
+        self.assertEqual(MACOS_DEFAULT_PROFILE.copy, "command+c")
+        self.assertEqual(MACOS_DEFAULT_PROFILE.paste, "command+v")
+        self.assertEqual(MACOS_DEFAULT_PROFILE.switch_app, "command+tab")
 
     def test_profile_module_has_no_os_detection_or_ui_dependency(self):
         path = Path(__file__).resolve().parents[1] / "keyseq/domain/default_profile.py"
@@ -90,13 +90,13 @@ class ProfiledConfigTest(unittest.TestCase):
         self.assertEqual(
             [[action["value"] for action in trigger["actions"]] for trigger in triggers],
             [
-                ["windows+left", "windows+shift+right"],
-                ["windows+c"],
-                ["windows+v"],
-                ["windows+tab"],
+                ["command+left", "command+shift+right"],
+                ["command+c"],
+                ["command+v"],
+                ["command+tab"],
                 [
-                    "windows+left", "windows+shift+right", "windows+c",
-                    "windows+tab", "windows+v", "windows+tab",
+                    "command+left", "command+shift+right", "command+c",
+                    "command+tab", "command+v", "command+tab",
                 ],
             ],
         )
@@ -130,11 +130,11 @@ class ProfiledConfigTest(unittest.TestCase):
                 for trigger in sample["keymaps"][0]["triggers"]
             ],
             [
-                ["windows+left", "windows+shift+right"], ["windows+c"],
-                ["windows+v"], ["windows+tab"],
+                ["command+left", "command+shift+right"], ["command+c"],
+                ["command+v"], ["command+tab"],
                 [
-                    "windows+left", "windows+shift+right", "windows+c",
-                    "windows+tab", "windows+v", "windows+tab",
+                    "command+left", "command+shift+right", "command+c",
+                    "command+tab", "command+v", "command+tab",
                 ],
             ],
         )

@@ -37,6 +37,20 @@ class KeyStateManagerTest(unittest.TestCase):
         manager.handle_event(SimpleNamespace(name="left shift", event_type="up", scan_code=None))
         self.assertFalse(manager.is_pressed("shift"))
 
+    def test_command_and_option_sides_share_modifier_state(self):
+        manager = KeyStateManager()
+        manager.key_down("left command")
+        manager.key_down("right option")
+        self.assertTrue(manager.is_pressed("command"))
+        self.assertTrue(manager.is_pressed("option"))
+        manager.key_down("left windows")
+        self.assertTrue(manager.is_pressed("windows"))
+        manager.key_up("right command")
+        manager.key_up("left option")
+        self.assertFalse(manager.is_pressed("command"))
+        self.assertFalse(manager.is_pressed("option"))
+        self.assertTrue(manager.is_pressed("windows"))
+
     def test_clear(self):
         manager = KeyStateManager()
         manager.key_down("a")

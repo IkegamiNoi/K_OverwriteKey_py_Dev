@@ -33,8 +33,13 @@ class MacKeyTableTests(unittest.TestCase):
             if entry["id"] not in NO_MAC_PHYSICAL_KEY
         }
         received_names = {key.name for key in KEY_TABLE.values()}
+        mac_modifier_names = {
+            "alt_l": "option", "alt_r": "right option",
+            "windows_l": "left command", "windows_r": "right command",
+        }
         expected_names = {
-            MODIFIER_NAMES.get(key_id, key_id) for key_id in expected_ids
+            mac_modifier_names.get(key_id, MODIFIER_NAMES.get(key_id, key_id))
+            for key_id in expected_ids
         }
         expected_names.update({"yen", "ro", "muhenkan", "henkan"})
         expected_names.update({
@@ -47,23 +52,29 @@ class MacKeyTableTests(unittest.TestCase):
         self.assertEqual(received_names, expected_names)
 
     def test_modifier_scan_codes_and_receive_names(self) -> None:
-        expected = {
-            "shift_l": (42, "shift"),
-            "shift_r": (54, "right shift"),
-            "ctrl_l": (29, "ctrl"),
-            "ctrl_r": (29, "right ctrl"),
-            "alt_l": (56, "alt"),
-            "alt_r": (56, "right alt"),
-            "windows_l": (91, "left windows"),
-            "windows_r": (92, "right windows"),
+        legacy_id_names = {
+            "shift_l": "shift", "shift_r": "right shift",
+            "ctrl_l": "ctrl", "ctrl_r": "right ctrl",
+            "alt_l": "alt", "alt_r": "right alt",
+            "windows_l": "left windows", "windows_r": "right windows",
         }
-        self.assertEqual(set(MODIFIER_NAMES), set(expected))
-        by_name = {key.name: key for key in KEY_TABLE.values()}
-
-        for layout_id, (scan_code, receive_name) in expected.items():
+        mac_id_names = {
+            "command_l": "left command", "command_r": "right command",
+            "option_l": "option", "option_r": "right option",
+        }
+        self.assertEqual(set(MODIFIER_NAMES), set(legacy_id_names) | set(mac_id_names))
+        for layout_id, expected_name in {**legacy_id_names, **mac_id_names}.items():
             with self.subTest(layout_id=layout_id):
-                self.assertEqual(MODIFIER_NAMES[layout_id], receive_name)
-                self.assertEqual(by_name[receive_name].scan_code, scan_code)
+                self.assertEqual(MODIFIER_NAMES[layout_id], expected_name)
+
+        expected_receive = {
+            54: (92, "right command"), 55: (91, "left command"),
+            58: (56, "option"), 61: (56, "right option"),
+        }
+        for vk, (scan_code, name) in expected_receive.items():
+            with self.subTest(vk=vk):
+                self.assertEqual(KEY_TABLE[vk].scan_code, scan_code)
+                self.assertEqual(KEY_TABLE[vk].name, name)
 
     def test_arrows_are_not_keypad_keys(self) -> None:
         by_name = {key.name: key for key in KEY_TABLE.values()}
@@ -184,10 +195,14 @@ class MacKeyTableTests(unittest.TestCase):
         self.assertEqual(vk_for_name("[", jis=False), 33)
 
     def test_send_aliases_and_shifted_character_tables(self) -> None:
-        self.assertEqual(vk_for_name("windows"), 55)
+        self.assertEqual(vk_for_name("command"), 55)
+        self.assertEqual(vk_for_name("left command"), 55)
+        self.assertEqual(vk_for_name("right command"), 54)
+        self.assertEqual(vk_for_name("option"), 58)
+        self.assertEqual(vk_for_name("right option"), 61)
         self.assertEqual(vk_for_name("left shift"), 56)
         self.assertEqual(vk_for_name("left ctrl"), 59)
-        self.assertEqual(vk_for_name("left alt"), 58)
+        self.assertEqual(vk_for_name("left option"), 58)
         self.assertEqual(SHIFTED_US["@"], "2")
         self.assertNotIn("@", SHIFTED_JIS)
         self.assertEqual(SHIFTED_JIS["!"], "1")

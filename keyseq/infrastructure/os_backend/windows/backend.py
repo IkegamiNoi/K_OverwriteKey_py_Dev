@@ -80,6 +80,9 @@ class WindowsTkKeyTranslator:
     def vk_to_char(self, vk: int) -> str:
         return win32_window.vk_to_char(vk)
 
+    def modifier_name(self, keysym: str, *, sided: bool) -> str | None:
+        return tk_key_translator.modifier_name(keysym, sided=sided)
+
 
 class WindowsAppIdentity:
     def apply_process_identity(self, app_id: str) -> bool:
@@ -96,5 +99,4 @@ def create_backend() -> OsBackend:
         WindowsKeyboardBackend(), WindowsMouseBackend(),
         default_profile=WINDOWS_DEFAULT_PROFILE,
         queued_hook_dispatch=False,
-        modifier_display_names={},
     )

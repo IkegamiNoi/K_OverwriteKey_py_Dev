@@ -48,6 +48,27 @@ class ActionDialogLabelsTest(unittest.TestCase):
         return patch("keyseq.presentation.dialogs.action_dialog.tr",
                      side_effect=lambda key, **params: tr_in("en", key, **params))
 
+    def test_hotkey_capture_collects_mac_modifiers_in_order(self) -> None:
+        dialog = self.make_dialog({"type": "hotkey", "value": ""})
+        dialog._recording = True
+        with patch("keyseq.presentation.dialogs.action_dialog.resolve_modified_char_key_name", return_value=""), patch(
+            "keyseq.presentation.dialogs.action_dialog.normalize_tk_key_event",
+            side_effect=["command", "shift", "option", "ctrl", "esc"],
+        ), patch.object(dialog, "_stop_recording") as stop:
+            for _ in range(4):
+                self.assertEqual(dialog._on_key_press(SimpleNamespace()), "break")
+                stop.assert_not_called()
+            dialog._on_key_press(SimpleNamespace())
+        self.assertEqual(dialog.value_var.get(), "ctrl+option+shift+command+esc")
+        stop.assert_called_once()
+
+    def test_windows_hotkey_preview_order_is_unchanged(self) -> None:
+        dialog = self.make_dialog({"type": "hotkey", "value": ""})
+        dialog._mods_down = {"windows", "shift", "alt", "ctrl"}
+        dialog._last_nonmod = "esc"
+        dialog._update_hotkey_preview()
+        self.assertEqual(dialog.value_var.get(), "ctrl+alt+shift+windows+esc")
+
     def test_type_choices_and_initial_actions_show_labels(self) -> None:
         codes = ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line")
         for lang in ("ja", "en"):

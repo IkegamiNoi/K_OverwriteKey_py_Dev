@@ -4,7 +4,6 @@ from tkinter import messagebox
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import normalize_key_name
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.list_editing import move_block, numbered_labels
 from keyseq.presentation.list_clipboard import CLIP_TRIGGERS
@@ -54,7 +53,7 @@ class TriggerListEditFlow:
         count = end - start + 1
         key = normalize_key_name(triggers[start].get("key", ""))
         question = (tr("trigger_panel.delete.range_confirm", count=count) if count > 1
-                    else tr("trigger_panel.delete.confirm", key=display_modifier_names(key)))
+                    else tr("trigger_panel.delete.confirm", key=key))
         if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), question):
             return
         after = triggers[:start] + triggers[end + 1:]

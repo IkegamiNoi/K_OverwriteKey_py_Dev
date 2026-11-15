@@ -40,8 +40,12 @@ _MODIFIER_ALIASES = {
     "super_r": "windows",
     "left super": "windows",
     "right super": "windows",
-    "command": "windows",
+    "command": "command",
     "cmd": "windows",
+    "left command": "command",
+    "right command": "command",
+    "left option": "option",
+    "right option": "option",
 }
 
 class KeyStateManager:

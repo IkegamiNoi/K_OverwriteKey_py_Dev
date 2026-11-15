@@ -26,9 +26,9 @@ _KEY_ROWS = (
     (41, 39, ";"), (42, 43, "\\"), (43, 51, ","), (44, 53, "/"),
     (45, 49, "n"), (46, 50, "m"), (47, 52, "."), (48, 15, "tab"),
     (49, 57, "space"), (50, 41, "`"), (51, 14, "backspace"),
-    (53, 1, "esc"), (54, 92, "right windows"), (55, 91, "left windows"),
-    (56, 42, "shift"), (58, 56, "alt"), (59, 29, "ctrl"),
-    (60, 54, "right shift"), (61, 56, "right alt"), (62, 29, "right ctrl"),
+    (53, 1, "esc"), (54, 92, "right command"), (55, 91, "left command"),
+    (56, 42, "shift"), (58, 56, "option"), (59, 29, "ctrl"),
+    (60, 54, "right shift"), (61, 56, "right option"), (62, 29, "right ctrl"),
     (93, 125, "yen"), (94, 115, "ro"), (96, 63, "f5"),
     (97, 64, "f6"), (98, 65, "f7"), (99, 61, "f3"), (100, 66, "f8"),
     (101, 67, "f9"), (102, 123, "muhenkan"), (103, 87, "f11"),
@@ -86,10 +86,10 @@ _SHIFTED_ROWS_JIS = (
 SHIFTED_JIS: dict[str, str] = dict(_SHIFTED_ROWS_JIS)
 
 _SEND_ALIASES = {
-    "windows": 55,
+    "command": 55,
     "left shift": 56,
     "left ctrl": 59,
-    "left alt": 58,
+    "left option": 58,
 }
 _JIS_OVERRIDDEN_VKS = frozenset(JIS_KEY_TABLE)
 
@@ -98,6 +98,8 @@ MODIFIER_NAMES = {
     "ctrl_l": "ctrl", "ctrl_r": "right ctrl",
     "alt_l": "alt", "alt_r": "right alt",
     "windows_l": "left windows", "windows_r": "right windows",
+    "command_l": "left command", "command_r": "right command",
+    "option_l": "option", "option_r": "right option",
 }
 
 # NX_DEVICE*KEYMASK: right Option/Control still require physical confirmation.

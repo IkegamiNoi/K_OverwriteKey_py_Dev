@@ -21,11 +21,13 @@ from keyseq.presentation.tk_keys import (
 def _mac_tk_keys_backend():
     """Mac の受信の表（key_table）で aqua の keycode（上位 8 ビット = vk）を引く偽の backend。"""
     from keyseq.infrastructure.os_backend.macos.key_table import key_for_vk
+    from keyseq.infrastructure.os_backend.macos.backend import MacTkKeyTranslator
 
     def key(keycode):
         return key_for_vk((int(keycode) >> 24) & 0xFF, jis=False)
 
     return SimpleNamespace(tk_keys=SimpleNamespace(
+        modifier_name=MacTkKeyTranslator(SimpleNamespace(_jis=False)).modifier_name,
         numpad_name=lambda keycode, state: "",
         vk_to_scan_code=lambda kc: key(kc).scan_code if key(kc) else None,
         vk_to_char=lambda kc: key(kc).name if key(kc) and len(key(kc).name) == 1 else "",
@@ -47,6 +49,7 @@ class TkKeysTest(unittest.TestCase):
 
     def test_resolve_modified_char_key_name_skips_ascii_and_modifiers(self):
         backend = SimpleNamespace(tk_keys=SimpleNamespace(
+            modifier_name=lambda keysym, *, sided: None,
             numpad_name=lambda keycode, state: "",
             vk_to_scan_code=Mock(),
         ))
@@ -182,19 +185,26 @@ class TkKeysTest(unittest.TestCase):
         self.assertEqual(normalize_key_hold_tk_keysym("Shift_L"), "left shift")
 
     def test_aqua_command_and_fn_keysyms(self):
-        widget = SimpleNamespace(tk=None)  # Tk の widget と同じく tk を持つ（is_aqua は patch）
-        with patch("keyseq.presentation.tk_keys.tk_platform.is_aqua", return_value=True):
-            self.assertEqual(normalize_tk_keysym("Meta_L", widget=widget), "windows")
-            self.assertEqual(normalize_key_hold_tk_keysym("Meta_L", widget=widget), "left windows")
-            self.assertEqual(normalize_tk_keysym("Meta_R", widget=widget), "windows")
-            self.assertEqual(normalize_key_hold_tk_keysym("Meta_R", widget=widget), "right windows")
+        from keyseq.infrastructure.os_backend.macos.backend import MacTkKeyTranslator
+
+        widget = SimpleNamespace(tk=None)
+        backend = SimpleNamespace(tk_keys=MacTkKeyTranslator(SimpleNamespace(_jis=False)))
+        with patch("keyseq.presentation.tk_keys.get_backend", return_value=backend):
+            self.assertEqual(normalize_tk_keysym("Meta_L", widget=widget), "command")
+            self.assertEqual(normalize_key_hold_tk_keysym("Meta_L", widget=widget), "left command")
+            self.assertEqual(normalize_tk_keysym("Meta_R", widget=widget), "command")
+            self.assertEqual(normalize_key_hold_tk_keysym("Meta_R", widget=widget), "right command")
+            for side in ("L", "R"):
+                self.assertEqual(normalize_tk_keysym(f"Alt_{side}"), "option")
+                self.assertEqual(normalize_key_hold_tk_keysym(f"Alt_{side}"),
+                                 "left option" if side == "L" else "right option")
             self.assertEqual(normalize_tk_keysym("Super_L", widget=widget), "??")
             self.assertEqual(normalize_key_hold_tk_keysym("Super_L", widget=widget), "??")
             self.assertEqual(normalize_tk_keysym("Super_R", widget=widget), "??")
             self.assertEqual(normalize_key_hold_tk_keysym("Super_R", widget=widget), "??")
             self.assertEqual(
                 normalize_tk_key_event(SimpleNamespace(keysym="Meta_L", widget=widget)),
-                "windows",
+                "command",
             )
             self.assertEqual(
                 normalize_key_hold_tk_key_event(SimpleNamespace(keysym="Super_L", widget=widget)),
@@ -202,11 +212,11 @@ class TkKeysTest(unittest.TestCase):
             )
             self.assertEqual(
                 normalize_tk_key_event(SimpleNamespace(keysym="Meta_R", widget=widget)),
-                "windows",
+                "command",
             )
             self.assertEqual(
                 normalize_key_hold_tk_key_event(SimpleNamespace(keysym="Meta_R", widget=widget)),
-                "right windows",
+                "right command",
             )
             self.assertEqual(
                 normalize_tk_key_event(SimpleNamespace(keysym="Super_R", widget=widget)),
@@ -214,11 +224,15 @@ class TkKeysTest(unittest.TestCase):
             )
 
     def test_non_aqua_super_remains_windows(self):
+        from keyseq.infrastructure.os_backend.windows.tk_key_translator import modifier_name
+
         widget = object()
-        with patch("keyseq.presentation.tk_keys.tk_platform.is_aqua", return_value=False):
+        backend = SimpleNamespace(tk_keys=SimpleNamespace(modifier_name=modifier_name))
+        with patch("keyseq.presentation.tk_keys.get_backend", return_value=backend):
             self.assertEqual(normalize_tk_keysym("Super_L", widget=widget), "windows")
             self.assertEqual(normalize_key_hold_tk_keysym("Super_L", widget=widget), "left windows")
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows backend の widget なしの解釈")
     def test_widgetless_super_keeps_legacy_mapping(self):
         self.assertEqual(normalize_tk_keysym("Super_L"), "windows")
         self.assertEqual(normalize_key_hold_tk_keysym("Super_R"), "right windows")

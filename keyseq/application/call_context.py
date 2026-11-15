@@ -6,7 +6,6 @@ from typing import Any, Literal
 
 from keyseq.domain import call_graph, sequence_control
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.shared.i18n import tr
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.application.sequence_steps import (
@@ -112,7 +111,7 @@ def start_linked_call(
 
 
 def chain_text(chain: tuple[str, ...]) -> str:
-    return tr("application.call_context.chain", chain=display_modifier_names(" > ".join(key for key in chain if key)))
+    return tr("application.call_context.chain", chain=" > ".join(key for key in chain if key))
 
 
 def message_with_chain(message: str, chain: tuple[str, ...]) -> str:
@@ -121,7 +120,7 @@ def message_with_chain(message: str, chain: tuple[str, ...]) -> str:
     return tr(
         "application.call_context.message_with_chain",
         message=message,
-        chain=display_modifier_names(" > ".join(key for key in chain if key)),
+        chain=" > ".join(key for key in chain if key),
     )
 
 
@@ -150,10 +149,10 @@ def _push_frame(
             tr("application.call_context.depth_limit", depth=sequence_control.MAX_CALL_DEPTH), chain, deltas,
         )
     if key in ctx.ancestors or key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
-        return _error(tr("application.call_context.cycle", key=display_modifier_names(key)), chain, deltas)
+        return _error(tr("application.call_context.cycle", key=key), chain, deltas)
     entry = ctx.entry_for(key) if key else None
     if key and entry is None:
-        return _error(tr("application.call_context.target_missing", key=display_modifier_names(key)), chain, deltas)
+        return _error(tr("application.call_context.target_missing", key=key), chain, deltas)
     if entry is not None and len(entry.actions) == 1:
         action = entry.actions[0]
         if (
@@ -254,7 +253,7 @@ def _advance_frame(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(tr("application.call_context.target_missing", key=display_modifier_names(frame.key)), _chain(ctx), deltas)
+        return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
     resume = frame.resume
     deferred = () if resume is not None else tuple(frame.deferred)
     if resume is None:
@@ -314,7 +313,7 @@ def _finish_returned_call(
         frame = ctx.stack[-1]
         entry = ctx.entry_for(frame.key)
         if entry is None:
-            return _error(tr("application.call_context.target_missing", key=display_modifier_names(frame.key)), _chain(ctx), deltas)
+            return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
         call_index = frame.position
         if call_index + 1 >= len(entry.actions):
             returned_sent = returned_sent or frame.sent
@@ -415,7 +414,7 @@ def finish_call_action(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(tr("application.call_context.target_missing", key=display_modifier_names(frame.key)), _chain(ctx), deltas)
+        return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
     if frame.position + 1 >= len(entry.actions):
         returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))

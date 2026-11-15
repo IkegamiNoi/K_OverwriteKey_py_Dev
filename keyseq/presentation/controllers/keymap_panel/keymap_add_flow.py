@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from keyseq.application.keymap_switch_batch import validate_switch_batch
 from keyseq.domain.config import normalize_identifier
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
 from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.domain.list_editing import numbered_labels
@@ -130,7 +129,7 @@ class KeymapAddFlow:
             except Exception as exc:
                 name = rows[index][1]
                 key = value["key"]
-                return index, tr("keymap_panel.add.invalid_key", name=name, key=display_modifier_names(key), error=exc)
+                return index, tr("keymap_panel.add.invalid_key", name=name, key=key, error=exc)
         return None
 
     def _commit_batch(self, kind: str, missing: list[dict], new_keymaps: list[dict],

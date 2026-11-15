@@ -5,7 +5,6 @@ from keyseq.shared.i18n import tr
 
 from keyseq.domain.call_graph import rename_call_targets
 from keyseq.domain.config import normalize_key_name
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.control_target import rename_control_targets
 from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_triggers
 from keyseq.domain.trigger_duplicates import is_effective_trigger
@@ -34,20 +33,20 @@ class TriggerRowEditFlow:
         triggers = ensure_active_triggers(self._panel._app.data)
         # 重複チェック
         if self._panel._app.trigger_service.key_exists(self._panel._app.data, key):
-            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.duplicate", key=display_modifier_names(key)))
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.duplicate", key=key))
             return
         # フック停止トリガーとの重複チェック
         if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, key):
-            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.stop_key", key=display_modifier_names(key)))
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.stop_key", key=key))
             return
         if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, key):
-            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.toggle_key", key=display_modifier_names(key)))
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.toggle_key", key=key))
             return
         if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, key):
-            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.switch_key", key=display_modifier_names(key)))
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.switch_key", key=key))
             return
         if key in self._panel._app._key_overlap_report().active_source_keys:
-            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.mapping_source", key=display_modifier_names(key)))
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.mapping_source", key=key))
             return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         new_index = len(triggers) - 1
@@ -86,19 +85,19 @@ class TriggerRowEditFlow:
             if self._panel._app.trigger_service.key_exists(
                 self._panel._app.data, new, exclude_trigger=t
             ):
-                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.duplicate", key=display_modifier_names(new)))
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.duplicate", key=new))
                 return
             if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, new):
-                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.stop_key", key=display_modifier_names(new)))
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.stop_key", key=new))
                 return
             if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, new):
-                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.toggle_key", key=display_modifier_names(new)))
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.toggle_key", key=new))
                 return
             if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, new):
-                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.switch_key", key=display_modifier_names(new)))
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.switch_key", key=new))
                 return
             if new in self._panel._app._key_overlap_report().active_source_keys:
-                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.mapping_source", key=display_modifier_names(new)))
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.mapping_source", key=new))
                 return
         after = list(triggers)
         if old != new and trigger_index is not None:
@@ -162,7 +161,7 @@ class TriggerRowEditFlow:
         if idx < 0 or idx >= len(triggers):
             return
         key = normalize_key_name(triggers[idx].get("key", ""))
-        if messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("trigger_panel.delete.confirm", key=display_modifier_names(key))):
+        if messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("trigger_panel.delete.confirm", key=key)):
             after = triggers[:idx] + triggers[idx + 1:]
             if not apply_effective_row_transition(
                 self._panel._app, triggers, after, lambda: triggers.__delitem__(idx),

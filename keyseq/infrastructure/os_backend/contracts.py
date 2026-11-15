@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable, Protocol, Sequence, TYPE_CHECKING
 
 from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
@@ -102,6 +102,7 @@ class TkKeyTranslator(Protocol):
     def numpad_name(self, keycode: object, state: object) -> str: ...
     def vk_to_scan_code(self, vk: int) -> int | None: ...
     def vk_to_char(self, vk: int) -> str: ...
+    def modifier_name(self, keysym: str, *, sided: bool) -> str | None: ...
 
 
 class AppIdentity(Protocol):
@@ -128,4 +129,3 @@ class OsBackend:
     mouse: MouseBackend
     default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE
     queued_hook_dispatch: bool = False
-    modifier_display_names: dict[str, str] = field(default_factory=dict)

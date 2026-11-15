@@ -12,7 +12,6 @@ from keyseq.shared.i18n import tr
 from keyseq.application.input_router import GridKeyAction, InputRoute, SelectKeymapAction, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.screen_grid import has_enabled_grid
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
@@ -260,7 +259,7 @@ class HookController:
         stop_key = normalize_key_name(self._app.data.get(HOOK_STOP_KEY, ""))
         messagebox.showerror(
             tr("hook.configuration.start_failed"),
-            tr("hook.configuration.stop_toggle_conflict", stop_key=display_modifier_names(stop_key)),
+            tr("hook.configuration.stop_toggle_conflict", stop_key=stop_key),
         )
         return False
 
@@ -304,8 +303,8 @@ class HookController:
         }.get(conflict.winner, "hook.conflict.other"))
         if conflict.kind == "keymap_switch":
             name = conflict.keymap_label or conflict.keymap_id
-            return tr("hook.conflict.keymap_switch", key=display_modifier_names(conflict.key), reason=reason, name=name)
-        return tr("hook.conflict.trigger", key=display_modifier_names(conflict.key), reason=reason)
+            return tr("hook.conflict.keymap_switch", key=conflict.key, reason=reason, name=name)
+        return tr("hook.conflict.trigger", key=conflict.key, reason=reason)
 
     def on_input_event(self, event: object):
         if self._overloaded.is_set():

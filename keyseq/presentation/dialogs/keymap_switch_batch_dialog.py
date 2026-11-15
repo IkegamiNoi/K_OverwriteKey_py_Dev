@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Callable, Collection
 
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     capture_active_text,
@@ -52,7 +51,6 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self._capture_index: int | None = None
         self._escape_held = False
         self.key_vars: list[tk.StringVar] = []
-        self.key_display_vars: list[tk.StringVar] = []
         self.label_vars: list[tk.StringVar] = []
         self.key_entries: list[ttk.Entry] = []
         self.capture_buttons: list[ttk.Button] = []
@@ -127,14 +125,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
 
             ttk.Label(row, text=tr("app.hook.switch_key")).grid(row=line, column=0, sticky="w")
             key_var = tk.StringVar(value=initial_key or "")
-            key_display_var = tk.StringVar(master=self, value=display_modifier_names(key_var.get()))
-            key_var.trace_add(
-                "write", lambda *_, stored=key_var, display=key_display_var: display.set(
-                    display_modifier_names(stored.get())
-                ),
-            )
-            self.key_display_vars.append(key_display_var)
-            key_entry = ttk.Entry(row, textvariable=key_display_var, width=24, state="readonly")
+            key_entry = ttk.Entry(row, textvariable=key_var, width=24, state="readonly")
             key_entry.grid(row=line, column=1, sticky="we", padx=(8, 0))
             capture_btn = ttk.Button(
                 row,

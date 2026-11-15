@@ -71,6 +71,21 @@ class MacTkKeyTranslatorTests(unittest.TestCase):
         self.assertEqual(translator.vk_to_scan_code(self._keycode(33)), 26)
         self.assertEqual(translator.vk_to_char(self._keycode(33)), "@")
 
+    def test_modifier_name_uses_macos_command_and_option_names(self):
+        translator = MacTkKeyTranslator(MacKeyboardBackend())
+        expected = (
+            ("Meta_L", "command", "left command"),
+            ("Meta_R", "command", "right command"),
+            ("Alt_L", "option", "left option"),
+            ("Alt_R", "option", "right option"),
+        )
+        for keysym, generic, sided in expected:
+            with self.subTest(keysym=keysym):
+                self.assertEqual(translator.modifier_name(keysym, sided=False), generic)
+                self.assertEqual(translator.modifier_name(keysym, sided=True), sided)
+        self.assertEqual(translator.modifier_name("Super_L", sided=False), "??")
+        self.assertIsNone(translator.modifier_name("Other", sided=False))
+
 
 if __name__ == "__main__":
     unittest.main()

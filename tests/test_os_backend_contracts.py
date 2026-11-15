@@ -19,6 +19,21 @@ from keyseq.domain.default_profile import (
 
 
 class OsBackendContractTests(unittest.TestCase):
+    def test_windows_modifier_translations_preserve_existing_names(self) -> None:
+        from keyseq.infrastructure.os_backend.windows.tk_key_translator import modifier_name
+
+        expected = {
+            ("Control_L", False): "ctrl", ("Control_L", True): "left ctrl",
+            ("Shift_R", False): "shift", ("Shift_R", True): "right shift",
+            ("Alt_L", False): "alt", ("Alt_L", True): "left alt",
+            ("Meta_L", False): "windows", ("Meta_L", True): "left windows",
+            ("Super_R", True): "right windows",
+        }
+        for (keysym, sided), name in expected.items():
+            with self.subTest(keysym=keysym, sided=sided):
+                self.assertEqual(modifier_name(keysym, sided=sided), name)
+        self.assertIsNone(modifier_name("unknown", sided=False))
+
     def test_layout_key_ids_contract_is_present_on_both_platforms(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
 
@@ -46,7 +61,6 @@ class OsBackendContractTests(unittest.TestCase):
             [
                 "capabilities", "ime", "window", "tk_keys", "app", "keyboard",
                 "mouse", "default_profile", "queued_hook_dispatch",
-                "modifier_display_names",
             ],
         )
         legacy_constructor = OsBackend(
@@ -54,7 +68,6 @@ class OsBackendContractTests(unittest.TestCase):
         )
         self.assertIs(legacy_constructor.default_profile, WINDOWS_DEFAULT_PROFILE)
         self.assertFalse(legacy_constructor.queued_hook_dispatch)
-        self.assertEqual(legacy_constructor.modifier_display_names, {})
 
     def test_macos_stub_contracts_and_factory(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import (
@@ -76,9 +89,6 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertTrue(backend.queued_hook_dispatch)
-        self.assertEqual(
-            backend.modifier_display_names, {"windows": "Command", "alt": "Option"}
-        )
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
         self.assertIs(backend.tk_keys._keyboard, backend.keyboard)
         with patch("keyseq.infrastructure.os_backend.macos.backend.EventTap") as tap_factory:
@@ -107,7 +117,10 @@ class OsBackendContractTests(unittest.TestCase):
         from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
         from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
         from keyseq.infrastructure.os_backend.windows.backend import create_backend as create_windows_backend
-        self.assertEqual(create_windows_backend().modifier_display_names, {})
+        self.assertIs(
+            create_windows_backend().default_profile,
+            WINDOWS_DEFAULT_PROFILE,
+        )
         for protocol, implementation in (
             (WindowBackend, WindowsWindowBackend),
             (TkKeyTranslator, WindowsTkKeyTranslator),

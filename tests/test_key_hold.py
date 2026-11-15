@@ -86,7 +86,7 @@ class ParseKeyHoldTests(unittest.TestCase):
 
 class KeyRepeatDomainTests(unittest.TestCase):
     def test_modifier_names_and_normalization(self):
-        self.assertEqual(len(MODIFIER_KEY_NAMES), 24)
+        self.assertEqual(len(MODIFIER_KEY_NAMES), 28)
         for name in MODIFIER_KEY_NAMES:
             with self.subTest(name=name):
                 self.assertTrue(is_modifier_key(name))

@@ -32,17 +32,17 @@ WINDOWS_DEFAULT_PROFILE = DefaultProfile(
 
 MACOS_DEFAULT_PROFILE = DefaultProfile(
     hotkey_presets=(
-        ("Command+Tab", "windows+tab"),
-        ("Command+Space", "windows+space"),
-        ("Command+Q", "windows+q"),
-        ("Command+W", "windows+w"),
-        ("Command+H", "windows+h"),
-        ("Command+M", "windows+m"),
-        ("Option+Command+Esc", "alt+windows+esc"),
+        ("Command+Tab", "command+tab"),
+        ("Command+Space", "command+space"),
+        ("Command+Q", "command+q"),
+        ("Command+W", "command+w"),
+        ("Command+H", "command+h"),
+        ("Command+M", "command+m"),
+        ("Option+Command+Esc", "option+command+esc"),
         ("Ctrl+↑", "ctrl+up"),
     ),
-    select_line=("windows+left", "windows+shift+right"),
-    copy="windows+c",
-    paste="windows+v",
-    switch_app="windows+tab",
+    select_line=("command+left", "command+shift+right"),
+    copy="command+c",
+    paste="command+v",
+    switch_app="command+tab",
 )

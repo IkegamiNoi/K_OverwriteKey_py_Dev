@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable
 
 from keyseq.domain.hotkey import validate_hotkey_syntax
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.shared.i18n import tr
 
 
@@ -21,6 +20,6 @@ class HotkeyService:
             for p in parts:
                 self._validate_key_name(p)
         except Exception as e:
-            return tr("application.hotkey.unknown_key", key=display_modifier_names(p), error=e), ""
+            return tr("application.hotkey.unknown_key", key=p, error=e), ""
 
         return "", normalized

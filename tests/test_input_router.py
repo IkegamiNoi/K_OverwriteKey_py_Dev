@@ -86,7 +86,11 @@ class InputRouterTest(unittest.TestCase):
         route = make_grid_router(grid_snapshot=snapshot, key_state_manager=manager).handle(down("enter"))
         self.assertEqual(route.actions, (GridKeyAction("enter", 4, True, False),))
         self.assertFalse(route.accept)
-        for modifier in ("ctrl", "alt", "left windows", "right alt", "alt gr"):
+        for modifier in (
+            "ctrl", "alt", "left windows", "right alt", "alt gr",
+            "command", "left command", "right command",
+            "option", "left option", "right option",
+        ):
             manager = KeyStateManager()
             manager.key_down(modifier)
             route = make_grid_router(grid_snapshot=snapshot, key_state_manager=manager,

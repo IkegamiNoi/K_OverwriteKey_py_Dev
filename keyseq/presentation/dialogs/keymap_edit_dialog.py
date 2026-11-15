@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Callable
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.hook_button_texts import (
@@ -65,11 +64,7 @@ class KeymapEditDialog(tk.Toplevel):
 
         ttk.Label(frm, text=tr("app.hook.switch_key")).grid(row=0, column=0, sticky="w")
         self.key_var = tk.StringVar(value=initial_key or "")
-        self.key_display_var = tk.StringVar(master=self, value=display_modifier_names(self.key_var.get()))
-        self.key_var.trace_add(
-            "write", lambda *_: self.key_display_var.set(display_modifier_names(self.key_var.get())),
-        )
-        self.key_entry = ttk.Entry(frm, textvariable=self.key_display_var, width=24, state="readonly")
+        self.key_entry = ttk.Entry(frm, textvariable=self.key_var, width=24, state="readonly")
         self.key_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
         self.capture_btn = ttk.Button(
             frm, text=capture_idle_text(), command=self._toggle_capture

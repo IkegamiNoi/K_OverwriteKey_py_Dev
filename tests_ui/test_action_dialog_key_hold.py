@@ -98,6 +98,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         self.assertEqual(dialog.value_var.get(), "num 1")
         self.assertFalse(dialog._recording)
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows の修飾キー名を確認する")
     def test_key_hold_recording_preserves_modifier_sides(self) -> None:
         cases = (
             ("Control_R", "right ctrl"),
@@ -120,6 +121,25 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
                 dialog.on_ok()
                 self.assertEqual(self.root._dialog_result["value"], expected)
                 self.assertEqual(self.root.input_gateway.validated[-1], expected)
+
+    def test_key_hold_recording_uses_mac_command_and_option_sides(self) -> None:
+        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend, MacTkKeyTranslator
+
+        backend = SimpleNamespace(tk_keys=MacTkKeyTranslator(MacKeyboardBackend()))
+        with patch("keyseq.presentation.tk_keys.get_backend", return_value=backend):
+            for keysym, expected in (
+                ("Meta_L", "left command"), ("Meta_R", "right command"),
+                ("Alt_L", "left option"), ("Alt_R", "right option"),
+            ):
+                with self.subTest(keysym=keysym):
+                    dialog = self.make_dialog(initial={"type": "key_hold", "edge": "down", "value": "a"}, mode=None)
+                    fields = dialog.key_hold_fields
+                    fields.start_recording()
+                    fields._on_key_press(SimpleNamespace(keysym=keysym))
+                    self.assertEqual(fields.key_var.get(), expected)
+                    dialog.on_ok()
+                    self.assertEqual(self.root._dialog_result["value"], expected)
+                    self.assertEqual(self.root.input_gateway.validated[-1], expected)
 
     def test_key_hold_is_available_in_every_dialog_context(self) -> None:
         for mode in (None, "add", "edit"):

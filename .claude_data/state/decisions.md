@@ -778,3 +778,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - hotkey / key_hold の記録で Mac の Option の文字（`å` / `≤`）を物理キーの名前へ。判定 = `event.char` が非 ASCII 1 文字 等・引き方 = レイアウトの走査コード → `vk_to_char`・記号は `KEY_SYMBOLS` の逆引き（§4.6 の単語名）。
 - 経緯: 当初の「keycode を先に引く」は記号キーで §4.6 と食い違う（`ctrl+,`・key_hold が `,` を拒否）→ ユーザー「推奨どおり絞る」。目視で直らず（LayoutController の取り違え・`lessthanequal`・us_tkl に走査コードなし）→ `event.char` と `vk_to_char` へ。
 - Windows でも `event.char` の判定が効く（de / 北欧 / 非ラテン / AltGr）→ ユーザー判断「Windows も含める」。従来の記録は送れない名前のため悪化しない見込み。Windows はドイツ語入力で目視（未実測）。
+
+### 【task_09e 実装】reviewer 採用（2026-11-15・Mac）
+- codex-delegating-implementer（Sol medium + Luna high 3 体・自己申告）・51 ファイル。Mac の受信 / 送信 / Tk の記録（backend の `TkKeyTranslator.modifier_name`・Windows は旧表と同じ）・既定データ（Q2）・語彙（key_hold / 割り当て禁止 / key_state_manager / input_router）を command / option 系へ。表示名の差し替え（task_09a / 09c）を撤去（tests_ui/test_modifier_display_scope.py 削除・test_key_symbols 3 件削除 1 件置換）。sample_install は既定データ経由で変更不要。
+- reviewer 採用。低 1（contracts.py の未使用 `field`）はメインが削除。参考 = `normalize_tk_keysym` の `widget` 引数が未使用・`key_state_manager` の `command` の寄せ先変更は Windows で実害なし（Windows の smoke で確認）。
+- Mac 目視は task_09f の後にまとめて（§9 の 13〜15）。tests_ui の Caps Lock 1 件は既知の未決。

@@ -11,7 +11,6 @@ from keyseq.domain.sequence_control import (
     MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
     analyze_loops, control_target, enclosing_loop_starts, system_op,
 )
-from keyseq.domain.key_symbols import display_modifier_names
 
 MAX_PROCESSED_SYSTEM_ACTIONS = 10000
 
@@ -57,7 +56,7 @@ def format_system_error_notification(
     elif normalized_op == "call":
         target = action.get("target")
         target = target.strip() if isinstance(target, str) else ""
-        value = tr("application.sequence_steps.call_target", target=display_modifier_names(target) or tr("application.sequence_steps.none"))
+        value = tr("application.sequence_steps.call_target", target=target or tr("application.sequence_steps.none"))
     else:
         value = ""
     detail = f"{op} {value}".rstrip()

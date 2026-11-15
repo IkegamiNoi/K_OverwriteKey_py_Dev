@@ -455,7 +455,7 @@ class ActionDialog(tk.Toplevel):
             key = normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
             return "break"
-        if key in ("ctrl", "shift", "alt", "windows"):
+        if key in ("ctrl", "shift", "alt", "option", "windows", "command"):
             self._mods_down.add(key)
             # 修飾キーだけでは確定しない
             self._update_hotkey_preview()
@@ -484,7 +484,7 @@ class ActionDialog(tk.Toplevel):
 
     def _update_hotkey_preview(self, finalize: bool = False):
         # 表示順を固定（keyboard の表記に寄せる）
-        order = ["ctrl", "alt", "shift", "windows"]
+        order = ["ctrl", "alt", "option", "shift", "windows", "command"]
         mods = [m for m in order if m in self._mods_down]
         parts = mods[:]
         if self._last_nonmod:

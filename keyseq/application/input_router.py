@@ -159,6 +159,8 @@ class InputRouter:
         passthrough_modifiers = (
             "ctrl", "left ctrl", "right ctrl", "alt", "left alt", "right alt",
             "alt gr", "windows", "left windows", "right windows",
+            "command", "left command", "right command",
+            "option", "left option", "right option",
         )
         if any(self._key_state_manager.is_pressed(name) for name in passthrough_modifiers):
             return InputRoute()

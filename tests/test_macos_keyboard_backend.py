@@ -429,6 +429,23 @@ class MacKeyboardSendTests(unittest.TestCase):
         letter = self.q.CGEventPost.call_args.args[1]
         self.assertEqual(letter["flags"], 0x40000 | 0x01)
 
+    def test_command_c_send_and_release_use_left_command_vk_and_flags(self):
+        command = self.resolve("command")
+        letter = self.resolve("c")
+
+        self.keyboard.press_send(command)
+        self.keyboard.press_send(letter)
+        self.keyboard.release_send(letter)
+        self.keyboard.release_send(command)
+
+        events = [call.args[1] for call in self.q.CGEventPost.call_args_list]
+        self.assertEqual([event["vk"] for event in events], [55, 8, 8, 55])
+        self.assertEqual([event["down"] for event in events], [True, True, False, False])
+        self.assertEqual(events[0]["flags"], 0x100000 | 0x08)
+        self.assertEqual(events[1]["flags"], 0x100000 | 0x08)
+        self.assertEqual(events[2]["flags"], 0x100000 | 0x08)
+        self.assertEqual(events[3]["flags"], 0)
+
     def test_send_works_without_event_tap(self):
         self.keyboard._tap = None
         self.keyboard.press_send(self.resolve("b"))
@@ -528,8 +545,10 @@ class MacKeyboardSendTests(unittest.TestCase):
     def test_layout_selection_affects_sending_names_and_aliases(self):
         self.keyboard.set_layout_key_ids(frozenset({"yen"}))
         self.assertEqual(self.resolve("@").values, (33,))
-        for alias, vk in (("windows", 55), ("left shift", 56),
-                          ("left ctrl", 59), ("left alt", 58)):
+        for alias, vk in (("command", 55), ("left command", 55),
+                          ("right command", 54), ("left shift", 56),
+                          ("left ctrl", 59), ("option", 58),
+                          ("left option", 58), ("right option", 61)):
             with self.subTest(alias=alias):
                 self.assertEqual(self.resolve(alias).values, (vk,))
 

@@ -8,7 +8,7 @@ from typing import Callable
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_identifier, normalize_key_name
-from keyseq.domain.key_symbols import display_key_name, display_modifier_names
+from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.infrastructure.os_backend import get_backend
@@ -30,7 +30,7 @@ from keyseq.presentation.keyboard_window_size import (
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.tk_platform import key_label_font_family
 from keyseq.presentation.tk_keys import (
-    TK_KEYSYM_TO_KEYBOARD_NAME,
+    normalize_tk_keysym,
     resolve_tk_event_key_name,
     is_unresolved_capture_key,
 )
@@ -46,6 +46,10 @@ _LOOKUP_KEY_BY_ID = {
     "alt_gr": "alt gr",
     "windows_l": "left windows",
     "windows_r": "right windows",
+    "command_l": "left command",
+    "command_r": "right command",
+    "option_l": "option",
+    "option_r": "right option",
     "grave": "`",
     "caps_lock": "caps lock",
     "page_up": "page up",
@@ -633,14 +637,13 @@ class KeyboardWindow(tk.Toplevel):
 
     def _normalize_tk_key(self, event: object) -> str:
         keysym = str(getattr(event, "keysym", "") or "")
-        k = keysym.lower()
         normalized = resolve_tk_event_key_name(event, self._layout)
         if normalized:
             return normalized
 
-        return TK_KEYSYM_TO_KEYBOARD_NAME.get(k, k)
+        return normalize_tk_keysym(keysym)
 
     def _update_title(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")
-        editing_key = display_modifier_names(self._editing_source_key) if self._editing_source_key else None
+        editing_key = self._editing_source_key or None
         self.title(keyboard_window_title(layout_name, editing_key))

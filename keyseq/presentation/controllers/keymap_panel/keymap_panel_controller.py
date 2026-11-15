@@ -8,7 +8,6 @@ from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
-from keyseq.domain.key_symbols import display_modifier_names
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.infrastructure.os_backend import get_backend
@@ -49,7 +48,7 @@ class KeymapPanelController:
             display_name = tr("keymap_panel.default_name", index=row_index)
         row_number = f"{index + 1:02d}"
         entry = tr("keymap_panel.entry", marker=marker, index=row_number,
-                   switch_key=display_modifier_names(switch_key), name=display_name)
+                   switch_key=switch_key, name=display_name)
         if overlap is None:
             overlap = self._app._key_overlap_report()
         conflict = overlap.keymap_switch_conflict(keymap_id, switch_key)
@@ -186,28 +185,28 @@ class KeymapPanelController:
         ):
             messagebox.showerror(
                 tr("capture.error.title"),
-                tr("keymap_panel.switch_key.prohibited", key=display_modifier_names(key)),
+                tr("keymap_panel.switch_key.prohibited", key=key),
                 parent=message_parent,
             )
             return False
         if self._app.trigger_service.is_stop_key_conflict(self._app.data, key):
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_stop", key=display_modifier_names(key)), parent=message_parent
+                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_stop", key=key), parent=message_parent
             )
             return False
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, key):
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_toggle", key=display_modifier_names(key)), parent=message_parent
+                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_toggle", key=key), parent=message_parent
             )
             return False
         if normalize_key_name(key) in self._app._key_overlap_report().all_trigger_keys:
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_trigger", key=display_modifier_names(key)), parent=message_parent
+                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_trigger", key=key), parent=message_parent
             )
             return False
         if normalize_key_name(key) in self._app._key_overlap_report().all_source_keys:
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_mapping", key=display_modifier_names(key)), parent=message_parent
+                tr("capture.error.title"), tr("keymap_panel.switch_key.conflict_mapping", key=key), parent=message_parent
             )
             return False
 
@@ -217,7 +216,7 @@ class KeymapPanelController:
         if existing_target_id and key != excluded_key:
             existing_name = self.format_keymap_display_name(self._app.keymap_service.find_keymap(self._app.data, existing_target_id)) or existing_target_id
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.in_use", key=display_modifier_names(key), name=existing_name),
+                tr("capture.error.title"), tr("keymap_panel.switch_key.in_use", key=key, name=existing_name),
                 parent=message_parent,
             )
             return False
@@ -230,7 +229,7 @@ class KeymapPanelController:
         if existing_switch_key and existing_switch_key != key:
             target_name = self.format_keymap_display_name(self._app.keymap_service.find_keymap(self._app.data, normalized_target_id)) or normalized_target_id
             messagebox.showerror(
-                tr("capture.error.title"), tr("keymap_panel.switch_key.already_assigned", key=display_modifier_names(existing_switch_key), name=target_name),
+                tr("capture.error.title"), tr("keymap_panel.switch_key.already_assigned", key=existing_switch_key, name=target_name),
                 parent=message_parent,
             )
             return False
@@ -238,7 +237,7 @@ class KeymapPanelController:
         try:
             self._app.input_gateway.validate_key_name(key)
         except Exception as e:
-            messagebox.showerror(tr("capture.error.title"), tr("capture.error.unknown_key", key=display_modifier_names(key), error=e), parent=message_parent)
+            messagebox.showerror(tr("capture.error.title"), tr("capture.error.unknown_key", key=key, error=e), parent=message_parent)
             return False
 
         return True
@@ -646,28 +645,28 @@ class KeymapPanelController:
             normalize_key_name(self._app.data.get("hook_stop_key", "")),
             normalize_key_name(self._app.data.get("hook_toggle_key", "")),
         }:
-            messagebox.showerror(tr("capture.error.title"), tr("keymap_panel.mapping.reserved_source", key=display_modifier_names(source)))
+            messagebox.showerror(tr("capture.error.title"), tr("keymap_panel.mapping.reserved_source", key=source))
             return False
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, source):
-            messagebox.showerror(tr("capture.error.title"), tr("trigger_panel.add.switch_key", key=display_modifier_names(source)))
+            messagebox.showerror(tr("capture.error.title"), tr("trigger_panel.add.switch_key", key=source))
             return False
         if source in self._app._key_overlap_report().active_trigger_keys:
-            messagebox.showerror(tr("capture.error.title"), tr("keymap_panel.mapping.trigger_source", key=display_modifier_names(source)))
+            messagebox.showerror(tr("capture.error.title"), tr("keymap_panel.mapping.trigger_source", key=source))
             return False
 
         try:
             self._app.input_gateway.validate_key_name(target)
         except Exception as e:
-            messagebox.showerror(tr("capture.error.title"), tr("capture.error.unknown_key", key=display_modifier_names(target), error=e))
+            messagebox.showerror(tr("capture.error.title"), tr("capture.error.unknown_key", key=target, error=e))
             return False
 
         keymap_id, changed = self._app.keymap_service.set_mapping(self._app.data, source, target)
         self._app.trigger_panel.refresh_triggers()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
-            self._app._set_flash_message(tr("keymap_panel.mapping.updated", source=display_modifier_names(source), target=display_modifier_names(target), keymap_id=keymap_id))
+            self._app._set_flash_message(tr("keymap_panel.mapping.updated", source=source, target=target, keymap_id=keymap_id))
         else:
-            self._app._set_flash_message(tr("keymap_panel.mapping.unchanged", source=display_modifier_names(source), target=display_modifier_names(target)))
+            self._app._set_flash_message(tr("keymap_panel.mapping.unchanged", source=source, target=target))
         return True
 
     def clear_keymap_from_keyboard_ui(self, source_key: str) -> bool:
@@ -678,8 +677,8 @@ class KeymapPanelController:
         self._app.trigger_panel.refresh_triggers()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
-            self._app._set_flash_message(tr("keymap_panel.mapping.cleared", source=display_modifier_names(source), keymap_id=keymap_id))
+            self._app._set_flash_message(tr("keymap_panel.mapping.cleared", source=source, keymap_id=keymap_id))
             return True
 
-        self._app._set_flash_message(tr("keymap_panel.mapping.nothing_to_clear", source=display_modifier_names(source)))
+        self._app._set_flash_message(tr("keymap_panel.mapping.nothing_to_clear", source=source))
         return False
