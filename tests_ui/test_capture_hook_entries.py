@@ -69,7 +69,9 @@ class CaptureHookEntriesUiTest(unittest.TestCase):
     def test_stop_and_toggle_capture_match_tk_and_ignore_inactive_callback(self):
         for controller in (self.app.stop_key_capture, self.app.toggle_key_capture):
             with self.subTest(controller=controller._data_key):
-                with patch.object(self.app.input_gateway, "validate_key_name"):
+                with patch.object(self.app.input_gateway, "accepts_key_name", return_value=True), patch.object(
+                    self.app.input_gateway, "validate_key_name"
+                ):
                     controller.start()
                     with patch(
                         "keyseq.presentation.controllers.key_capture.normalize_tk_key_event",
@@ -144,6 +146,67 @@ class CaptureHookEntriesUiTest(unittest.TestCase):
         callback("a")
         self.assertEqual([var.get() for var in dialog.key_vars], ["muhenkan"] * 2)
         dialog.destroy()
+
+    def test_capture_routes_skip_all_standalone_modifier_names(self):
+        gateway = self.app.input_gateway
+        controller = self.app.stop_key_capture
+        controller._apply_key = lambda _key, **_kwargs: True
+        dialog = TriggerDialog(self.app, "Trigger")
+        keymap_dialog = KeymapEditDialog(self.app, "Keymap")
+        batch_dialog = KeymapSwitchBatchDialog(
+            self.app, "Batch", [("新規", "Map", "", "")], lambda _values: None
+        )
+        routes = (
+            (controller, controller._record_key, controller.start, controller.stop),
+            (dialog, dialog._record_key, dialog._start_capture, dialog._stop_capture),
+            (keymap_dialog, keymap_dialog._record_key, keymap_dialog._start_capture, keymap_dialog._stop_capture),
+            (batch_dialog, batch_dialog._record_key, lambda: batch_dialog._start_capture(0), batch_dialog._stop_capture),
+        )
+        with patch.object(gateway, "accepts_key_name", return_value=True), patch.object(
+            gateway, "validate_key_name"
+        ):
+            for owner, record, start, stop in routes:
+                with self.subTest(owner=type(owner).__name__):
+                    start()
+                    for modifier in ("option", "left command"):
+                        self.assertEqual(record(modifier), "break")
+                        self.assertTrue(owner.capturing if hasattr(owner, "capturing") else owner._capturing)
+                    self.assertEqual(record("muhenkan"), "break")
+                    self.assertFalse(owner.capturing if hasattr(owner, "capturing") else owner._capturing)
+                    stop()
+        dialog.destroy()
+        keymap_dialog.destroy()
+        batch_dialog.destroy()
+
+    def test_capture_routes_reject_names_not_accepted_by_backend(self):
+        gateway = self.app.input_gateway
+        controller = self.app.stop_key_capture
+        controller._apply_key = Mock(return_value=True)
+        dialog = TriggerDialog(self.app, "Trigger")
+        keymap_dialog = KeymapEditDialog(self.app, "Keymap")
+        batch_dialog = KeymapSwitchBatchDialog(
+            self.app, "Batch", [("新規", "Map", "", "")], lambda _values: None
+        )
+        routes = (
+            (controller, controller._record_key, controller.start),
+            (keymap_dialog, keymap_dialog._record_key, keymap_dialog._start_capture),
+            (batch_dialog, batch_dialog._record_key, lambda: batch_dialog._start_capture(0)),
+        )
+        with patch.object(gateway, "accepts_key_name", return_value=False), patch(
+            "keyseq.presentation.controllers.key_capture.messagebox.showerror"
+        ), patch("keyseq.presentation.dialogs.trigger_dialog.messagebox.showerror"), patch(
+            "keyseq.presentation.dialogs.keymap_edit_dialog.messagebox.showerror"
+        ), patch("keyseq.presentation.dialogs.keymap_switch_batch_dialog.messagebox.showerror"):
+            for owner, record, start in routes:
+                with self.subTest(owner=type(owner).__name__):
+                    start()
+                    self.assertEqual(record("command"), "break")
+                    self.assertTrue(owner.capturing if hasattr(owner, "capturing") else owner._capturing)
+                    self.assertEqual(record("a"), "break")
+        self.assertEqual(controller._apply_key.call_count, 0)
+        dialog.destroy()
+        keymap_dialog.destroy()
+        batch_dialog.destroy()
 
     def test_hotkey_capture_combines_held_modifiers_and_ignores_inactive_callback(self):
         dialog = ActionDialog(self.app, "Action")

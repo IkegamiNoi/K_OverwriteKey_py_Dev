@@ -95,6 +95,30 @@ class TriggerEffectiveRowUiTest(unittest.TestCase):
         key_exists.assert_not_called()
         self.assertEqual(self.rows[1]["label"], "Renamed shadow")
 
+    def test_add_trigger_rejects_other_os_modifier_name(self):
+        before = list(self.rows)
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "left command", "label": "Rejected",
+        })), patch.object(self.app.input_gateway, "accepts_key_name", return_value=False), \
+             patch.object(panel_module.messagebox, "showerror") as showerror:
+            self.app.trigger_panel.add_trigger()
+
+        self.assertEqual(self.rows, before)
+        showerror.assert_called_once()
+
+    def test_rename_trigger_rejects_other_os_modifier_name(self):
+        original = self.rows[1]
+        original_key = original["key"]
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "left command", "label": "Rejected",
+        })), patch.object(self.app.input_gateway, "accepts_key_name", return_value=False), \
+             patch.object(panel_module.messagebox, "showerror") as showerror:
+            self.app.trigger_panel.rename_trigger()
+
+        self.assertIs(self.rows[1], original)
+        self.assertEqual(original["key"], original_key)
+        showerror.assert_called_once()
+
     def test_shadowed_key_change_keeps_effective_state_and_call_target(self):
         caller = self.rows[2]
         with patch.object(self.app.sequence_runner, "cancel_pending_wait") as cancel_wait, \

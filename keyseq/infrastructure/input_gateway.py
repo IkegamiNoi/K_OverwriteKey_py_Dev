@@ -90,6 +90,10 @@ class InputGateway:
     def resolve_send(self, key: str) -> KeySend:
         return get_backend().keyboard.resolve_send(key, self._resolve_layout_scan_code)
 
+    @staticmethod
+    def accepts_key_name(name: str) -> bool:
+        return get_backend().keyboard.accepts_key_name(name)
+
     def press_send(self, send: KeySend) -> None:
         get_backend().keyboard.press_send(send)
 

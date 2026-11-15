@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Callable
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.domain.key_hold import is_modifier_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.hook_button_texts import (
@@ -187,10 +188,15 @@ class KeymapEditDialog(tk.Toplevel):
     def _record_key(self, key: str) -> str | None:
         if not self._capturing:
             return None
-        if (
-            key in ("ctrl", "shift", "alt", "windows")
-            or is_prohibited_assign_key(key)
-        ):
+        if not self.parent.input_gateway.accepts_key_name(key):
+            error = ValueError(key)
+            messagebox.showerror(
+                tr("capture.error.title"),
+                tr("capture.error.unknown_key", key=key, error=error),
+                parent=self,
+            )
+            return "break"
+        if is_modifier_key(key) or is_prohibited_assign_key(key):
             return "break"
         self.key_var.set(key)
         self.key_entry.icursor(tk.END)

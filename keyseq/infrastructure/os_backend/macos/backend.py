@@ -21,6 +21,14 @@ _LOG = logging.getLogger(__name__)
 _PHYSICAL_FLAGS_FAILURE_LOGGED = False
 _EXTENDED_VKS = frozenset((54, 55, 61, 62, 75, 76, 114, 115, 116, 117,
                            119, 121, 123, 124, 125, 126))
+_REJECTED_WINDOWS_MODIFIER_NAMES = frozenset({
+    "windows", "left windows", "right windows", "win", "left win",
+    "right win", "alt", "left alt", "right alt", "left menu",
+})
+
+
+def _normalize_key_name(name: str) -> str:
+    return name.strip().lower().replace("_", " ")
 
 
 def _physical_flags(quartz=None) -> int:
@@ -71,6 +79,9 @@ class MacKeyboardBackend:
         self._send_lock = RLock()
         self._sent_modifiers: set[int] = set()
         self._sent_modifiers_lock = Lock()
+
+    def accepts_key_name(self, name: str) -> bool:
+        return _normalize_key_name(name) not in _REJECTED_WINDOWS_MODIFIER_NAMES
 
     def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
         self._jis = is_jis_layout(key_ids)
@@ -134,6 +145,8 @@ class MacKeyboardBackend:
         return True
 
     def resolve_send(self, key: str, resolve_layout_scan_code: ResolveLayoutScanCode) -> KeySend:
+        if not self.accepts_key_name(key):
+            raise ValueError(f"Unknown key name: {key!r}")
         jis = self._jis
         shifted = SHIFTED_JIS if jis else SHIFTED_US
         if key in shifted:

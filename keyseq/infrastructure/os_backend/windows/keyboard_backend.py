@@ -38,6 +38,14 @@ _SPI_GETKEYBOARDSPEED = 0x000A
 _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
+_REJECTED_MAC_MODIFIER_NAMES = frozenset({
+    "command", "left command", "right command", "cmd", "option",
+    "left option", "right option",
+})
+
+
+def _normalize_key_name(name: str) -> str:
+    return name.strip().lower().replace("_", " ")
 
 
 def _needs_shift(key: str) -> bool:
@@ -129,6 +137,9 @@ def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
 
 
 class WindowsKeyboardBackend:
+    def accepts_key_name(self, name: str) -> bool:
+        return _normalize_key_name(name) not in _REJECTED_MAC_MODIFIER_NAMES
+
     def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
         pass
 
@@ -165,6 +176,8 @@ class WindowsKeyboardBackend:
     def resolve_send(
         self, key: str, resolve_layout_scan_code: ResolveLayoutScanCode
     ) -> KeySend:
+        if not self.accepts_key_name(key):
+            raise ValueError(f"Unknown key name: {key!r}")
         numpad = numpad_key_spec(key)
         if numpad is not None:
             return KeySend("numpad", (numpad[0], int(numpad[1])), key)

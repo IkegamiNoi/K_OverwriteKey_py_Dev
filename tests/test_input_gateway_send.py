@@ -31,6 +31,54 @@ class InputGatewaySendTests(unittest.TestCase):
             self.addCleanup(patcher.stop)
             self.events.attach_mock(mocked, name)
 
+    def test_accepts_os_specific_modifier_names(self) -> None:
+        rejected = (
+            "command", "left command", "right command", "cmd", "option",
+            "left option", "right option",
+        )
+        for name in rejected:
+            for variant in {name, name.upper(), " " + name.replace(" ", "_").upper() + " "}:
+                with self.subTest(name=variant):
+                    self.assertFalse(self.gateway.accepts_key_name(variant))
+        self.assertTrue(self.gateway.accepts_key_name("windows"))
+        self.assertTrue(self.gateway.accepts_key_name("alt"))
+
+    def test_resolve_send_rejects_other_os_modifiers_before_keyboard_lookup(self) -> None:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes") as resolve:
+            for name in ("command", "CMD", "left_command", "option"):
+                with self.subTest(name=name), self.assertRaisesRegex(
+                    ValueError, "Unknown key name"
+                ):
+                    self.gateway.resolve_send(name)
+        resolve.assert_not_called()
+
+    def test_validate_rejects_other_os_modifier_names(self) -> None:
+        rejected = (
+            "command", "left command", "right command", "cmd", "option",
+            "left option", "right option",
+        )
+        for name in rejected:
+            for variant in {name, name.upper(), " " + name.replace(" ", "_").upper() + " "}:
+                with self.subTest(name=variant), self.assertRaisesRegex(
+                    ValueError, "Unknown key name"
+                ):
+                    self.gateway.validate_key_name(variant)
+
+    def test_windows_modifier_hotkey_remains_valid(self) -> None:
+        self.gateway.send_hotkey("windows+c")
+        self.assertEqual(self.events.mock_calls, [
+            call.ext(0x5B, 0x5B, key_up=False),
+            call.press("c"),
+            call.release("c"),
+            call.ext(0x5B, 0x5B, key_up=True),
+        ])
+
+    def test_hotkey_rejects_other_os_modifier_before_native_send(self) -> None:
+        with patch.object(keyboard_backend.keyboard, "key_to_scan_codes") as resolve:
+            with self.assertRaisesRegex(ValueError, "Unknown key name"):
+                self.gateway.send_hotkey("command+c")
+        resolve.assert_not_called()
+
     def test_shift_right(self) -> None:
         self.gateway.send_hotkey("shift+right")
         self.assertEqual(self.events.mock_calls, [

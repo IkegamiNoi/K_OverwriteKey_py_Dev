@@ -783,3 +783,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - codex-delegating-implementer（Sol medium + Luna high 3 体・自己申告）・51 ファイル。Mac の受信 / 送信 / Tk の記録（backend の `TkKeyTranslator.modifier_name`・Windows は旧表と同じ）・既定データ（Q2）・語彙（key_hold / 割り当て禁止 / key_state_manager / input_router）を command / option 系へ。表示名の差し替え（task_09a / 09c）を撤去（tests_ui/test_modifier_display_scope.py 削除・test_key_symbols 3 件削除 1 件置換）。sample_install は既定データ経由で変更不要。
 - reviewer 採用。低 1（contracts.py の未使用 `field`）はメインが削除。参考 = `normalize_tk_keysym` の `widget` 引数が未使用・`key_state_manager` の `command` の寄せ先変更は Windows で実害なし（Windows の smoke で確認）。
 - Mac 目視は task_09f の後にまとめて（§9 の 13〜15）。tests_ui の Caps Lock 1 件は既知の未決。
+
+### 【task_09f 実装】reviewer 採用・Mac 目視 OK（2026-11-15・Mac）
+- codex-delegating-implementer（Sol medium + Luna high 3 体・自己申告）・23 ファイル。backend の `accepts_key_name`（Mac = Windows の名前・Windows = Mac の名前を拒否・`resolve_send` の先頭）・入口（キーボードUIの禁止の色と編集開始・置換元の確定・トリガーの追加 / キー変更・hotkey の保存は他方の修飾キーだけ・切替 / 停止 / トグルの記録）・修飾キー単独の読み飛ばしを `is_modifier_key` に統一。メインがテストの前提の誤り 2 件を修正（hotkey_presets は構成セットに無い・トリガーのキーは小文字）。
+- reviewer 採用。低 3（keyboard_window の InputGateway 直呼び・新入口のエラー文言で値が重なる・Windows の AltGr の hotkey 記録の目視）は任意で未対応。
+- Mac 目視 OK（task_09e と合わせて。停止キーの欄は修飾キーを記録しないため対象外 = 目視項目の誤り）。§9 の 13 は task_09b の後。
+- ユーザー提案: hotkey の保存時も全要素を `validate_key_name` で検査（ホワイトリスト）→ phase 75 の範囲外として既存の idea_03 に追記（重複起票しない）。

@@ -10,7 +10,9 @@ from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.domain.key_hold import is_modifier_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
+from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
@@ -469,7 +471,9 @@ class KeyboardWindow(tk.Toplevel):
                 display = self._layout.key_display_name(display) or display_key_name(display)
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
-            if kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key):
+            if not InputGateway.accepts_key_name(lookup_key) or (
+                kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key)
+            ):
                 kind = "prohibited"
             if kind == "keymap" and (
                 is_make_only_scan_code(spec.scan_code)
@@ -564,7 +568,7 @@ class KeyboardWindow(tk.Toplevel):
         key = self._find_key_at_point(event.x, event.y)
         if not key:
             return None
-        if is_prohibited_assign_key(key):
+        if is_prohibited_assign_key(key) or not InputGateway.accepts_key_name(key):
             return "break"
         self._begin_edit(key)
         return "break"
@@ -617,7 +621,7 @@ class KeyboardWindow(tk.Toplevel):
         if key == "esc":
             self._cancel_edit(resume_hook=True)
             return "break"
-        if key in ("ctrl", "shift", "alt", "windows"):
+        if is_modifier_key(key):
             return "break"
         if not key:
             return "break"

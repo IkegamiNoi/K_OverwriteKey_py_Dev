@@ -18,6 +18,10 @@ class FakeInputGateway:
     def __init__(self) -> None:
         self.validated: list[str] = []
         self.invalid_names: set[str] = set()
+        self.rejected_names: set[str] = set()
+
+    def accepts_key_name(self, key_name: str) -> bool:
+        return key_name.lower() not in self.rejected_names
 
     def validate_key_name(self, key_name: str) -> None:
         self.validated.append(key_name)
@@ -277,6 +281,57 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         incomplete.on_ok()
         self.assertTrue(incomplete.winfo_exists())
         self.assertIn("X/Yは両方", self.showerror.call_args.args[1])
+
+    def test_hotkey_recording_collects_mac_modifiers_in_existing_order(self) -> None:
+        dialog = self.make_dialog(mode=None)
+        dialog._start_recording()
+        event = SimpleNamespace(keysym="", keycode=0, state=0)
+        with patch(
+            "keyseq.presentation.dialogs.action_dialog.resolve_modified_char_key_name",
+            return_value="",
+        ), patch(
+            "keyseq.presentation.dialogs.action_dialog.normalize_tk_key_event",
+            side_effect=["command", "option", "esc"],
+        ):
+            for _ in range(2):
+                self.assertEqual(dialog._on_key_press(event), "break")
+                self.assertTrue(dialog._recording)
+            self.assertEqual(dialog.value_var.get(), "option+command")
+            dialog._on_key_press(event)
+        self.assertEqual(dialog.value_var.get(), "option+command+esc")
+        self.assertFalse(dialog._recording)
+
+    def test_hotkey_rejects_other_os_modifier_but_keeps_unknown_normal_name(self) -> None:
+        self.root.input_gateway.rejected_names.add("left command")
+        rejected = self.make_dialog()
+        rejected.type_var.set("hotkey")
+        rejected._sync_capture_ui()
+        rejected.value_var.set("left command+a")
+        rejected.on_ok()
+        self.assertTrue(rejected.winfo_exists())
+        self.assertIn("不明なキー名", self.showerror.call_args.args[1])
+
+        accepted = self.make_dialog()
+        accepted.type_var.set("hotkey")
+        accepted._sync_capture_ui()
+        accepted.value_var.set("unknown-normal-name+a")
+        accepted.on_ok()
+        self.assertEqual(self.root._dialog_result["type"], "hotkey")
+        self.assertEqual(self.root._dialog_result["value"], "unknown-normal-name+a")
+
+    def test_key_hold_still_uses_backend_validation_for_unknown_and_other_os_names(self) -> None:
+        self.root.input_gateway.rejected_names.add("left command")
+        self.root.input_gateway.invalid_names.add("left command")
+        dialog = self.make_dialog()
+        dialog.type_var.set("key_hold")
+        dialog._sync_capture_ui()
+        dialog.key_hold_fields.key_var.set("left command")
+
+        dialog.on_ok()
+
+        self.assertTrue(dialog.winfo_exists())
+        self.assertIn("left command", self.root.input_gateway.validated)
+        self.assertIn("キー名が正しくありません", self.showerror.call_args.args[1])
 
     def test_empty_composite_key_and_invalid_coordinates_are_rejected(self) -> None:
         for value in ("", "ctrl+shift", "a,b"):

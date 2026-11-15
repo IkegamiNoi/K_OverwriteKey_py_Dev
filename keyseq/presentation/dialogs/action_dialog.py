@@ -5,7 +5,7 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Callable
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
-from keyseq.domain.key_hold import parse_key_hold
+from keyseq.domain.key_hold import is_modifier_key, parse_key_hold
 from keyseq.domain.mouse_scroll import parse_mouse_scroll
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
@@ -44,7 +44,7 @@ class ActionDialog(tk.Toplevel):
 
         # hotkey 記録用
         self._recording = False
-        self._mods_down = set()   # {"ctrl","shift","alt","windows"}
+        self._mods_down = set()   # 記録中に押されている修飾キー
         self._last_nonmod = None  # 直近の非修飾キー
 
         frm = ttk.Frame(self, padding=12)
@@ -246,6 +246,14 @@ class ActionDialog(tk.Toplevel):
             if not v:
                 messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.value_required"))
                 return
+            if t == "hotkey":
+                for key in v.split("+"):
+                    if not self.parent.input_gateway.accepts_key_name(key):
+                        messagebox.showerror(
+                            tr("action_dialog.error.input_title"),
+                            tr("capture.error.unknown_key", key=key, error=ValueError(key)),
+                        )
+                        return
             self.parent._dialog_result = {"type": t, "value": v, "label": label}
         elif t == "mouse_click":
             # mouse_click
@@ -455,7 +463,7 @@ class ActionDialog(tk.Toplevel):
             key = normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
             return "break"
-        if key in ("ctrl", "shift", "alt", "option", "windows", "command"):
+        if is_modifier_key(key):
             self._mods_down.add(key)
             # 修飾キーだけでは確定しない
             self._update_hotkey_preview()

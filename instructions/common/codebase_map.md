@@ -44,6 +44,7 @@ infrastructure
 - `OsBackend.queued_hook_dispatch`（phase 75 task_08・既定 False）: 真ならフックの受け渡しをキュー版のディスパッチャにする（`presentation/hook_dispatcher.py`）。Windows は False（即時版 = `after(0)`）
 - `OsBackend.default_profile`（phase 75 task_07b）: OS ごとの既定のホットキー・プリセットとサンプル（`domain/default_profile.py` の `DefaultProfile`）。App の組み立てで `ConfigService(repository, default_profile=backend.default_profile)` へ渡し、既定の作成（`new_base_data` / `new_default_data`）と欠損時の補完（`ensure_config_compatibility(..., profile=)`）で使う
 - `TkKeyTranslator.modifier_name(keysym, sided=)`（phase 75 task_09e）: Tk の修飾キー名を backend から取得する。Mac は Meta → `command`、Alt → `option`（`sided=True` は左右つき）、Windows は従来の名前。`presentation/tk_keys.py` とキーボードUIの記録が利用する。Mac の既定プリセット・サンプルも `command` / `option` 系で持つ。`OsBackend` の修飾キー表示名の注入は撤去。
+- `KeyboardBackend.accepts_key_name(name)`（phase 75 task_09f）: trim・小文字・`_` → 空白で他方の OS の修飾キー名だけを拒否する。`InputGateway.accepts_key_name` が横流しし、両 backend の `resolve_send` も先頭で検査（Windows は keyboard の解決より前）。保存済みの設定の読み込みは検査・変換しない。
 - `keyseq/infrastructure/os_backend/windows/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（キーの記録中・phase 60）
 
 ---
@@ -887,6 +888,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
 - OS 非依存の窓口は `InputGateway`。フック・キー解決・送信・同じキーの判定・Shift 要否・リピート設定は `get_backend().keyboard` → `os_backend/windows/keyboard_backend.py` の `WindowsKeyboardBackend`。拡張キーの表と `_needs_shift`・`_send_numpad_event` も同モジュールにある。
+- キー名の受付（phase 75 task_09f・暫定 57 §5.3.4）: `accepts_key_name` をキーボードUIの `redraw`（禁止の色）/ `_on_canvas_left_click`（編集開始）、`KeymapPanelController.assign_keymap_from_keyboard_ui`（置換元の確定）、`TriggerRowEditFlow.add_trigger` / `rename_trigger`（追加・キー変更）、`ActionDialog.on_ok`（hotkey の各要素の保存）で使用する。hotkey の通常の未知名は保存時には検査しない。置換先・key_hold は既存の `validate_key_name` → `resolve_send`。切替 / 停止 / トグルキーは各記録の `_record_key` で受付を検査する。修飾キー単独の読み飛ばしと hotkey の修飾キー収集は `domain.key_hold.is_modifier_key` に統一（key_hold の記録は左右つきのまま）。置換元の新規確定は `assign_keymap_from_keyboard_ui` の 1 経路（`KeymapEditDialog` は切替キー・ラベル等の編集）。
 - `KeySend`（不変・kind / values は backend だけが解釈する不透明な値）と `KeyboardBackend` / `MouseBackend` の契約は `os_backend/contracts.py`。`SendInput` の構造体と API は `windows/send_input.py`。`App.__init__` は pyautogui による DPI aware の設定を Tk の最初の窓より前に行うため、`super().__init__()` より前に backend を取得する。
 
 - 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` /キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。

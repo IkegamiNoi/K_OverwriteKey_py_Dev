@@ -144,6 +144,13 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         callback.assert_called_once_with("source", "a")
         self.assertEqual(result, "break")
 
+    def test_modifier_keys_are_skipped_during_source_capture(self):
+        for key in ("left command", "option"):
+            with self.subTest(key=key):
+                result, callback = self._record(key, False)
+                callback.assert_not_called()
+                self.assertEqual(result, "break")
+
     def test_mac_modifier_layout_ids_keep_windows_ids_unchanged(self):
         from keyseq.presentation.keyboard_window import _LOOKUP_KEY_BY_ID
 

@@ -375,6 +375,60 @@ class MacKeyboardSendTests(unittest.TestCase):
             return scan_code
         return self.keyboard.resolve_send(key, resolver)
 
+    def test_accepts_os_specific_modifier_names(self):
+        rejected = (
+            "windows", "left windows", "right windows", "win", "left win",
+            "right win", "alt", "left alt", "right alt", "left menu",
+        )
+        for name in rejected:
+            for variant in {name, name.upper(), " " + name.replace(" ", "_").upper() + " "}:
+                with self.subTest(name=variant):
+                    self.assertFalse(self.keyboard.accepts_key_name(variant))
+        self.assertTrue(self.keyboard.accepts_key_name("command"))
+        self.assertTrue(self.keyboard.accepts_key_name("option"))
+
+    def test_resolve_send_rejects_other_os_modifiers_before_layout_lookup(self):
+        resolver = Mock(return_value=30)
+        for name in ("windows", "WINDOWS", "left_windows", "alt"):
+            with self.subTest(name=name), self.assertRaisesRegex(
+                ValueError, "Unknown key name"
+            ):
+                self.keyboard.resolve_send(name, resolver)
+        resolver.assert_not_called()
+
+    def test_gateway_validate_rejects_other_os_modifier_names(self):
+        from types import SimpleNamespace
+
+        from keyseq.infrastructure import input_gateway
+
+        gateway = input_gateway.InputGateway()
+        rejected = (
+            "windows", "left windows", "right windows", "win", "left win",
+            "right win", "alt", "left alt", "right alt", "left menu",
+        )
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(
+            keyboard=self.keyboard,
+        )):
+            for name in rejected:
+                for variant in {name, name.upper(), " " + name.replace(" ", "_").upper() + " "}:
+                    with self.subTest(name=variant), self.assertRaisesRegex(
+                        ValueError, "Unknown key name"
+                    ):
+                        gateway.validate_key_name(variant)
+
+    def test_gateway_hotkey_rejects_windows_modifier_before_press(self):
+        from types import SimpleNamespace
+
+        from keyseq.infrastructure import input_gateway
+
+        gateway = input_gateway.InputGateway()
+        with patch.object(input_gateway, "get_backend", return_value=SimpleNamespace(
+            keyboard=self.keyboard,
+        )), patch.object(self.keyboard, "press_send") as press_send:
+            with self.assertRaisesRegex(ValueError, "Unknown key name"):
+                gateway.send_hotkey("windows+c")
+        press_send.assert_not_called()
+
     def test_resolve_send_uses_shift_then_name_then_unique_layout_scan_code(self):
         shifted = self.resolve("!")
         self.assertEqual((shifted.kind, shifted.values), ("mac_shift", (18,)))

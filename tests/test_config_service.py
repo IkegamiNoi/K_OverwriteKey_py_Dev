@@ -102,6 +102,35 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             self.assertEqual(loaded["hook_stop_key"], "f12")
             self.assertEqual(loaded["keyboard_layout"], "us_tkl")
 
+    def test_round_trip_preserves_other_os_modifier_names_in_existing_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            service = ConfigService(JsonRepository())
+            runtime = make_runtime_data()
+            runtime["hook_stop_key"] = "command"
+            runtime["hook_toggle_key"] = "option"
+            runtime["keymaps"][0]["mappings"] = {"left windows": "right alt"}
+            runtime["keymaps"][0]["triggers"][0]["key"] = "left command"
+            runtime["keymaps"][0]["triggers"][0]["actions"] = [
+                {"type": "key_hold", "edge": "down", "value": "left option", "label": "legacy"},
+            ]
+
+            _, startup = service.save_runtime_data(
+                "", runtime, config_root=root, startup_data={}, split_base_dir="",
+            )
+            loaded = service.load_runtime_data_from_keymap_set_path(
+                os.path.join(root, startup["keymap_set_path"]), config_root=root,
+            )
+
+            self.assertEqual(loaded["hook_stop_key"], "command")
+            self.assertEqual(loaded["hook_toggle_key"], "option")
+            self.assertEqual(loaded["keymaps"][0]["mappings"], {"left windows": "right alt"})
+            self.assertEqual(loaded["keymaps"][0]["triggers"][0]["key"], "left command")
+            self.assertEqual(
+                loaded["keymaps"][0]["triggers"][0]["actions"][0]["value"],
+                "left option",
+            )
+
     def test_save_runtime_data_omits_prompt_if_missing_without_existing_value(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

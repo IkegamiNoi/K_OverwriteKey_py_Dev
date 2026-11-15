@@ -30,6 +30,12 @@ class TriggerRowEditFlow:
         label = (res.get("label") or "").strip()
         if not key:
             return
+        if not self._panel._app.input_gateway.accepts_key_name(key):
+            messagebox.showerror(
+                tr("trigger_panel.add.error_title"),
+                tr("capture.error.unknown_key", key=key, error=ValueError(key)),
+            )
+            return
         triggers = ensure_active_triggers(self._panel._app.data)
         # 重複チェック
         if self._panel._app.trigger_service.key_exists(self._panel._app.data, key):
@@ -82,6 +88,12 @@ class TriggerRowEditFlow:
         if not new:
             return
         if old != new:
+            if not self._panel._app.input_gateway.accepts_key_name(new):
+                messagebox.showerror(
+                    tr("keymap_panel.edit.error_title"),
+                    tr("capture.error.unknown_key", key=new, error=ValueError(new)),
+                )
+                return
             if self._panel._app.trigger_service.key_exists(
                 self._panel._app.data, new, exclude_trigger=t
             ):

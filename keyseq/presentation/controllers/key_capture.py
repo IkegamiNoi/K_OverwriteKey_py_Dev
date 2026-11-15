@@ -6,6 +6,7 @@ from tkinter import messagebox
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.domain.key_hold import is_modifier_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     capture_active_text, capture_idle_text,
@@ -150,8 +151,17 @@ class SingleKeyCaptureController:
             self.stop(cancel=True)
             return "break"
 
+        try:
+            if not self._app.input_gateway.accepts_key_name(key):
+                raise ValueError(key)
+        except Exception as e:
+            messagebox.showerror(
+                tr("capture.error.title"), tr("capture.error.unknown_key", key=key, error=e),
+            )
+            return "break"
+
         # 修飾キー単体は無視
-        if key in ("ctrl", "shift", "alt", "windows"):
+        if is_modifier_key(key):
             return "break"
 
         # 単キーのみ（ここに来る時点で "+" は入らないが保険）

@@ -5,6 +5,7 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_hold import is_modifier_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.hook_button_texts import (
@@ -122,8 +123,8 @@ class TriggerDialog(tk.Toplevel):
     def _record_key(self, k: str) -> str | None:
         if not self._capturing:
             return None
-        # 修飾キー単体は無視（ctrl/shift/alt/windows）
-        if k in ("ctrl", "shift", "alt", "windows"):
+        # 修飾キー単体は無視する。
+        if is_modifier_key(k):
             return "break"
         # 取得して終了
         self.key_var.set(k)

@@ -11,6 +11,7 @@ from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from keyseq.presentation.hook_button_texts import unknown_capture_key_hint_text
 from keyseq.presentation.keyboard_layouts import KeyboardLayoutEntry, load_layout_from_json
+from keyseq.infrastructure.input_gateway import InputGateway
 
 
 DE_LAYOUT_PATH = (
@@ -100,6 +101,14 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(self._click_key("caps lock", self.window._on_canvas_left_click), "break")
         self.assertEqual(self.window._editing_source_key, "a")
 
+    def test_other_os_modifier_is_prohibited_color_and_cannot_start_source_edit(self):
+        # Force the platform gateway to classify this otherwise ordinary key as unavailable.
+        with patch.object(InputGateway, "accepts_key_name", side_effect=lambda name: name != "a"):
+            self.window.redraw()
+            self.assertEqual(self._rectangle_fill("a"), "#e5e7eb")
+            self.assertEqual(self._click_key("a", self.window._on_canvas_left_click), "break")
+        self.assertIsNone(self.window._editing_source_key)
+
     def test_de_alt_gr_key_is_prohibited_and_has_no_right_alt_frame(self):
         controller = self.app.layout
         entries_before = dict(controller._keyboard_layout_entries)
@@ -146,6 +155,14 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         with patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror"):
             self.assertFalse(self.app.keymap_panel.assign_keymap_from_keyboard_ui("caps lock", "a"))
         self.assertEqual(self.app.data, before)
+
+    def test_assignment_entry_rejects_other_os_modifier_source(self):
+        before = copy.deepcopy(self.app.data)
+        with patch.object(self.app.input_gateway, "accepts_key_name", return_value=False), \
+             patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror") as showerror:
+            self.assertFalse(self.app.keymap_panel.assign_keymap_from_keyboard_ui("left command", "a"))
+        self.assertEqual(self.app.data, before)
+        showerror.assert_called_once()
 
     def test_switch_validation_rejects_new_caps_but_allows_unchanged_caps(self):
         # 対象に別の切替キーが割り当てられていない構成を用意する。

@@ -25,7 +25,9 @@ class ActionDialogLabelsTest(unittest.TestCase):
         self.root.hook = SimpleNamespace(suspend_hook_for_dialog=Mock())
         self.root.config_service = Mock()
         self.root.data = {"hotkey_presets": []}
-        self.root.input_gateway = SimpleNamespace(validate_key_name=Mock())
+        self.root.input_gateway = SimpleNamespace(
+            validate_key_name=Mock(), accepts_key_name=Mock(return_value=True),
+        )
         self.root._dialog_result = None
         self.dialogs = []
         self.addCleanup(self.cleanup_windows)

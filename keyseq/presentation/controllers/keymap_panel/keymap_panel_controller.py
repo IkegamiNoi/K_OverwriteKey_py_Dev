@@ -632,6 +632,12 @@ class KeymapPanelController:
         target = normalize_key_name(target_key)
         if not source or not target:
             return False
+        if not self._app.input_gateway.accepts_key_name(source):
+            messagebox.showerror(
+                tr("capture.error.title"),
+                tr("capture.error.unknown_key", key=source, error=ValueError(source)),
+            )
+            return False
         if is_prohibited_assign_key(source):
             messagebox.showerror(
                 tr("capture.error.title"),
