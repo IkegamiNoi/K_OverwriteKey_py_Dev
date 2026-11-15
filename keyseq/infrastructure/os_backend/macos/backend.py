@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import math
+import os
 import subprocess
 from threading import Lock, RLock
 from typing import Callable, Sequence
@@ -70,12 +72,14 @@ class _Hook:
 
 
 class MacKeyboardBackend:
-    def __init__(self, *, quartz=None) -> None:
+    def __init__(self, *, quartz=None, foundation=None) -> None:
         self._hooks: list[_Hook] = []
         self._lock = RLock()
         self._lifecycle = RLock()
         self._tap: EventTap | None = None
         self._quartz = quartz
+        self._foundation = foundation
+        self._repeat_timing_failure_logged = False
         self._hook_failure_listener: Callable[[], None] | None = None
         self._jis = False
         self._send_lock = RLock()
@@ -287,7 +291,40 @@ class MacKeyboardBackend:
                     q.CGEventKeyboardSetUnicodeString(event, length, chunk)
                     self._post_event(q, event, self._send_flags())
 
-    def repeat_timing(self) -> tuple[int, int]: return (500, 33)
+    def repeat_timing(self) -> tuple[int, int]:
+        try:
+            foundation = self._foundation
+            if foundation is None:
+                from Foundation import CFPreferencesAppSynchronize, CFPreferencesCopyAppValue
+            else:
+                CFPreferencesAppSynchronize = foundation.CFPreferencesAppSynchronize
+                CFPreferencesCopyAppValue = foundation.CFPreferencesCopyAppValue
+            domain = ".GlobalPreferences"
+            CFPreferencesAppSynchronize(domain)
+        except Exception:
+            if not self._repeat_timing_failure_logged:
+                _LOG.exception("Could not read keyboard repeat timing")
+                self._repeat_timing_failure_logged = True
+            return (500, 33)
+        return (self._read_repeat_value(CFPreferencesCopyAppValue, "InitialKeyRepeat", domain, 500),
+                self._read_repeat_value(CFPreferencesCopyAppValue, "KeyRepeat", domain, 33))
+
+    def _read_repeat_value(self, getter, key: str, domain: str, default: int) -> int:
+        try:
+            return self._repeat_milliseconds(getter(key, domain), default)
+        except Exception:
+            if not self._repeat_timing_failure_logged:
+                _LOG.exception("Could not read keyboard repeat timing")
+                self._repeat_timing_failure_logged = True
+            return default
+
+    @staticmethod
+    def _repeat_milliseconds(value: object, default: int) -> int:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return default
+        if not math.isfinite(value) or value <= 0:
+            return default
+        return max(1, round(value * 15))
 
 
 class MacMouseBackend:
@@ -303,10 +340,25 @@ class MacMouseBackend:
 
 
 class MacWindowBackend:
-    def __init__(self, *, quartz=None) -> None:
+    def __init__(self, *, quartz=None, appkit=None) -> None:
         self._quartz = quartz
+        self._appkit = appkit
+        self._foreground_failure_logged = False
 
-    def is_own_process_foreground(self) -> bool: return False
+    def is_own_process_foreground(self) -> bool:
+        try:
+            appkit = self._appkit
+            if appkit is None:
+                from AppKit import NSWorkspace
+            else:
+                NSWorkspace = appkit.NSWorkspace
+            application = NSWorkspace.sharedWorkspace().frontmostApplication()
+            return application is None or application.processIdentifier() == os.getpid()
+        except Exception:
+            if not self._foreground_failure_logged:
+                _LOG.exception("Could not determine frontmost application")
+                self._foreground_failure_logged = True
+            return False
     def foreground_own_window(self): return None
     def window_handle(self, window): return window.winfo_id()
     def place_window_below(self, window, above): return False

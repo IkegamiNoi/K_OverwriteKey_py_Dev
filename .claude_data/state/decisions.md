@@ -804,3 +804,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 実装: codex-delegating-implementer（Sol medium + Luna high）・17 ファイル・文言 6 キー（ja / en）・requirements.txt に pyobjc-framework-ApplicationServices（darwin）。メイン修正 = tests_ui/test_sequence_control_review_fixes.py の偽の app に input_gateway（task_09f の取りこぼし）・event_tap の `_notify_failure` で停止中の通知を捨てる（reviewer の任意の指摘・古い稼働の通知が再開後のフックを止める競合）。
 - reviewer 採用。任意で未対応 = Windows の keyboard 由来の PermissionError が権限の案内になる（H2 の取り決めどおり・稀）・listener の二重設定（無害）。
 - Mac 目視 OK: 権限なしで案内・開始されない・システム設定が開く / 同じプロセスでの再試行が成功（§5.2 に記録）/ 稼働中に外すと、外した後の最初のキー入力で停止して案内 1 回（そのキーは素通し・ポーリングはしない・ユーザー確認）。
+
+### 【task_11 実装】reviewer 採用・Mac 目視 OK・暫定 57 v0.13（2026-11-15・Mac）
+- task_11 を 5 本（11 前面の判定・リピート間隔 / 11a マウス / 11b 窓と画面・無効化 / 11c aqua のモーダル / 11d 割り当て禁止の文言）に分割（ユーザー「この分け方で起票」）。起票レビュー reviewer 修正して採用（注入 `appkit=None`・値の丸め・tap のスレッドから repeat_timing も呼ばれる）。
+- 実装: codex-implementer（Luna high）。前面の判定 = `NSWorkspace.frontmostApplication` の pid（取れなければ真・例外は偽）。
+- **仕様変更（直接改訂・ユーザー「推奨どおり変える」）**: Mac 目視 1 でリピートの速さが設定に追従せず。`NSEvent.keyRepeatDelay` / `keyRepeatInterval` は Tk の起動後もシステム設定を反映しない（0.5 / 0.083 秒固定）とメインが実測 → 暫定 57 v0.13 §5.4 = グローバル設定の `InitialKeyRepeat` / `KeyRepeat`（`CFPreferencesAppSynchronize` の後に毎回読む・15 ms 単位）。注入は `foundation=None`。メインがテストの期待値の並びの誤り 1 件を修正。reviewer 採用・Mac 再目視 OK。
+- task_11c へ送った（Mac 目視から・ユーザー 2026-11-15）: メインが最前面のときトリガーの追加ダイアログが記録開始で後ろへ回る。キーボードUIの件は目視 3 の文言（「自分の窓が前面」）の不正確さから来た誤読で不具合ではない（ユーザー指摘: キーボードUIはクリックして使うのでメインが前面のままにはならない）→ 送らない。

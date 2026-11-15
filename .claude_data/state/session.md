@@ -4,37 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-15T23:30:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.12・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
+last_updated: 2026-11-16T03:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.13・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_09d のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: 在席
-focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）を Mac で実装・目視 OK。次 = task_11。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
+focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）・task_11（前面の判定・リピート間隔・v0.13）を Mac で実装・目視 OK。task_11 は 11〜11d に分割。次 = task_11a（マウス）。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-16T01:00:00
+ts: 2026-11-16T03:00:00
 who: main
 summary: |
-  task_10 起票（codex-explorer の調査 → reviewer 修正して採用・H1 はユーザー判断で両 OS）→ codex-delegating-implementer で実装（権限の確認と案内・システム設定を開く・実行中の障害の停止と通知・登録失敗で開始を失敗に）→ verifier（基準線どおり）→ メインが tests_ui の取りこぼしと event_tap の競合を修正 → reviewer 採用 → Mac 目視 OK（同じプロセスでの再試行が成功・§5.2 に記録）。
+  task_11 を 5 本に分割して起票（reviewer 修正して採用）→ codex-implementer で前面の判定（frontmostApplication の pid）とリピート間隔を実装 → Mac 目視 1 で NSEvent が設定を反映しないと判明 → ユーザー判断で暫定 57 v0.13（グローバル設定の InitialKeyRepeat / KeyRepeat・15 ms 単位）→ 再実装・メインがテストの期待値を修正 → reviewer 採用 → Mac 再目視 OK。目視で見つかったトリガーの追加ダイアログが後ろへ回る件は task_11c へ（キーボードUIの件は目視の文言の誤読で取り消し）。
 result_files:
-  - keyseq/application/hook_coordinator.py・keyseq/infrastructure/（input_gateway・os_backend/contracts・macos/backend・macos/event_tap・windows/keyboard_backend）・keyseq/presentation/controllers/hook_controller.py
-  - keyseq/shared/i18n/locales/ja.json・en.json・requirements.txt・codebase_map.md・57_mac_support.md（§5.2）・task_10 定義
-  - tests（hook_coordinator・macos_keyboard_backend・os_backend_contracts・input_permission_gateway〔新規〕・call_link_lifecycle）・tests_ui（hook_controller_reserved_actions・sequence_control_review_fixes）
+  - keyseq/infrastructure/os_backend/macos/backend.py・tests/test_macos_keyboard_backend.py
+  - instructions/history/57_mac_support.md（v0.13）・phase.md（task_11〜11d）・task_11 定義（新規）・codebase_map.md・current.md・decisions.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2091 件・失敗 6・エラー 10・skip 30（基準線どおり）
+  tests_mac: 2097 件・失敗 6・エラー 10 相当（修正前 +1 はテストの期待値の誤り → 修正後 test_macos_keyboard_backend 65 件 OK）
   smoke_mac: pass
-  tests_ui_mac: 関係 7 本 1 本ずつ 失敗 0
+  tests_ui_mac: capture_hook_entries・capture_ime_entries pass
   tests_windows: not_run
-  visual_mac: task_10 OK
+  visual_mac: task_11 OK
 
 ## next_action
-- **task_11 に着手**: §5.4 の残りの機能と無効化の UI（phase.md の task_11 の行が範囲。前面の判定・repeat_timing・クリック透過・NSWindow の一意の引き方・中クリック・test_modal_grab の 4 件・test_minimize_grab_custody・pyautogui / pynput の置き場所〔M4〕・割り当て禁止の文言の Mac 向けの言い換え〔task_09c / §5.3.3 から〕）。`/task_new` で起票（範囲が広いので分割を検討・調査は codex-explorer）。
-- **task_09〜10 の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_input_gateway_send の拒否・test_keyboard_layout_files・hook_coordinator の登録失敗を含む〕・tests_ui 1 本ずつ・smoke）。目視 = task_09d はドイツ語入力で hotkey に ä の位置のキーと AltGr+e を記録 → 実行して ä / € が出るか・AltGr が hotkey の記録で黙って無視されないか・Windows で `command+c` を hotkey に書くと保存で拒否されること・フック開始が今どおり動くこと。
+- **task_11a を起票**（`/task_new`）: マウス（`MacMouseBackend` を pyautogui / pynput へ委譲・その実装の OS 共通の置き場〔M4〕・クリック位置の記録と §5.1 の tap の共存・中クリックの番号）。調査は codex-explorer。
+- **task_09〜11 の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0・tests_ui 1 本ずつ・smoke）。目視 = task_09d のドイツ語入力の hotkey・`command+c` の保存拒否・フック開始。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
