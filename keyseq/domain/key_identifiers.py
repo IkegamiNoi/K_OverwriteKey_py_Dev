@@ -12,6 +12,7 @@ PROHIBITED_ASSIGN_KEY_NAMES = frozenset(
         "left command",
         "right command",
         "caps lock",
+        "fn",
         "caps_lock",
         "capslock",
         "alt gr",

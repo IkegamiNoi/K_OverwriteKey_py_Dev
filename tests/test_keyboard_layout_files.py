@@ -10,6 +10,8 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_layout_scan_code_from_key_name,
     resolve_keyboard_layout,
 )
+from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.infrastructure.os_backend.macos.key_table import is_jis_layout
 
 
 LAYOUT_DIR = Path(__file__).resolve().parents[1] / "config" / "user" / "keylayout"
@@ -18,12 +20,16 @@ LAYOUT_PATHS = {
     "jis": LAYOUT_DIR / "jis.json",
     "jis_test": LAYOUT_DIR / "jis_test.json",
     "us_tkl": LAYOUT_DIR / "us_tkl.json",
+    "us_mac": LAYOUT_DIR / "us_mac.json",
+    "jis_mac": LAYOUT_DIR / "jis_mac.json",
 }
 _NO_SCAN_CODE_IDS = (
     "shift_",
     "ctrl_",
     "alt_",
     "windows_",
+    "command_",
+    "option_",
 )
 
 
@@ -320,6 +326,31 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
                         overlaps_x = first.x < second.x + second.w and second.x < first.x + first.w
                         overlaps_y = first.y < second.y + second.h and second.y < first.y + first.h
                         self.assertFalse(overlaps_x and overlaps_y, f"{first.id} overlaps {second.id}")
+
+    def test_mac_sample_scan_codes_and_layout_identity(self):
+        us_mac = load_layout_from_json(str(LAYOUT_PATHS["us_mac"]))
+        jis_mac = load_layout_from_json(str(LAYOUT_PATHS["jis_mac"]))
+        jis = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+        jis_scan_codes = {key.id: key.scan_code for key in jis.keys if key.scan_code is not None}
+
+        self.assertEqual(us_mac.layout_id, "us_mac_sample")
+        self.assertEqual(jis_mac.layout_id, "jis_mac_sample")
+        self.assertTrue(all(key.scan_code is None for key in us_mac.keys))
+        for key in jis_mac.keys:
+            if key.scan_code is not None:
+                self.assertEqual(jis_scan_codes.get(key.id), key.scan_code, key.id)
+
+        self.assertFalse(is_jis_layout(frozenset(key.id for key in us_mac.keys)))
+        self.assertTrue(is_jis_layout(frozenset(key.id for key in jis_mac.keys)))
+        for layout in (us_mac, jis_mac):
+            key_ids = {key.id for key in layout.keys}
+            self.assertEqual(len(key_ids), len(layout.keys))
+            self.assertTrue({"command_l", "command_r", "option_l", "fn", "caps lock"} <= key_ids)
+            self.assertFalse(any(key_id.startswith(("windows_", "alt_")) for key_id in key_ids))
+        # 暫定 57 v0.12: JIS の内蔵キーボードは右 Option の位置が fn。
+        self.assertIn("option_r", {key.id for key in us_mac.keys})
+        self.assertNotIn("option_r", {key.id for key in jis_mac.keys})
+        self.assertTrue(is_prohibited_assign_key("fn"))
 
     def test_modifier_and_prohibited_keys_have_no_scan_code(self):
         for name, path in LAYOUT_PATHS.items():

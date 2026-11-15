@@ -789,3 +789,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - reviewer 採用。低 3（keyboard_window の InputGateway 直呼び・新入口のエラー文言で値が重なる・Windows の AltGr の hotkey 記録の目視）は任意で未対応。
 - Mac 目視 OK（task_09e と合わせて。停止キーの欄は修飾キーを記録しないため対象外 = 目視項目の誤り）。§9 の 13 は task_09b の後。
 - ユーザー提案: hotkey の保存時も全要素を `validate_key_name` で検査（ホワイトリスト）→ phase 75 の範囲外として既存の idea_03 に追記（重複起票しない）。
+
+### 【task_09b 実装】reviewer 採用・Mac 目視 OK・暫定 57 v0.12（2026-11-15・Mac）
+- codex-implementer（2 回）で `config/user/keylayout/us_mac.json` / `jis_mac.json` とテスト。reviewer 採用（指摘 = ↑ / ↓ を半分の高さに → メイン修正）。
+- Mac 目視でユーザー指示: 矢印は右 Shift の下でよい・JIS の右 Option の位置は fn・fn はグレーアウトで置いてよい → **暫定 57 v0.12**（§5.3.2: fn を id `fn` で実機の位置に置き、`key_identifiers.PROHIBITED_ASSIGN_KEY_NAMES` に `fn` を足して禁止の色）。仕様改訂は小さくユーザー指示どおりのため Codex 敵対的レビューは行わず reviewer の再レビュー（採用）で代えた。正本 features.md §4.6 の列挙への `fn` / `command` 系の追記はフェーズ末（§11 に明記）。
+- 再目視 OK。
