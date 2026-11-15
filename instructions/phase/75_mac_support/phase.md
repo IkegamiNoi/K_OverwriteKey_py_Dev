@@ -72,7 +72,11 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_08b: CGEventTap のフック・修飾キーの左右と抑止時のフラグ・tap の無効化からの復帰（§5.1）・**受信側の vk の表**（§5.3 受信・§5.3.1。US の名前で固定・ユーザー判断 2026-11-13 で task_09 から前倒し）・CapsLock は常に素通し（同）。§4.1 の未実測（右 Option 61・右 Control 62・CapsLock 57 の FlagsChanged・自動リピートの値）を実測する（段階 ② の区切り L2）
 - task_09: 送信（解決順・送信のイベントへの印・自分の修飾のフラグ・文字送信・送信だけの別名）と、選択中のレイアウトに合う受信名（backend へキーの id の集合を渡す `set_layout_key_ids`・JIS の判定 = id に `yen` / `ro`・`jis_mac_sample` を含む・暫定 57 §5.3.2）・テンキーの表・物理の Shift / Ctrl / Alt / Win の状態（phase 74 の Shift の足し方）。Mac 目視 = 置換・`ctrl+c`（§9 の 11）・文字送信・task_08 のキュー版（2026-11-14 起票時に task_09a と分割）
 - task_09a: Tk のキー取得（`MacTkKeyTranslator`・aqua の修飾 keysym・fn を Command と誤認しない）、キー取得中の入力ソースの切替（暫定 57 §8 Q4・v0.6）、`Command` / `Option` の表示（§5.3・表示の差し替えは組み立てで注入）、Command の割り当て禁止（Q5・既存の禁止の判定で済むことの目視）。テンキーの Tk の keycode の実測（§4.1）・キーボードUIの右クリックによる割り当てのクリアの Mac 目視（task_05c の残り）・Command+Option+P でプリセット管理が開くかの目視（段階 ② の区切り L7）。**task_08b から移した目視: ③左 Command を抑止しても続く文字キーが Command+文字にならず外した後に通常入力できる（Q5 で新規に作れないため既存データとして JSON に書く）・④左 Shift 抑止・右 Shift 素通しで大文字が打て離す順を変えても修飾が残らない（2026-11-14 ユーザー判断）。**
-- task_09b: Mac 用のレイアウトの見本 2 つ（`us_mac.json` / `jis_mac.json`・暫定 57 §5.3.2・v0.8）。既存の id で Mac の並びと印字・fn は置かない・CapsLock と Command は禁止の色・`jis_mac` は `yen` と `ro` の id を置く（task_09 の JIS の判定 = id に `yen` / `ro` があること。置かないと JIS と判定されない）。task_09a の後（ユーザー判断 2026-11-14）
+- task_09b: Mac 用のレイアウトの見本 2 つ（`us_mac.json` / `jis_mac.json`・暫定 57 §5.3.2・v0.8）。既存の id で Mac の並びと印字・fn は置かない・CapsLock と Command は禁止の色・`jis_mac` は `yen` と `ro` の id を置く（task_09 の JIS の判定 = id に `yen` / `ro` があること。置かないと JIS と判定されない）。task_09a の後（ユーザー判断 2026-11-14）。**v0.11 で id を `command_*` / `option_*` にするため task_09e の後**（2026-11-15）
+- task_09c: 修飾キーの表示名の適用範囲（暫定 57 v0.10 §5.3.3）。実装済み・**§5.3.3 は v0.11 で廃止**（task_09e で撤去）。Mac 目視は task_09f の目視で代える（2026-11-15）
+- task_09d: hotkey の記録で Option+a が `alt+å` になる（修飾なしのキーを keycode から引く・§5.3 の適用漏れ・task_09c の Mac 目視で発覚 2026-11-15）
+- task_09e: Mac のキー名 `command` / `option`（暫定 57 v0.11 §5.3.4）・表示名の差し替え（task_09a / 09c）の撤去・Mac の既定データ（Q2）
+- task_09f: 他方の OS の修飾キーの名前の拒否（backend の受付の口・置換元 / トリガー / hotkey / key_hold / 切替 / 停止 / トグルの入口・Windows の別名 `command` / `option` も拒否）と修飾キー単独の読み飛ばしの統一（§5.3.4・§9 の 14・15）。Mac 目視は 09e とまとめて
 - task_10: 権限の案内（§5.2）・実行中の権限の喪失と tap の障害からのフックの停止と通知（§5.2 末尾・task_08b から）。`AXIsProcessTrusted` に使う `pyobjc-framework-ApplicationServices` を darwin のマーカーつきで依存に明記する（現在は pynput の推移依存・段階 ② の区切り L8）
 - task_11: §5.4 の残りの機能と無効化の UI。aqua では最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。pyautogui / pynput の実装（現在 `windows/mouse_backend.py` のみ）の OS 共通の置き場を決める（M4）。NSWindow を一意に引く方式（候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・暫定 57 §5.4）と中クリックの番号の確認。`test_modal_grab` の 4 件（aqua でモーダルの grab が残る）の調査（`mac_test_baseline.md`・段階 ② の区切り L2）
 
@@ -100,7 +104,9 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 | 9 | task_09 |
 | 10 | task_09・09a |
 | 12 | task_09a |
-| 13 | task_09b |
+| 13 | task_09b（id は task_09e の後） |
+| 14 | task_09f |
+| 15 | task_09e・task_09f |
 
 ## レビュー方針
 
