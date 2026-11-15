@@ -20,6 +20,7 @@ class HookCoordinator:
         has_keymaps: bool = False,
         has_trigger_keys: bool | None = None,
         has_grid_keymaps: bool = False,
+        on_permission_required: Callable[[], None] | None = None,
     ) -> bool:
         if not self._can_process_input(
             triggers, on_error, has_keymaps=has_keymaps, has_grid_keymaps=has_grid_keymaps,
@@ -29,8 +30,9 @@ class HookCoordinator:
 
         self.stop()
         try:
-            self.install_input_event_hook(on_input_event, on_error)
-            return True
+            return self.install_input_event_hook(
+                on_input_event, on_error, on_permission_required=on_permission_required,
+            )
         except Exception as e:
             on_error(tr("application.hook.start_failed_title"), tr("application.hook.start_failed", error=e))
             self.stop()
@@ -57,19 +59,30 @@ class HookCoordinator:
         self,
         on_input_event: Callable[[object], None] | None,
         on_error: Callable[[str, str], None],
-    ) -> None:
+        *,
+        on_permission_required: Callable[[], None] | None = None,
+    ) -> bool:
         self.uninstall_input_event_hook()
         if on_input_event is None:
-            return
+            return True
 
         try:
             self._input_event_hook_handle = self.input_gateway.register_global_hook(
                 on_input_event,
                 suppress=True,
             )
+            return True
+        except PermissionError:
+            self._input_event_hook_handle = None
+            if on_permission_required is not None:
+                on_permission_required()
+            else:
+                on_error(tr("application.hook.permission_required_title"), tr("application.hook.permission_required_body"))
+            return False
         except Exception as e:
             self._input_event_hook_handle = None
             on_error(tr("application.hook.install_failed_title"), tr("application.hook.install_failed", error_type=type(e).__name__, error=e))
+            return False
 
     def uninstall_input_event_hook(self) -> None:
         if self._input_event_hook_handle is None:

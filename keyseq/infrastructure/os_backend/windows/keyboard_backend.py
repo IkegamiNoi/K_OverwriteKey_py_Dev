@@ -137,8 +137,20 @@ def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
 
 
 class WindowsKeyboardBackend:
+    def __init__(self) -> None:
+        self._hook_failure_listener: Callable[[], None] | None = None
+
     def accepts_key_name(self, name: str) -> bool:
         return _normalize_key_name(name) not in _REJECTED_MAC_MODIFIER_NAMES
+
+    def input_permission_granted(self) -> bool:
+        return True
+
+    def open_input_permission_settings(self) -> bool:
+        return False
+
+    def set_hook_failure_listener(self, callback: Callable[[], None] | None) -> None:
+        self._hook_failure_listener = callback
 
     def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
         pass

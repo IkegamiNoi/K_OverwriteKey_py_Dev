@@ -46,6 +46,27 @@ class MacKeyboardBackendTests(unittest.TestCase):
         self.keyboard.register_global_hook(lambda e: True, suppress=True)
         self.assertTrue(self.keyboard._dispatch(0, key_event()))
 
+    def test_input_permission_apis_are_lazy_and_settings_failure_is_false(self):
+        with patch.dict("sys.modules", {"ApplicationServices": SimpleNamespace(
+            AXIsProcessTrusted=Mock(return_value=False),
+        )}):
+            self.assertFalse(self.keyboard.input_permission_granted())
+        with patch.object(backend.subprocess, "run", side_effect=OSError("no open")):
+            self.assertFalse(self.keyboard.open_input_permission_settings())
+        with patch.object(backend.subprocess, "run") as run:
+            self.assertTrue(self.keyboard.open_input_permission_settings())
+        run.assert_called_once_with(
+            ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
+            check=True, capture_output=True, timeout=5,
+        )
+
+    def test_hook_failure_listener_is_forwarded_to_tap(self):
+        listener = Mock()
+        self.keyboard.set_hook_failure_listener(listener)
+        self.keyboard.register_global_hook(Mock(return_value=True))
+        self.tap_class.call_args.kwargs["failure_listener"]()
+        listener.assert_called_once_with()
+
     def test_suppressing_globals_short_circuit_in_order(self):
         for decision in (False, None):
             with self.subTest(decision=decision):
@@ -165,6 +186,7 @@ def fake_quartz():
     q.CGEventPost = Mock()
     q.CGEventKeyboardSetUnicodeString = Mock()
     q.CGEventSourceFlagsState = Mock(return_value=0)
+    q.CGEventTapIsEnabled = Mock(return_value=True)
     for name in ("CGEventTapCreate", "CGEventTapEnable", "CFRunLoopGetCurrent",
                  "CFRunLoopStop", "CFMachPortInvalidate", "CFRunLoopAddSource",
                  "CFRunLoopRemoveSource", "CFMachPortCreateRunLoopSource", "CFRunLoopRunInMode"):
@@ -294,6 +316,85 @@ class EventTapTests(unittest.TestCase):
             thread.return_value.start.assert_called_once()
         args = self.q.CGEventTapCreate.call_args.args
         self.assertEqual(args[2:4], (0, (1 << 10) | (1 << 11) | (1 << 12)))
+
+    def test_permission_denial_does_not_create_tap(self):
+        tap = EventTap(self.callback, quartz=self.q, input_permission_granted=lambda: False)
+        with self.assertRaises(PermissionError):
+            tap.start()
+        self.q.CGEventTapCreate.assert_not_called()
+
+    def test_null_tap_creation_is_permission_error(self):
+        tap = EventTap(self.callback, quartz=self.q)
+        self.q.CGEventTapCreate.return_value = None
+        with self.assertRaises(PermissionError):
+            tap.start()
+
+    def test_permission_check_failure_falls_back_to_tap_creation(self):
+        tap = EventTap(self.callback, quartz=self.q,
+                       input_permission_granted=Mock(side_effect=RuntimeError("api missing")))
+        self.q.CGEventTapCreate.return_value = None
+        with self.assertLogs(event_tap.__name__, level="ERROR"), self.assertRaises(PermissionError):
+            tap.start()
+        self.q.CGEventTapCreate.assert_called_once()
+
+    def test_disabled_tap_notifies_once_when_permission_is_lost(self):
+        listener = Mock()
+        self.tap._failure_listener = listener
+        self.tap._input_permission_granted = lambda: False
+        for _ in range(2):
+            event, result = self.deliver(kind=self.q.kCGEventTapDisabledByTimeout)
+            self.assertIs(result, event)
+        self.q.CGEventTapEnable.assert_not_called()
+        listener.assert_called_once_with()
+        self.deliver(kind=self.q.kCGEventKeyDown)
+        self.callback.assert_not_called()
+
+    def test_disabled_tap_notifies_when_reenable_does_not_stick(self):
+        listener = Mock()
+        self.tap._failure_listener = listener
+        self.q.CGEventTapIsEnabled.return_value = False
+        self.deliver(kind=self.q.kCGEventTapDisabledByUserInput)
+        self.q.CGEventTapEnable.assert_called_once_with(self.native_tap, True)
+        listener.assert_called_once_with()
+
+    def test_failure_listener_exception_is_logged_and_event_passes(self):
+        self.tap._failure_listener = Mock(side_effect=RuntimeError("listener"))
+        self.tap._input_permission_granted = lambda: False
+        with self.assertLogs(event_tap.__name__, level="ERROR"):
+            event, result = self.deliver(kind=self.q.kCGEventTapDisabledByTimeout)
+        self.assertIs(result, event)
+
+    def test_failure_listener_runs_outside_tap_lock(self):
+        acquired = Event()
+
+        def listener():
+            def acquire_lock():
+                with self.tap._lock:
+                    acquired.set()
+            thread = Thread(target=acquire_lock)
+            thread.start()
+            thread.join(timeout=1)
+
+        self.tap._failure_listener = listener
+        self.tap._input_permission_granted = lambda: False
+        self.deliver(kind=self.q.kCGEventTapDisabledByTimeout)
+        self.assertTrue(acquired.is_set())
+
+    def test_run_loop_exception_notifies_once(self):
+        listener = Mock()
+        self.tap._failure_listener = listener
+        self.q.CFRunLoopRunInMode.side_effect = RuntimeError("loop")
+        with self.assertLogs(event_tap.__name__, level="ERROR"):
+            self.tap._run(self.native_tap, object())
+        listener.assert_called_once_with()
+
+    def test_start_resets_failure_notification_for_next_run(self):
+        self.tap._failure_notified = True
+        self.tap._tap = None
+        self.q.CGEventTapCreate.return_value = self.native_tap
+        with patch.object(event_tap, "Thread"):
+            self.tap.start()
+        self.assertFalse(self.tap._failure_notified)
 
     def test_stop_detaches_before_disable_stops_loop_and_joins(self):
         thread = Mock()

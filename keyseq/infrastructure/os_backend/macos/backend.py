@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import subprocess
 from threading import Lock, RLock
 from typing import Callable, Sequence
 
@@ -75,6 +76,7 @@ class MacKeyboardBackend:
         self._lifecycle = RLock()
         self._tap: EventTap | None = None
         self._quartz = quartz
+        self._hook_failure_listener: Callable[[], None] | None = None
         self._jis = False
         self._send_lock = RLock()
         self._sent_modifiers: set[int] = set()
@@ -85,6 +87,38 @@ class MacKeyboardBackend:
 
     def set_layout_key_ids(self, key_ids: frozenset[str]) -> None:
         self._jis = is_jis_layout(key_ids)
+
+    def input_permission_granted(self) -> bool:
+        try:
+            from ApplicationServices import AXIsProcessTrusted
+            return bool(AXIsProcessTrusted())
+        except Exception:
+            _LOG.exception("Could not check Accessibility permission")
+            return True
+
+    def open_input_permission_settings(self) -> bool:
+        try:
+            subprocess.run(
+                ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
+                check=True, capture_output=True, timeout=5,
+            )
+            return True
+        except Exception:
+            _LOG.exception("Could not open Accessibility settings")
+            return False
+
+    def set_hook_failure_listener(self, callback: Callable[[], None] | None) -> None:
+        with self._lock:
+            self._hook_failure_listener = callback
+            tap = self._tap
+        if tap is not None:
+            tap.set_failure_listener(self._notify_hook_failure)
+
+    def _notify_hook_failure(self) -> None:
+        with self._lock:
+            listener = self._hook_failure_listener
+        if listener is not None:
+            listener()
 
     def register_global_hook(self, callback, *, suppress: bool = False) -> object:
         return self._register(callback, suppress, None)
@@ -106,6 +140,8 @@ class MacKeyboardBackend:
                         self._dispatch, quartz=self._quartz,
                         sent_modifiers=self._sent_modifier_snapshot,
                         is_jis_layout=lambda: self._jis,
+                        input_permission_granted=self.input_permission_granted,
+                        failure_listener=self._notify_hook_failure,
                     )
             if first:
                 try:

@@ -798,3 +798,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【Caps Lock の未決】案 B（2026-11-15・Mac）
 - Mac のキー表に `caps lock` が無い（§5.1 で常に素通し）ため、Windows で作った設定の `caps lock` は Mac で不明なキーとして拒否される（切替キーを変えずに確定しても拒否）。ユーザー判断「案 B」= 仕様差として暫定 57 §5.1 に記録（§8 Q8 の非保証）。案 A（Mac のキー表に検証だけ通る `caps lock`）は動かない切替キーを通すため不採用。
 - `tests_ui/test_prohibited_assign_keys_ui.py` の `test_switch_validation_rejects_new_caps_but_allows_unchanged_caps` はキー名の検査を patch して OS に依らない形に（目的 = 割り当て禁止の除外の判定）。reviewer 採用。Mac の tests_ui の既知の失敗が 0 になる。
+
+### 【task_10 実装】reviewer 採用・Mac 目視 OK（2026-11-15・Mac）
+- 起票レビュー（reviewer 修正して採用）: H1 = 登録失敗でも start() が True で稼働中になる既存の不具合 → ユーザー判断「両 OS で直す」。H2 = 権限不足は標準の PermissionError で見分ける。M1 = 障害は set_hook_failure_listener（register_global_hook の署名は不変）。M2 = on_permission_required。M3 = ロック外で通知。
+- 実装: codex-delegating-implementer（Sol medium + Luna high）・17 ファイル・文言 6 キー（ja / en）・requirements.txt に pyobjc-framework-ApplicationServices（darwin）。メイン修正 = tests_ui/test_sequence_control_review_fixes.py の偽の app に input_gateway（task_09f の取りこぼし）・event_tap の `_notify_failure` で停止中の通知を捨てる（reviewer の任意の指摘・古い稼働の通知が再開後のフックを止める競合）。
+- reviewer 採用。任意で未対応 = Windows の keyboard 由来の PermissionError が権限の案内になる（H2 の取り決めどおり・稀）・listener の二重設定（無害）。
+- Mac 目視 OK: 権限なしで案内・開始されない・システム設定が開く / 同じプロセスでの再試行が成功（§5.2 に記録）/ 稼働中に外すと停止して案内 1 回。

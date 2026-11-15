@@ -15,6 +15,7 @@ from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_n
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.screen_grid import has_enabled_grid
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
+from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.hook_dispatcher import HookDispatcher, ImmediateHookDispatcher
 from keyseq.presentation.hook_button_texts import (
     HOOK_START_TEXT, HOOK_STOP_TEXT, HOOK_TOGGLE_TEXTS,
@@ -157,6 +158,10 @@ class HookController:
         self._app.key_state_manager.clear()
         self._app.make_only_keys.clear()
         self._hook_generation += 1
+        generation = self._hook_generation
+        self._app.input_gateway.set_hook_failure_listener(
+            lambda: self._handle_hook_failure(generation),
+        )
         started = self._app.hook_coordinator.start(
             triggers=overlap.all_triggers,
             on_input_event=self.on_input_event,
@@ -164,9 +169,11 @@ class HookController:
             has_keymaps=bool(overlap.all_source_keys),
             has_trigger_keys=bool(overlap.all_trigger_keys),
             has_grid_keymaps=has_enabled_grid(self._app.data.get("keymaps")),
+            on_permission_required=lambda: self._app.after(0, self._show_permission_guidance),
         )
 
         if not started:
+            self._app.input_gateway.set_hook_failure_listener(None)
             self.sync_hook_toggle_buttons()
             self.sync_trigger_toggle_buttons()
             return
@@ -182,6 +189,7 @@ class HookController:
         try:
             self._clear_keymap_switch_in_progress()
             self._dispatcher.invalidate()
+            self._app.input_gateway.set_hook_failure_listener(None)
             self._app.sequence_runner.stop_run_to_end()
             self._app.sequence_runner.cancel_pending_waits()
             self._app.hook_coordinator.stop()
@@ -397,6 +405,54 @@ class HookController:
             messagebox.showwarning(tr("hook.overload.title"), tr("hook.overload.body"))
 
         self._dispatch(stop_overloaded_hook, priority=True)
+
+    def _handle_hook_failure(self, generation: int) -> None:
+        with self._overload_lock:
+            if generation != self._hook_generation or self._overloaded.is_set():
+                return
+            self._overloaded.set()
+
+        def stop_failed_hook() -> None:
+            if generation != self._hook_generation or not self.hook_active:
+                return
+            self.stop_hook()
+            if not self._app.input_gateway.input_permission_granted():
+                self._show_permission_guidance()
+            else:
+                messagebox.showwarning(tr("hook.tap_failure.title"), tr("hook.tap_failure.body"))
+
+        self._dispatch(stop_failed_hook, priority=True)
+
+    def _show_permission_guidance(self) -> None:
+        if self._shutting_down:
+            return
+        choice = choice_dialog.ask_choice(
+            self._app,
+            title=tr("application.hook.permission_required_title"),
+            message=tr("application.hook.permission_required_body"),
+            choices=[
+                ("open", tr("application.hook.open_permission_settings")),
+                ("close", tr("common.close")),
+            ],
+            default="open", cancel="close",
+        )
+        if choice == "open":
+            threading.Thread(
+                target=self._open_permission_settings, name="input-permission-settings", daemon=True,
+            ).start()
+
+    def _open_permission_settings(self) -> None:
+        if self._app.input_gateway.open_input_permission_settings():
+            return
+
+        def notify_failed() -> None:
+            if not self._shutting_down:
+                messagebox.showwarning(
+                    tr("application.hook.permission_required_title"),
+                    tr("application.hook.permission_settings_failed"),
+                )
+
+        self._dispatch(notify_failed, priority=True)
 
     def _execute_make_only_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...], generation: int,

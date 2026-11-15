@@ -20,6 +20,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
             sequence_runner=SimpleNamespace(stop_run_to_end=Mock(), cancel_pending_waits=Mock()),
             held_inputs=SimpleNamespace(release_all=Mock(return_value=[])),
             hook_coordinator=SimpleNamespace(stop=Mock()), key_state_manager=SimpleNamespace(clear=Mock()),
+            input_gateway=Mock(),
             make_only_keys=SimpleNamespace(clear=Mock()),
             layout=SimpleNamespace(refresh_keyboard_window=Mock()), trigger_panel=SimpleNamespace(update_status=Mock()),
         )
@@ -174,6 +175,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         app = SimpleNamespace(
             data={"keymaps": [{"id": "main", "triggers": [trigger]}], "active_keymap_id": "main"},
             _indices={"a": 1}, state=state,
+            input_gateway=SimpleNamespace(accepts_key_name=lambda name: True),
             sequence_runner=SimpleNamespace(cancel_pending_wait=Mock(
                 side_effect=lambda _key: events.append(tuple(app._indices)))),
             _active_trigger_set_id=Mock(return_value="main"), trigger_service=service,
@@ -212,6 +214,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         app = SimpleNamespace(
             data={"keymaps": [{"id": "main", "triggers": [trigger, caller, untouched]}], "active_keymap_id": "main"},
             _indices=indices,
+            input_gateway=SimpleNamespace(accepts_key_name=lambda name: True),
             state=SimpleNamespace(loop_frames_for=Mock(return_value=frames), rekey_trigger=Mock(),
                                   forget_trigger=Mock()),
             sequence_runner=SimpleNamespace(cancel_pending_wait=Mock()),

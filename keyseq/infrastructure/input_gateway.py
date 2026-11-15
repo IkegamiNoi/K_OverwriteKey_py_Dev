@@ -53,6 +53,15 @@ class InputGateway:
     ):
         return get_backend().keyboard.register_global_hook(callback, suppress=suppress)
 
+    def set_hook_failure_listener(self, callback: Callable[[], None] | None) -> None:
+        get_backend().keyboard.set_hook_failure_listener(callback)
+
+    def input_permission_granted(self) -> bool:
+        return get_backend().keyboard.input_permission_granted()
+
+    def open_input_permission_settings(self) -> bool:
+        return get_backend().keyboard.open_input_permission_settings()
+
     def register_key_hook(
         self,
         key: str,

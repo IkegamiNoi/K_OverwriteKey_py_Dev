@@ -43,6 +43,20 @@ class HookControllerReservedActionsTest(unittest.TestCase):
         self.controller.on_input_event(SimpleNamespace(scan_code=30))
         self.assertEqual(len(self.callbacks), 1)
 
+    def test_runtime_permission_loss_schedules_one_stop_before_guidance(self) -> None:
+        self.app.input_gateway = Mock()
+        self.app.input_gateway.input_permission_granted.return_value = False
+        self.controller.stop_hook = Mock()
+        self.controller._show_permission_guidance = Mock()
+        self.controller._handle_hook_failure(self.controller._hook_generation)
+        self.controller._handle_hook_failure(self.controller._hook_generation)
+        self.controller.stop_hook.assert_not_called()
+        self.controller._show_permission_guidance.assert_not_called()
+        self.assertEqual(len(self.callbacks), 1)
+        self.callbacks.pop()()
+        self.controller.stop_hook.assert_called_once_with()
+        self.controller._show_permission_guidance.assert_called_once_with()
+
     def test_make_only_event_returns_filter_accept_and_reserves_all_routes(self) -> None:
         actions = (SendKeyAction("muhenkan", "a"), StopHookAction())
         routes = tuple(
@@ -121,6 +135,7 @@ class HookControllerReservedActionsTest(unittest.TestCase):
         self.app.key_state_manager = SimpleNamespace(clear=trace.key_state_clear)
         self.app.make_only_keys.clear = trace.filter_clear
         self.app.hook_coordinator = SimpleNamespace(start=trace.start, stop=trace.stop)
+        self.app.input_gateway = Mock()
         self.app.sequence_runner = Mock()
         self.app.held_inputs = SimpleNamespace(release_all=Mock(return_value=[]))
         self.app.layout.refresh_keyboard_window = Mock()

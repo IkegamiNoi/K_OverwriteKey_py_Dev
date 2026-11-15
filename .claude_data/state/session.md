@@ -12,29 +12,29 @@ last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の 
 
 ## current
 presence: 在席
-focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。次 = task_10。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
+focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）を Mac で実装・目視 OK。次 = task_11。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-15T23:30:00
+ts: 2026-11-16T01:00:00
 who: main
 summary: |
-  task_09b 実装: codex-implementer（2 回）で us_mac.json / jis_mac.json とテスト → reviewer 採用 → Mac 目視でユーザー指示（矢印は右 Shift の下・JIS の右 Option の位置は fn・fn はグレーアウト）→ 暫定 57 v0.12（fn を割り当て禁止のキーとして置く）・メインが JSON / key_identifiers / テストを修正 → reviewer 再レビュー採用 → 再目視 OK。
+  task_10 起票（codex-explorer の調査 → reviewer 修正して採用・H1 はユーザー判断で両 OS）→ codex-delegating-implementer で実装（権限の確認と案内・システム設定を開く・実行中の障害の停止と通知・登録失敗で開始を失敗に）→ verifier（基準線どおり）→ メインが tests_ui の取りこぼしと event_tap の競合を修正 → reviewer 採用 → Mac 目視 OK（同じプロセスでの再試行が成功・§5.2 に記録）。
 result_files:
-  - config/user/keylayout/us_mac.json・jis_mac.json（git add -f）・keyseq/domain/key_identifiers.py・tests/test_keyboard_layout_files.py
-  - instructions/history/57_mac_support.md（v0.12）・task_09b 定義・codebase_map.md
+  - keyseq/application/hook_coordinator.py・keyseq/infrastructure/（input_gateway・os_backend/contracts・macos/backend・macos/event_tap・windows/keyboard_backend）・keyseq/presentation/controllers/hook_controller.py
+  - keyseq/shared/i18n/locales/ja.json・en.json・requirements.txt・codebase_map.md・57_mac_support.md（§5.2）・task_10 定義
+  - tests（hook_coordinator・macos_keyboard_backend・os_backend_contracts・input_permission_gateway〔新規〕・call_link_lifecycle）・tests_ui（hook_controller_reserved_actions・sequence_control_review_fixes）
 verified:
   compile: clean（Mac）
-  tests_mac: 2071 件・失敗 6・エラー 10・skip 29（基準線どおり）
+  tests_mac: 2091 件・失敗 6・エラー 10・skip 30（基準線どおり）
   smoke_mac: pass
-  tests_ui_mac: prohibited_assign_keys_ui（既知の Caps Lock 1 件のみ）・keyboard_window_scan_code・left_right pass
+  tests_ui_mac: 関係 7 本 1 本ずつ 失敗 0
   tests_windows: not_run
-  visual_mac: task_09b OK
+  visual_mac: task_10 OK
 
 ## next_action
-- **task_10 に着手**: 権限の案内（暫定 57 §5.2）。`instructions/phase/75_mac_support/tasks/` に task_10 の定義が無ければ `/task_new` で起票（phase.md の task_10 の行が範囲）。
-- 続けて task_11。
-- **task_09〜09f・09b の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_input_gateway_send の拒否・test_keyboard_layout_files を含む〕・tests_ui 1 本ずつ・smoke）。目視 = task_09d はドイツ語入力で hotkey に ä の位置のキーと AltGr+e を記録 → 実行して ä / € が出るか・AltGr が hotkey の記録で黙って無視されないか・Windows で `command+c` を hotkey に書くと保存で拒否されること。
+- **task_11 に着手**: §5.4 の残りの機能と無効化の UI（phase.md の task_11 の行が範囲。前面の判定・repeat_timing・クリック透過・NSWindow の一意の引き方・中クリック・test_modal_grab の 4 件・test_minimize_grab_custody・pyautogui / pynput の置き場所〔M4〕・割り当て禁止の文言の Mac 向けの言い換え〔task_09c / §5.3.3 から〕）。`/task_new` で起票（範囲が広いので分割を検討・調査は codex-explorer）。
+- **task_09〜10 の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_input_gateway_send の拒否・test_keyboard_layout_files・hook_coordinator の登録失敗を含む〕・tests_ui 1 本ずつ・smoke）。目視 = task_09d はドイツ語入力で hotkey に ä の位置のキーと AltGr+e を記録 → 実行して ä / € が出るか・AltGr が hotkey の記録で黙って無視されないか・Windows で `command+c` を hotkey に書くと保存で拒否されること・フック開始が今どおり動くこと。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

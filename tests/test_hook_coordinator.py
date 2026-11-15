@@ -8,7 +8,7 @@ from keyseq.application.key_overlap import AssignmentConflict, analyze_key_overl
 from keyseq.presentation.controllers.hook_controller import HookController
 
 
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -39,6 +39,121 @@ def make_runtime(
 
 
 class HookCoordinatorTest(unittest.TestCase):
+    def test_registration_failure_returns_false_with_existing_install_error(self):
+        for error in (OSError("registration failed"), RuntimeError("registration failed")):
+            with self.subTest(error=type(error).__name__):
+                gateway = Mock()
+                gateway.register_global_hook.side_effect = error
+                errors = Mock()
+                coordinator = HookCoordinator(gateway)
+                self.assertFalse(coordinator.start([], Mock(), errors, has_keymaps=True))
+                self.assertIsNone(coordinator._input_event_hook_handle)
+                self.assertEqual(errors.call_args.args[0], tr("application.hook.install_failed_title"))
+
+    def test_permission_failure_uses_callback_or_translated_fallback(self):
+        for use_callback in (False, True):
+            with self.subTest(use_callback=use_callback):
+                gateway = Mock()
+                gateway.register_global_hook.side_effect = PermissionError("denied")
+                errors, permission = Mock(), Mock()
+                coordinator = HookCoordinator(gateway)
+                self.assertFalse(coordinator.start(
+                    [], Mock(), errors, has_keymaps=True,
+                    on_permission_required=permission if use_callback else None,
+                ))
+                if use_callback:
+                    permission.assert_called_once_with()
+                    errors.assert_not_called()
+                else:
+                    errors.assert_called_once_with(
+                        tr("application.hook.permission_required_title"),
+                        tr("application.hook.permission_required_body"),
+                    )
+
+    def test_controller_registration_failure_stays_inactive_and_removes_listener(self):
+        app = _make_start_app()
+        app.input_gateway.register_global_hook.side_effect = OSError("failed")
+        app.hook_coordinator = HookCoordinator(app.input_gateway)
+        controller = HookController(app)
+        controller.start_hook()
+        self.assertFalse(controller.hook_active)
+        self.assertIsNone(app.input_gateway.set_hook_failure_listener.call_args.args[0])
+        app.layout.refresh_keyboard_window.assert_not_called()
+
+    def test_controller_permission_failure_schedules_guidance_on_ui_thread(self):
+        app = _make_start_app()
+        app.input_gateway.register_global_hook.side_effect = PermissionError("denied")
+        app.hook_coordinator = HookCoordinator(app.input_gateway)
+        controller = HookController(app)
+        controller._show_permission_guidance = Mock()
+        controller.start_hook()
+        self.assertFalse(controller.hook_active)
+        controller._show_permission_guidance.assert_not_called()
+        app.after.call_args.args[1]()
+        controller._show_permission_guidance.assert_called_once_with()
+
+    def test_runtime_failure_stops_once_through_priority_route(self):
+        for granted in (False, True):
+            with self.subTest(granted=granted):
+                app = _make_start_app()
+                app.input_gateway.input_permission_granted.return_value = granted
+                scheduled = []
+                dispatcher = _FakeHookDispatcher(scheduled)
+                controller = HookController(app, dispatch=dispatcher)
+                controller.start_hook()
+                listener = app.input_gateway.set_hook_failure_listener.call_args.args[0]
+                controller._show_permission_guidance = Mock()
+                with patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning") as warning:
+                    listener()
+                    listener()
+                    self.assertEqual(len(scheduled), 1)
+                    self.assertTrue(dispatcher.dispatch.call_args.kwargs["priority"])
+                    self.assertTrue(controller.on_input_event(object()))
+                    scheduled.pop()()
+                    self.assertFalse(controller.hook_active)
+                    dispatcher.invalidate.assert_called_once_with()
+                    app.hook_coordinator.stop.assert_called_once_with()
+                    self.assertIsNone(app.input_gateway.set_hook_failure_listener.call_args.args[0])
+                    self.assertEqual(controller._show_permission_guidance.call_count, int(not granted))
+                    self.assertEqual(warning.call_count, int(granted))
+
+    def test_stale_runtime_failure_does_not_stop_restarted_hook(self):
+        app = _make_start_app()
+        scheduled = []
+        controller = HookController(app, dispatch=_FakeHookDispatcher(scheduled))
+        controller.start_hook()
+        old_listener = app.input_gateway.set_hook_failure_listener.call_args.args[0]
+        old_listener()
+        controller.start_hook()
+        app.hook_coordinator.stop.reset_mock()
+        scheduled.pop()()
+        old_listener()
+        self.assertTrue(controller.hook_active)
+        self.assertFalse(controller._overloaded.is_set())
+        app.hook_coordinator.stop.assert_not_called()
+
+    def test_permission_dialog_choices_and_settings_failure(self):
+        for choice, opened in (("close", False), ("open", True), ("open", False)):
+            with self.subTest(choice=choice, opened=opened):
+                app = _make_start_app()
+                app.input_gateway.open_input_permission_settings.return_value = opened
+                controller = HookController(app)
+                with patch("keyseq.presentation.controllers.hook_controller.choice_dialog.ask_choice", return_value=choice) as dialog, patch("keyseq.presentation.controllers.hook_controller.messagebox.showwarning") as warning, patch("keyseq.presentation.controllers.hook_controller.threading.Thread") as thread:
+                    controller._show_permission_guidance()
+                    app.input_gateway.open_input_permission_settings.assert_not_called()
+                    if choice == "open":
+                        thread.return_value.start.assert_called_once_with()
+                        thread.call_args.kwargs["target"]()
+                        if not opened:
+                            warning.assert_not_called()
+                            app.after.call_args.args[1]()
+                    else:
+                        thread.assert_not_called()
+                self.assertIn(("open", tr("application.hook.open_permission_settings")), dialog.call_args.kwargs["choices"])
+                self.assertEqual(app.input_gateway.open_input_permission_settings.call_count, int(choice == "open"))
+                self.assertEqual(warning.call_count, int(choice == "open" and not opened))
+                app.hook_coordinator.start.assert_not_called()
+
     def test_hook_controller_default_dispatch_uses_after_for_both_routes(self):
         action = StopHookAction()
         route = InputRoute(actions=(action,))
@@ -238,6 +353,7 @@ class HookCoordinatorTest(unittest.TestCase):
         app.key_state_manager = SimpleNamespace(clear=Mock())
         app.make_only_keys = SimpleNamespace(clear=Mock())
         app.hook_coordinator = SimpleNamespace(start=Mock(return_value=True))
+        app.input_gateway = Mock()
         app.hook_coordinator.stop = Mock()
         app.layout.refresh_keyboard_window = Mock()
         app.trigger_panel = SimpleNamespace(update_status=Mock())
@@ -276,6 +392,7 @@ class HookCoordinatorTest(unittest.TestCase):
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=SimpleNamespace(start=Mock(return_value=True)),
+                input_gateway=Mock(),
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
             )
@@ -302,6 +419,7 @@ class HookCoordinatorTest(unittest.TestCase):
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=coordinator,
+                input_gateway=Mock(),
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
             )
@@ -349,6 +467,7 @@ class HookCoordinatorTest(unittest.TestCase):
                 key_state_manager=SimpleNamespace(clear=Mock()),
                 make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=coordinator,
+                input_gateway=Mock(),
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
             )
@@ -458,6 +577,19 @@ def _make_dispatch_app(route):
         ),
         make_only_keys=SimpleNamespace(handle=Mock(return_value=None)),
         input_router=SimpleNamespace(handle=Mock(return_value=route)),
+    )
+
+
+def _make_start_app():
+    return SimpleNamespace(
+        after=Mock(), data=make_runtime(), input_gateway=Mock(),
+        hook_coordinator=SimpleNamespace(start=Mock(return_value=True), stop=Mock()),
+        key_state_manager=SimpleNamespace(clear=Mock()),
+        make_only_keys=SimpleNamespace(clear=Mock()),
+        layout=SimpleNamespace(refresh_keyboard_window=Mock()),
+        trigger_panel=SimpleNamespace(update_status=Mock()),
+        sequence_runner=SimpleNamespace(stop_run_to_end=Mock(), cancel_pending_waits=Mock()),
+        held_inputs=SimpleNamespace(release_all=Mock(return_value=[])),
     )
 
 

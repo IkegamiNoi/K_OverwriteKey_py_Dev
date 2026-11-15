@@ -6,7 +6,7 @@ import inspect
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from keyseq.infrastructure.os_backend import (
     AppIdentity, Capabilities, ImeBackend, KeyboardBackend, KeySend, MouseBackend,
@@ -143,6 +143,25 @@ class OsBackendContractTests(unittest.TestCase):
                         list(inspect.signature(implementation_methods[name]).parameters),
                         list(inspect.signature(method).parameters),
                     )
+
+    def test_windows_keyboard_permission_api_and_listener_preserve_hook(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows import keyboard_backend as module
+
+        keyboard = module.WindowsKeyboardBackend()
+        listener = Mock()
+        callback = Mock()
+        self.assertTrue(keyboard.input_permission_granted())
+        self.assertFalse(keyboard.open_input_permission_settings())
+        with patch.object(module.keyboard, "hook", side_effect=("without-listener", "with-listener")) as hook:
+            self.assertEqual(keyboard.register_global_hook(callback, suppress=True), "without-listener")
+            keyboard.set_hook_failure_listener(listener)
+            self.assertEqual(keyboard.register_global_hook(callback, suppress=True), "with-listener")
+        self.assertEqual(hook.call_args_list, [
+            call(callback, suppress=True),
+            call(callback, suppress=True),
+        ])
+        listener.assert_not_called()
 
     def test_capabilities_require_all_values(self) -> None:
         with self.assertRaises(TypeError):

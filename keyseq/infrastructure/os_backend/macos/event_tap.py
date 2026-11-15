@@ -34,11 +34,17 @@ class KeyEvent:
 class EventTap:
     def __init__(self, callback: Callable[[int, KeyEvent], bool], *, quartz=None,
                  sent_modifiers: Callable[[], set[int] | frozenset[int]] = set,
-                 is_jis_layout: Callable[[], bool] = lambda: False) -> None:
+                 is_jis_layout: Callable[[], bool] = lambda: False,
+                 input_permission_granted: Callable[[], bool] = lambda: True,
+                 failure_listener: Callable[[], None] | None = None) -> None:
         self._callback = callback
         self._sent_modifiers = sent_modifiers
         self._is_jis_layout = is_jis_layout
         self._quartz = quartz
+        self._input_permission_granted = input_permission_granted
+        self._failure_listener = failure_listener
+        self._failure_notified = False
+        self._stopping = False
         self._lock = RLock()
         self._tap = None
         self._run_loop = None
@@ -53,6 +59,10 @@ class EventTap:
                 raise OSError("Previous keyboard tap is still stopping")
             if self._quartz is None:
                 self._quartz = load_quartz()
+            self._failure_notified = False
+            self._stopping = False
+            if not self._permission_granted():
+                raise PermissionError("Accessibility permission is required for keyboard input")
             q = self._quartz
             mask = sum(1 << kind for kind in (
                 q.kCGEventKeyDown, q.kCGEventKeyUp, q.kCGEventFlagsChanged,
@@ -60,7 +70,7 @@ class EventTap:
             tap = q.CGEventTapCreate(q.kCGSessionEventTap, q.kCGHeadInsertEventTap,
                                      q.kCGEventTapOptionDefault, mask, self._handle_event, None)
             if not tap:
-                raise OSError("Could not create keyboard event tap")
+                raise PermissionError("Could not create keyboard event tap; check Accessibility permission")
             self._start_thread(tap)
 
     def _start_thread(self, tap) -> None:
@@ -94,6 +104,10 @@ class EventTap:
                 q.CFRunLoopRunInMode(q.kCFRunLoopDefaultMode, 0.1, False)
         except Exception:
             _LOG.exception("Keyboard tap run loop failed")
+            with self._lock:
+                failed = self._tap is tap and not self._stopping
+            if failed:
+                self._notify_failure()
         finally:
             self._finish_run(tap, run_loop, source)
 
@@ -114,6 +128,7 @@ class EventTap:
 
     def stop(self) -> None:
         with self._lock:
+            self._stopping = True
             tap, self._tap = self._tap, None
             run_loop = self._run_loop
             thread = self._thread
@@ -136,6 +151,30 @@ class EventTap:
     def _clear_state(self) -> None:
         self._modifiers.clear()
 
+    def set_failure_listener(self, callback: Callable[[], None] | None) -> None:
+        with self._lock:
+            self._failure_listener = callback
+
+    def _permission_granted(self) -> bool:
+        try:
+            return bool(self._input_permission_granted())
+        except Exception:
+            _LOG.exception("Could not check keyboard input permission")
+            return True
+
+    def _notify_failure(self) -> None:
+        with self._lock:
+            # 自分の停止中の通知は捨てる（古い稼働の通知が再開後のフックを止めないため）。
+            if self._failure_notified or self._stopping:
+                return
+            self._failure_notified = True
+            listener = self._failure_listener
+        if listener is not None:
+            try:
+                listener()
+            except Exception:
+                _LOG.exception("Keyboard tap failure listener failed")
+
     def physical_modifiers(self) -> frozenset[int]:
         with self._lock:
             return self._modifiers.physical_modifiers()
@@ -144,15 +183,35 @@ class EventTap:
         try:
             with self._lock:
                 tap = self._tap
-                if tap is None:
+                if tap is None or self._failure_notified:
                     return event
                 q = self._quartz
-                if event_type in (q.kCGEventTapDisabledByTimeout, q.kCGEventTapDisabledByUserInput):
+                disabled = event_type in (
+                    q.kCGEventTapDisabledByTimeout, q.kCGEventTapDisabledByUserInput
+                )
+                if disabled:
                     self._clear_state()
-                    q.CGEventTapEnable(tap, True)
+                if disabled and self._stopping:
                     return event
-                if q.CGEventGetIntegerValueField(event, q.kCGEventSourceUserData) == OWN_EVENT_MARK:
+                if not disabled and q.CGEventGetIntegerValueField(event, q.kCGEventSourceUserData) == OWN_EVENT_MARK:
                     return event
+            if disabled:
+                if not self._permission_granted():
+                    self._notify_failure()
+                    return event
+                try:
+                    with self._lock:
+                        if self._tap is not tap or self._stopping:
+                            return event
+                        q.CGEventTapEnable(tap, True)
+                        enabled = q.CGEventTapIsEnabled(tap)
+                except Exception:
+                    _LOG.exception("Could not re-enable keyboard tap")
+                    self._notify_failure()
+                    return event
+                if not enabled:
+                    self._notify_failure()
+                return event
             return self._dispatch(tap, event_type, event)
         except Exception:
             _LOG.exception("Keyboard tap callback failed; passing event through")
@@ -163,7 +222,7 @@ class EventTap:
         vk = int(q.CGEventGetIntegerValueField(event, q.kCGKeyboardEventKeycode))
         flags = int(q.CGEventGetFlags(event))
         with self._lock:
-            if self._tap is not tap:
+            if self._tap is not tap or self._failure_notified:
                 return event
             kind = self._event_kind(event_type, vk, flags)
             if kind is None:
@@ -172,7 +231,7 @@ class EventTap:
         translated = KeyEvent(kind, key.scan_code, key.name, key.is_keypad)
         suppressed = self._call_backend(tap, vk, translated)
         with self._lock:
-            if self._tap is not tap:
+            if self._tap is not tap or self._failure_notified:
                 return event
             if vk in MODIFIERS:
                 suppressed = self._modifiers.mark_suppressed(vk, suppressed)
