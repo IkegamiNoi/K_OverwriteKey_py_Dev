@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from keyseq.infrastructure import input_gateway
-from keyseq.infrastructure.os_backend.windows import mouse_backend
+from keyseq.infrastructure.os_backend import pyautogui_mouse
 
 
 class InputGatewayDragTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = input_gateway.InputGateway()
         self.mouse = Mock(FAILSAFE=True)
-        patcher = patch.object(mouse_backend, "pyautogui", self.mouse)
+        patcher = patch.object(pyautogui_mouse, "pyautogui", self.mouse)
         patcher.start()
         self.addCleanup(patcher.stop)
+        # Pin the shared pyautogui implementation; macOS overrides these with Quartz.
+        backend = SimpleNamespace(mouse=pyautogui_mouse.PyAutoGuiMouseBackend())
+        backend_patcher = patch.object(input_gateway, "get_backend", return_value=backend)
+        backend_patcher.start()
+        self.addCleanup(backend_patcher.stop)
         self.events = Mock()
         for name in ("moveTo", "mouseDown", "mouseUp", "dragTo"):
             self.events.attach_mock(getattr(self.mouse, name), name)

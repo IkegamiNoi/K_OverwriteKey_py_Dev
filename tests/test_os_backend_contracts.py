@@ -18,6 +18,14 @@ from keyseq.domain.default_profile import (
 )
 
 
+
+def _public_methods(cls: type) -> dict[str, object]:
+    """Public methods including inherited ones (e.g. PyAutoGuiMouseBackend)."""
+    return {
+        name: getattr(cls, name) for name in dir(cls)
+        if not name.startswith("_") and callable(getattr(cls, name))
+    }
+
 class OsBackendContractTests(unittest.TestCase):
     def test_windows_modifier_translations_preserve_existing_names(self) -> None:
         from keyseq.infrastructure.os_backend.windows.tk_key_translator import modifier_name
@@ -81,7 +89,7 @@ class OsBackendContractTests(unittest.TestCase):
             (KeyboardBackend, MacKeyboardBackend), (MouseBackend, MacMouseBackend),
         ):
             expected = {n: m for n, m in protocol.__dict__.items() if callable(m) and not n.startswith("_")}
-            actual = {n: m for n, m in implementation.__dict__.items() if callable(m) and not n.startswith("_")}
+            actual = _public_methods(implementation)
             self.assertEqual(set(actual), set(expected))
             for name in expected:
                 self.assertEqual(list(inspect.signature(actual[name]).parameters), list(inspect.signature(expected[name]).parameters))
@@ -133,10 +141,7 @@ class OsBackendContractTests(unittest.TestCase):
                     name: member for name, member in protocol.__dict__.items()
                     if callable(member) and not name.startswith("_")
                 }
-                implementation_methods = {
-                    name: member for name, member in implementation.__dict__.items()
-                    if callable(member) and not name.startswith("_")
-                }
+                implementation_methods = _public_methods(implementation)
                 self.assertEqual(set(implementation_methods), set(protocol_methods))
                 for name, method in protocol_methods.items():
                     self.assertEqual(

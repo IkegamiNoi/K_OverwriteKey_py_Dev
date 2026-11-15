@@ -4,36 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-16T03:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.13・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
+last_updated: 2026-11-16T12:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.14・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_09d のコミットまで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11 のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: 在席
-focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）・task_11（前面の判定・リピート間隔・v0.13）を Mac で実装・目視 OK。task_11 は 11〜11d に分割。次 = task_11a（マウス）。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
+focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）・task_11（前面の判定・リピート間隔・v0.13）を Mac で実装・目視 OK。task_11 は 11〜11d に分割。task_11a（マウス・v0.14 = Quartz のクリック / ドラッグ / 保持中の移動の書き換え）を Mac で実装・目視 OK（中クリックは未確認）。次 = task_11b（窓と画面・無効化の UI）。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-16T03:00:00
+ts: 2026-11-16T12:00:00
 who: main
 summary: |
-  task_11 を 5 本に分割して起票（reviewer 修正して採用）→ codex-implementer で前面の判定（frontmostApplication の pid）とリピート間隔を実装 → Mac 目視 1 で NSEvent が設定を反映しないと判明 → ユーザー判断で暫定 57 v0.13（グローバル設定の InitialKeyRepeat / KeyRepeat・15 ms 単位）→ 再実装・メインがテストの期待値を修正 → reviewer 採用 → Mac 再目視 OK。目視で見つかったトリガーの追加ダイアログが後ろへ回る件は task_11c へ（キーボードUIの件は目視の文言の誤読で取り消し）。
+  task_11a を起票（reviewer 修正して採用）→ codex-implementer で pyautogui / pynput を pyautogui_mouse.py へ共通化・Mac のスクロールとボタンの物理状態を実装 → reviewer 採用 → Mac 目視 2・3 NG（ダブルクリック・ドラッグ・押したまま手で動かす・横の向き）→ ユーザー判断で暫定 57 v0.14（Quartz で送る・保持中は MouseHoldTap で移動を Dragged に書き換え・横の符号）・向きの設定は idea_58 → 再実装・メインがテストと停止の予約の競合を修正 → reviewer 採用 → Mac 再目視 OK。
 result_files:
-  - keyseq/infrastructure/os_backend/macos/backend.py・tests/test_macos_keyboard_backend.py
-  - instructions/history/57_mac_support.md（v0.13）・phase.md（task_11〜11d）・task_11 定義（新規）・codebase_map.md・current.md・decisions.md
+  - keyseq/infrastructure/os_backend/pyautogui_mouse.py（新規）・macos/mouse_hold_tap.py（新規）・macos/backend.py・windows/mouse_backend.py
+  - tests/test_macos_mouse_backend.py（新規）・test_input_gateway_drag / _screen_grid / _scroll・test_mouse_backend_capture・test_os_backend_contracts
+  - instructions/history/57_mac_support.md（v0.14）・task_11a 定義（新規）・phase.md・codebase_map.md・mac_test_baseline.md・current.md・decisions.md・backlog/idea_58・INDEX.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2097 件・失敗 6・エラー 10 相当（修正前 +1 はテストの期待値の誤り → 修正後 test_macos_keyboard_backend 65 件 OK）
+  tests_mac: 2108 件・失敗 1（test_third_party）・エラー 0・skip 30
   smoke_mac: pass
-  tests_ui_mac: capture_hook_entries・capture_ime_entries pass
   tests_windows: not_run
-  visual_mac: task_11 OK
+  visual_mac: task_11a OK（中クリックは未確認）
 
 ## next_action
-- **task_11a を起票**（`/task_new`）: マウス（`MacMouseBackend` を pyautogui / pynput へ委譲・その実装の OS 共通の置き場〔M4〕・クリック位置の記録と §5.1 の tap の共存・中クリックの番号）。調査は codex-explorer。
-- **task_09〜11 の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0・tests_ui 1 本ずつ・smoke）。目視 = task_09d のドイツ語入力の hotkey・`command+c` の保存拒否・フック開始。
+- **task_11b を起票**（`/task_new`）: 窓と画面・無効化の UI（モニタ一覧 `NSScreen`・クリック透過・窓の重なり順・NSWindow の引き方・`Capabilities` と無効化の UI・`test_screen_grid_overlay` の基準線の分）。調査は codex-explorer。
+- **task_09〜11a の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0・tests_ui 1 本ずつ・smoke）。目視 = task_09d のドイツ語入力の hotkey・`command+c` の保存拒否・フック開始・マウスのアクション（共通化で動作が変わらないこと）。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

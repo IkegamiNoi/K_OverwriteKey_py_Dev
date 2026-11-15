@@ -4,14 +4,14 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from keyseq.infrastructure import input_gateway
-from keyseq.infrastructure.os_backend.windows import mouse_backend
+from keyseq.infrastructure.os_backend import pyautogui_mouse
 
 
 class InputGatewayScreenGridTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = input_gateway.InputGateway()
         self.mouse = Mock(FAILSAFE=True)
-        patcher = patch.object(mouse_backend, "pyautogui", self.mouse)
+        patcher = patch.object(pyautogui_mouse, "pyautogui", self.mouse)
         patcher.start()
         self.addCleanup(patcher.stop)
 

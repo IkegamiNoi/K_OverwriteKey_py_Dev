@@ -810,3 +810,10 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 実装: codex-implementer（Luna high）。前面の判定 = `NSWorkspace.frontmostApplication` の pid（取れなければ真・例外は偽）。
 - **仕様変更（直接改訂・ユーザー「推奨どおり変える」）**: Mac 目視 1 でリピートの速さが設定に追従せず。`NSEvent.keyRepeatDelay` / `keyRepeatInterval` は Tk の起動後もシステム設定を反映しない（0.5 / 0.083 秒固定）とメインが実測 → 暫定 57 v0.13 §5.4 = グローバル設定の `InitialKeyRepeat` / `KeyRepeat`（`CFPreferencesAppSynchronize` の後に毎回読む・15 ms 単位）。注入は `foundation=None`。メインがテストの期待値の並びの誤り 1 件を修正。reviewer 採用・Mac 再目視 OK。
 - task_11c へ送った（Mac 目視から・ユーザー 2026-11-15）: メインが最前面のときトリガーの追加ダイアログが記録開始で後ろへ回る。キーボードUIの件は目視 3 の文言（「自分の窓が前面」）の不正確さから来た誤読で不具合ではない（ユーザー指摘: キーボードUIはクリックして使うのでメインが前面のままにはならない）→ 送らない。
+
+### 【task_11a 実装】reviewer 採用・Mac 目視 OK・暫定 57 v0.14（2026-11-16・Mac）
+- M4: pyautogui / pynput の実装を `os_backend/pyautogui_mouse.py`（`PyAutoGuiMouseBackend`）へ移し、Windows / Mac が継承（中身は同一・reviewer が移動前と照合）。codex-implementer（Luna high）。
+- **仕様変更（直接改訂・ユーザー「この案で直す」）**: Mac 目視 2・3 で NG。pyautogui の Mac 実装は回数つきのクリックに `kCGMouseEventClickState` を付けず、押した後の移動も MouseMoved で送る。macOS は送った down を物理のボタンの状態に数えないため、手で動かしてもドラッグにならない → 暫定 57 v0.14 §5.4 = 回数つきのクリック・ドラッグ・押す / 離すを Quartz で送り、押すの保持中は listen-and-modify の tap（`macos/mouse_hold_tap.py`）で MouseMoved を Dragged に書き換える（物理の down / up で終える・作れなければ今の動作）。横スクロールは wheel2 の符号が逆だった（縦は正しい・送ったイベントにナチュラルなスクロールの設定は効かない）。
+- スクロールの向きの設定はユーザー要望で idea_58 に分離。中クリック（目視 4）は試せるマウスが無く未確認。
+- 物理状態の差（記録）: `is_mouse_button_down` は物理のボタンだけ。自分の mouse_down の保持中は Windows = True・Mac = False。
+- メイン修正: テストの patch 先・backend の固定・契約のテストが継承したメソッドを数える・import 漏れ・停止の予約の競合（同じ tap のときだけ止める）。

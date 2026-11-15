@@ -79,7 +79,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_09f: 他方の OS の修飾キーの名前の拒否（backend の受付の口・置換元 / トリガー / hotkey / key_hold / 切替 / 停止 / トグルの入口・Windows の別名 `command` / `option` も拒否）と修飾キー単独の読み飛ばしの統一（§5.3.4・§9 の 14・15）。Mac 目視は 09e とまとめて
 - task_10: 権限の案内（§5.2）・実行中の権限の喪失と tap の障害からのフックの停止と通知（§5.2 末尾・task_08b から）。`AXIsProcessTrusted` に使う `pyobjc-framework-ApplicationServices` を darwin のマーカーつきで依存に明記する（現在は pynput の推移依存・段階 ② の区切り L8）
 - task_11: 前面の判定（`NSWorkspace.frontmostApplication` の pid）とリピート間隔（`NSEvent.keyRepeatDelay` / `keyRepeatInterval`）（§5.4）。task_11 を 5 本に分割（ユーザー判断 2026-11-15）
-- task_11a: マウス（`MacMouseBackend` を pyautogui / pynput へ委譲・その実装の OS 共通の置き場〔M4〕・クリック位置の記録と §5.1 の tap の共存・中クリックの番号の確認）
+- task_11a: マウス（`MacMouseBackend` を pyautogui / pynput へ委譲・スクロール〔`CGEventCreateScrollWheelEvent`〕・マウスのボタンの物理状態〔`is_mouse_button_down`〕・その実装の OS 共通の置き場〔M4〕・クリック位置の記録と §5.1 の tap の共存・中クリックの番号の確認）
 - task_11b: 窓と画面（`NSScreen` のモニタ一覧・クリック透過・窓の重なり順・NSWindow を一意に引く方式〔候補が 1 つでなければ適用しない・同じ位置に窓が重なる場合を確認・§5.4〕）と、無理な機能の無効化（`Capabilities`・カーソルグリッドの無効化の UI）
 - task_11c: aqua のモーダル（`test_modal_grab` の 4 件・aqua でモーダルの grab が残る・`mac_test_baseline.md`・段階 ② の区切り L2）と、最小化で入れ子の transient ダイアログが隠れない件（`test_minimize_grab_custody`・task_07 の実測・ユーザー判断 2026-11-12）。**task_11 の Mac 目視から（2026-11-15）**: メインの窓が最前面のとき、トリガーの追加ダイアログでキーの記録を始めるとダイアログがメインの窓の後ろへ回る（ダイアログはメインより前にいるべき）
 - task_11d: 割り当て禁止の文言の Mac 向けの言い換え（Command / caps lock / fn）

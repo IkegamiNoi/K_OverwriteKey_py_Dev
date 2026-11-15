@@ -45,3 +45,4 @@
 | idea_54 | [idea_54_ime_switch_on_make_only_keys.md](idea_54_ime_switch_on_make_only_keys.md) | 押下だけのキー（無変換・変換）を直接置換で使っている最中に IME が切り替わった件（計測では 241 / 242 は全て抑止・原因未特定）を、再発時に切り分けて直す。 | 未着手（検討段階・2026-10-20 phase 63 task_03d・03e の実機目視から分離・task_03f の後は再発せず）|
 | idea_56 | [idea_56_more_ui_languages.md](idea_56_more_ui_languages.md) | 画面の言語を日本語・英語以外にも増やす（3 言語目以降）。phase 72 の仕組みで言語ファイルとヘルプ本文を足し、見え方を確かめる。 | 未着手（検討段階・2026-11-01 phase 72 の範囲決めで分離〔暫定 55 §10〕）|
 | idea_57 | [idea_57_modifier_as_replacement_target.md](idea_57_modifier_as_replacement_target.md) | キーボードUI・キーマップ編集で置換先に修飾キー（Control / Shift / Option / Command）を記録できるようにする。今は記録で読み飛ばす（Windows も同じ・当初から）。 | 未着手（検討段階・2026-11-14 phase 75 task_09a の Mac 目視から分離）|
+| idea_58 | [idea_58_scroll_direction_setting.md](idea_58_scroll_direction_setting.md) | スクロールのアクションの向き（縦 / 横）を利用者が入れ替えられる設定を足す。Mac のナチュラルなスクロールで向きを入れ替えて使う人向け。 | 未着手（検討段階・2026-11-15 phase 75 task_11a の Mac 目視から分離）|

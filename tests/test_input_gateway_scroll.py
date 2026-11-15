@@ -10,6 +10,9 @@ from keyseq.infrastructure.os_backend.windows import mouse_backend, send_input a
 class InputGatewayScrollTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = input_gateway.InputGateway()
+        patcher = patch.object(input_gateway, "get_backend", return_value=type("Backend", (), {"mouse": mouse_backend.WindowsMouseBackend()})())
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_build_wheel_inputs_sets_axis_flag_signed_data_and_count(self) -> None:
         vertical = mouse_backend._build_wheel_inputs(True, (-120, 120))
@@ -57,7 +60,7 @@ class InputGatewayScrollTests(unittest.TestCase):
     def test_partial_send_raises_oserror(self) -> None:
         send_input = Mock(return_value=1)
         with patch.object(mouse_backend, "_send_input_api", return_value=send_input), \
-             patch.object(send_input_api.ctypes, "get_last_error", return_value=5):
+             patch.object(send_input_api.ctypes, "get_last_error", return_value=5, create=True):
             with self.assertRaises(OSError) as caught:
                 self.gateway.scroll_mouse(
                     vertical=True, deltas=(120, 120), position=None,
