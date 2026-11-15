@@ -12,7 +12,7 @@ last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の 
 
 ## current
 presence: 在席
-focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。次 = Caps Lock の未決 → task_10。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
+focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。次 = task_10。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
 mode: implementing
 
 ## last_action
@@ -32,8 +32,8 @@ verified:
   visual_mac: task_09b OK
 
 ## next_action
-- **【確認事項・ユーザー】Caps Lock の未決**: Mac のキー表に `caps lock` が無く、既存の Caps Lock の切替キーが再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py` の `test_switch_validation_rejects_new_caps_but_allows_unchanged_caps`・`features.md` §4.6「既存データは拒否しない」と食い違い）。案 A = Mac のキー表に vk 57 の検証・送信だけの名前を足す / 案 B = Mac の仕様差として記録・テストを Mac で skip。メインがコードを確かめて推奨を付けて提示（未提示）。
-- 続けて task_10（権限の案内・§5.2）→ task_11。
+- **task_10 に着手**: 権限の案内（暫定 57 §5.2）。`instructions/phase/75_mac_support/tasks/` に task_10 の定義が無ければ `/task_new` で起票（phase.md の task_10 の行が範囲）。
+- 続けて task_11。
 - **task_09〜09f・09b の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_input_gateway_send の拒否・test_keyboard_layout_files を含む〕・tests_ui 1 本ずつ・smoke）。目視 = task_09d はドイツ語入力で hotkey に ä の位置のキーと AltGr+e を記録 → 実行して ä / € が出るか・AltGr が hotkey の記録で黙って無視されないか・Windows で `command+c` を hotkey に書くと保存で拒否されること。
 
 ## blockers

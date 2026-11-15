@@ -794,3 +794,7 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - codex-implementer（2 回）で `config/user/keylayout/us_mac.json` / `jis_mac.json` とテスト。reviewer 採用（指摘 = ↑ / ↓ を半分の高さに → メイン修正）。
 - Mac 目視でユーザー指示: 矢印は右 Shift の下でよい・JIS の右 Option の位置は fn・fn はグレーアウトで置いてよい → **暫定 57 v0.12**（§5.3.2: fn を id `fn` で実機の位置に置き、`key_identifiers.PROHIBITED_ASSIGN_KEY_NAMES` に `fn` を足して禁止の色）。仕様改訂は小さくユーザー指示どおりのため Codex 敵対的レビューは行わず reviewer の再レビュー（採用）で代えた。正本 features.md §4.6 の列挙への `fn` / `command` 系の追記はフェーズ末（§11 に明記）。
 - 再目視 OK。
+
+### 【Caps Lock の未決】案 B（2026-11-15・Mac）
+- Mac のキー表に `caps lock` が無い（§5.1 で常に素通し）ため、Windows で作った設定の `caps lock` は Mac で不明なキーとして拒否される（切替キーを変えずに確定しても拒否）。ユーザー判断「案 B」= 仕様差として暫定 57 §5.1 に記録（§8 Q8 の非保証）。案 A（Mac のキー表に検証だけ通る `caps lock`）は動かない切替キーを通すため不採用。
+- `tests_ui/test_prohibited_assign_keys_ui.py` の `test_switch_validation_rejects_new_caps_but_allows_unchanged_caps` はキー名の検査を patch して OS に依らない形に（目的 = 割り当て禁止の除外の判定）。reviewer 採用。Mac の tests_ui の既知の失敗が 0 になる。

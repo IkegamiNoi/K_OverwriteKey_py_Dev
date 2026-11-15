@@ -176,7 +176,10 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
             self.app.data, "caps lock", target_id
         ))
         self.app.dirty_tracker.set_dirty(False)
-        with patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror") as showerror:
+        # 割り当て禁止の除外の判定だけを見る。キー名が OS で送れるか（Mac は caps lock を持たない・
+        # 暫定 57 §5.1）は対象外にするため、キー名の検査は常に通す。
+        with patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror") as showerror, \
+                patch.object(self.app.input_gateway, "validate_key_name", return_value=None):
             self.assertFalse(controller.validate_keymap_switch_assignment(
                 "caps lock", target_id=target_id, exclude_switch_key=""
             ))
