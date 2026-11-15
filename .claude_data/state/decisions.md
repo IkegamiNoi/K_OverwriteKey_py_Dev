@@ -765,3 +765,11 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - codex-delegating-implementer（サブエージェント 2 名・自己申告）。判定候補: keyboard_layouts.py（レイアウトの id）・save_plan_execution.py（保存計画の識別子）は対象外、action_control_fields / keymap_switch_batch / call_context / hotkey_service / sequence_steps / input_acceptance は対象（値がトリガーキー・切替キー・hotkey の構成キー）。
 - メイン修正 1 件: 新規 tests_ui のテストデータに keymaps の km1 が無く切替キーが引けなかった（`keymap_service.py:219`）。
 - reviewer 採用。低 3 件は任意のため反映しない（保留）: L1 ダイアログの `key_var` に master が無い（既存）・L2 `call_context` の chain を要素ごとでなく連結後に置き換え（要素はキー名だけで実害なし）・L3 正規表現が名前の語にも効くがキー名の箇所にだけ適用。
+
+### 【暫定 57 v0.11 起票】Mac の修飾キーのキー名を `command` / `option` に分ける（2026-11-15・Mac・確定）
+- 出所: task_09c の Mac 目視（ユーザー）。hotkey の値の欄に `windows+left`、一覧に `Command+left` と混在。Q8（各 OS で作った設定だけ保証）を踏まえ、名前を共用せず OS ごとに分けるべきとの判断（ユーザー「骨子どおり起票」）。
+- 内容（§5.3.4）: `windows` → `command`・`alt` → `option` の語単位で Mac 専用の名前。Mac は `windows` / `alt`、Windows は `command` / `option` を不明なキーとして拒否（変換・別名なし）。§5.3.3 の表示名の差し替え（task_09a / 09c）を廃止。Mac の既定データ・レイアウトの見本（task_09b）は新しい名前で持つ。Q2・Q7 を改訂。
+- 同時に判明: hotkey の記録で Option+a が `å` になる（`action_dialog.py:450` が keysym を使う）→ v0.11 確定後に task_09d で修正。キーボードUIで置換先に修飾キーを記録できないのは idea_57（既知）。
+- Codex 敵対的レビュー（needs-attention・2 件・メインが `ファイル:行` を実測確認）→ ユーザー判断 2026-11-15: high（Windows で `command` / `option` が既に別名として通る〔`features.md:426`・`key_hold.py:33-41`〕）= **Windows でも拒否する**（互換性の変更として既存データは保持・自動変換なし・正本の別名の列挙はフェーズ末に直す）。medium（置換元は `validate_key_name` を通らない〔`keyboard_window.py:565`・`keymap_panel_controller.py:636-660`〕）= 推奨どおり backend の受付の口を置換元の編集開始と割り当て確定で使う。§9 に 14 を追加。
+- Codex 敵対的レビュー 2 回目（needs-attention・medium 2 件・メインが実測確認）→ ユーザー「推奨どおり反映」2026-11-15: ①トリガーは確定時・hotkey / `key_hold` は保存時に他方の OS の修飾キーの名前だけ検査（正本 `key_input.md` の「保存時に検査しない」の例外）・切替 / 停止 / トグルは記録の確定時 ②修飾キー単独の読み飛ばしを domain の修飾キーの判定に揃える（`trigger_dialog.py:126`・`key_capture.py:155`・`keyboard_window.py:618` 等の固定の並び）。§9 に 15 を追加。
+- Codex 敵対的レビュー 3 回目（medium 1 件・起票の誤り = `key_hold` の OK 時の全キー名の検査〔`action_dialog.py:309-317`〕を狭めていた）→ ユーザー「直して確定」2026-11-15: hotkey だけ他方の OS の修飾キーの名前を保存時に追加検査・`key_hold` は既存の全検査を維持。**v0.11 確定**。次 = task_09d（Option+å）と §5.3.4 の実装タスクの起票。

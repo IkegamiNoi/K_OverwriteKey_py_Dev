@@ -1,9 +1,9 @@
 # 暫定仕様 57: macOS 対応（mac_support）
 
-> 状態: **未凍結・v0.8・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.11・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。
-> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）→ v0.6 task_06 の probe の結果を §4.1 に記録し §5・§8 Q1・Q4・§9 を改訂（ユーザー 2026-11-11: IME は取得中に TIS で英字へ切替・JIS 専用キーは文書値で段階 ③ へ）。続けて Codex 敵対的レビューの 4 件（修飾キーのフラグの左右別・送信フラグの分離・TIS 切替の失敗と戻し方・NSWindow の取り違え）を反映し §9 に 11・12 を追加（ユーザー 2026-11-11）。 → v0.7 ディスパッチャの契約を §5.1.1 に追加（段階 ① の区切り M1・M2。task_08 を OS 非依存の受け渡し〔task_08〕と CGEventTap〔task_08b〕に分割・ユーザー 2026-11-13）。続けて Codex 敵対的レビューの 3 件（あふれた後の素通しの継続 = 過負荷の印・世代の不一致では on_discard を呼ばない・取得のフックの受付拒否）を反映。再レビューの 3 件（受付拒否したキーの up まで素通し・優先の処理にフックの稼働番号・切替の予約番号）を反映。3 回目の 1 件（素通し中のキーがある間は取得のフックを解除しない）を反映して確定（ユーザー 2026-11-13）。 → v0.8 Mac 用のレイアウトの見本 2 つ（`us_mac` / `jis_mac`）を §5.3.2 に追加・fn は置かない（ユーザー 2026-11-14）。続けて Codex 敵対的レビューの 1 件（§9 の 13 と Q5 の Command の割り当て禁止の矛盾）とメインの確認 1 件（JIS の判定に jis_mac を含める）を反映・CapsLock は禁止の色で置く（ユーザー 2026-11-14）。 続けて task_09 の起票レビューの 1 件（物理の Shift が押されているときの Shift の要る文字の送信）を §5.1 に反映（ユーザー 2026-11-14）。 → v0.9 task_09a の Mac 目視を受けて §5.1 の送るフラグを「物理側（押されていて抑止中でない）+ 送信側（自分が down を送った）」に改訂（ユーザー 2026-11-14）。 → v0.10 修飾キーの表示名の適用範囲を §5.3.3 に追加（task_09a の Mac 目視・ユーザー 2026-11-14）。
+> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）→ v0.6 task_06 の probe の結果を §4.1 に記録し §5・§8 Q1・Q4・§9 を改訂（ユーザー 2026-11-11: IME は取得中に TIS で英字へ切替・JIS 専用キーは文書値で段階 ③ へ）。続けて Codex 敵対的レビューの 4 件（修飾キーのフラグの左右別・送信フラグの分離・TIS 切替の失敗と戻し方・NSWindow の取り違え）を反映し §9 に 11・12 を追加（ユーザー 2026-11-11）。 → v0.7 ディスパッチャの契約を §5.1.1 に追加（段階 ① の区切り M1・M2。task_08 を OS 非依存の受け渡し〔task_08〕と CGEventTap〔task_08b〕に分割・ユーザー 2026-11-13）。続けて Codex 敵対的レビューの 3 件（あふれた後の素通しの継続 = 過負荷の印・世代の不一致では on_discard を呼ばない・取得のフックの受付拒否）を反映。再レビューの 3 件（受付拒否したキーの up まで素通し・優先の処理にフックの稼働番号・切替の予約番号）を反映。3 回目の 1 件（素通し中のキーがある間は取得のフックを解除しない）を反映して確定（ユーザー 2026-11-13）。 → v0.8 Mac 用のレイアウトの見本 2 つ（`us_mac` / `jis_mac`）を §5.3.2 に追加・fn は置かない（ユーザー 2026-11-14）。続けて Codex 敵対的レビューの 1 件（§9 の 13 と Q5 の Command の割り当て禁止の矛盾）とメインの確認 1 件（JIS の判定に jis_mac を含める）を反映・CapsLock は禁止の色で置く（ユーザー 2026-11-14）。 続けて task_09 の起票レビューの 1 件（物理の Shift が押されているときの Shift の要る文字の送信）を §5.1 に反映（ユーザー 2026-11-14）。 → v0.9 task_09a の Mac 目視を受けて §5.1 の送るフラグを「物理側（押されていて抑止中でない）+ 送信側（自分が down を送った）」に改訂（ユーザー 2026-11-14）。 → v0.10 修飾キーの表示名の適用範囲を §5.3.3 に追加（task_09a の Mac 目視・ユーザー 2026-11-14）。 → v0.11 Mac の修飾キーのキー名を `command` / `option` に分け（§5.3.4）、§5.3.3 の表示名の差し替えを廃止・§8 Q2・Q7 と §5.3.2 を改訂（task_09c の Mac 目視・ユーザー 2026-11-15）。Codex 敵対的レビュー 3 回（Windows でも `command` / `option` を拒否する互換性の変更・置換元の受付の口・トリガー / hotkey / `key_hold` の拒否の時点・修飾キー単独の読み飛ばし・`key_hold` の全キー名の検査の維持）を反映して確定（ユーザー 2026-11-15）。
 
 ---
 
@@ -186,7 +186,7 @@ keyseq/infrastructure/os_backend/
 - 受信: vk から互換の `scan_code` / `is_keypad` / `name` を作って上位へ渡す。domain・application・レイアウト JSON は変えない（§8 Q7）。
 - 送信の解決順: ①既知のキー名 → vk を直接引く ②無ければレイアウトの id → `scan_code`（`_resolve_layout_scan_code` の既存の経路）→ 表で一意に決まる vk。scan だけで複数の vk に当たる場合（テンキーと拡張キーの重複等）と表に無い場合は、Windows の未知のキーと同じ検証エラー（`ValueError`）にする。
 - 検証（`validate_key_name`）・送信・`identity_of` は同じ解決結果を使う。scan から vk への逆変換は上記 ② に限る。
-- `name` は既存の語彙に合わせる: `ctrl` / `alt` / `left windows` / `right ctrl` / `right alt` / `right windows` 等（`key_input.md` §7.1）。
+- `name` は既存の語彙に合わせる: `ctrl` / `alt` / `left windows` / `right ctrl` / `right alt` / `right windows` 等（`key_input.md` §7.1）。**v0.11: Command / Option だけは Mac 専用の名前にする（§5.3.4）。下表の Command / Option の行は §5.3.4 の表で置き換える。**
 
 | Windows のキー名 | macOS の物理キー |
 |---|---|
@@ -200,9 +200,9 @@ keyseq/infrastructure/os_backend/
 - Tk のキー取得（`TkKeyTranslator`）は aqua の `keycode` の上位 8 ビットを vk として §5.3.1 の表で解釈する。上位 8 ビットが `0xFF`（IME の入力中）なら解釈しない（`??`）。キー取得中は Q4 のとおり入力ソースを英字へ切り替えるため、通常はこの状態にならない。
 - 表に 241 / 242 を出さないことで、押下だけの組み直し（`make_only_keys`）は自動で対象外になる。
 - 表に無いキー（fn、keypad `=` / Clear、F13 以降など）は `name=""` で上位へ渡し、素通しする（`input_router.py` の既存動作）。Tk の記録では `??` のまま。
-- UI: `windows` は macOS では `Command`、`alt` は `Option` と表示する（表示のみで、保存するキー名は変えない）。適用する箇所は §5.3.3。
+- ~~UI: `windows` は macOS では `Command`、`alt` は `Option` と表示する（表示のみで、保存するキー名は変えない）。適用する箇所は §5.3.3。~~ → **v0.11 で廃止**。キー名そのものを `command` / `option` にする（§5.3.4）。
 
-#### §5.3.3 修飾キーの表示名の適用範囲（v0.10・task_09a の Mac 目視を受けて・Codex 敵対的レビューの 1 件を反映して確定・ユーザー 2026-11-14）
+#### §5.3.3 修飾キーの表示名の適用範囲（**v0.11 で廃止**・§5.3.4 に置き換え。以下は経緯として残す）（v0.10・task_09a の Mac 目視を受けて・Codex 敵対的レビューの 1 件を反映して確定・ユーザー 2026-11-14）
 
 - **仕組み**: 差し替え表（`OsBackend.modifier_display_names`。Windows は空・macOS は `windows` → `Command`・`alt` → `Option`）を App の組み立てで `domain/key_symbols` へ 1 回注入する（task_09a のまま）。各箇所は `key_symbols` の関数を通すだけで、OS を判定しない。置き換えは語単位（`left windows` → `left Command`・`windows+c` → `Command+c`）で、`alt gr` は置き換えない。保存するキー名・JSON は変えない。Windows では表が空のため、どの箇所も今の表示のまま。
 - **記号キーの表示（正本 `features.md` §4.6「記号キーのキー名の表示」・phase 74）とは別の規則**として扱う。§4.6 が「今のキー名のまま」とする欄（hotkey の一覧と入力欄・キーマップ編集のキー置換一覧・切替 / 停止 / トグルキーの欄）は、記号の置き換え（`+` を区切りに使うため）の対象外という意味で、修飾キーの表示名の置き換えは下表に従う。フェーズ末の正本反映で §4.6 にこの区別を書き足し、§4.6 の「キーマップ編集のキー置換一覧」（画面に実在しない。キー置換はキーボードUIの枠で表示する）を直す（Codex 敵対的レビュー・ユーザー 2026-11-14）。
@@ -219,6 +219,36 @@ keyseq/infrastructure/os_backend/
 
 - **適用しない箇所**: 手で打てる入力欄（トリガーのキー・`key_hold` のキー・`hotkey` の値・アクションの値）。欄の文字列がそのまま保存値になるため、保存されるキー名（`windows` / `alt`）のまま出す。取得ボタンで記録した場合も同じ。ホットキーのラベル・プリセットの表示・ヘルプの本文も変えない。
 - 実装は task_09c。適用済みの箇所も、上の仕組み（`key_symbols` の 1 か所の関数）を通っていることを確かめる。
+
+#### §5.3.4 Mac の修飾キーのキー名（v0.11・task_09c の Mac 目視を受けて・ユーザー 2026-11-15）
+
+Command / Option は Windows の `windows` / `alt` と共用せず、Mac 専用のキー名で保存・表示する。表示名の差し替え（§5.3.3）は廃止し、画面にはキー名をそのまま出す。
+
+| Windows のキー名 | Mac のキー名（v0.11） | 物理キー |
+|---|---|---|
+| `windows`（左右を問わない） | `command` | Command |
+| `left windows` / `right windows` | `left command` / `right command` | 左 / 右 Command |
+| `alt`（左・左右を問わない） | `option` | Option |
+| `left alt` / `right alt` | `left option` / `right option` | 左 / 右 Option |
+| `ctrl` / `shift` 系 | 変えない（共通） | Control / Shift |
+
+- **規則**: Windows の語彙の `windows` → `command`・`alt` → `option` の語単位の置き換えで Mac の名前を作る（受信名・送信・`key_hold` の左右・hotkey の修飾キー・レイアウトの id `command_l` / `command_r` / `option_l` / `option_r`）。`alt gr` に対応する Mac の名前は作らない。
+- **受け付け（両 OS で他方の名前を拒否する）**（Codex 敵対的レビュー high・ユーザー判断 2026-11-15「Windows でも拒否する」）:
+  - Mac で拒否: `windows` / `left windows` / `right windows` / `win` / `left win` / `right win` / `alt` / `left alt` / `right alt` / `left menu`。
+  - Windows で拒否: `command` / `left command` / `right command` / `cmd` / `option` / `left option` / `right option`。**これまで Windows で検査を通っていた別名（正本 `features.md` §「キーリピート」の別名の列挙・`domain/key_hold.py` の集合）を外す互換性の変更**であり、`keyboard` へ渡す前に backend で拒否する（`keyboard.key_to_scan_codes` は通してしまうため）。
+  - 拒否 = 不明なキー名と同じ扱い（`ValueError`。エラーの文言は既存の不明なキーのもの）。hotkey の各要素・`key_hold` のキー・置換元・置換先・トリガー・切替 / 停止 / トグルキーのすべてに及ぶ。
+  - **判定の口**: backend に「その OS で受け付けるキー名か」を返す口を 1 つ設け、`validate_key_name` もこの口を通す。domain / application は OS を判定しない（domain の修飾キーの集合に両 OS の名前を持つのは、語彙としての判定のため）。
+  - **置換元の入口**（Codex 敵対的レビュー medium）: 置換元は `validate_key_name` を通らないため、①キーボードUIで置換元の編集を始めるとき（枠のクリック。拒否された枠は割り当て禁止と同じく編集を始めない）②割り当てを確定するとき（置換元・置換先の両方。`assign_keymap_from_keyboard_ui` 等）に上の口で検査する。
+  - **トリガー・hotkey・`key_hold` の入口**（Codex 敵対的レビュー 2 回目 medium・ユーザー 2026-11-15）: トリガーは追加・キーの変更の確定時に上の口で検査する（今は検査が無い）。**hotkey** の各要素は、保存時（ダイアログの OK）に**他方の OS の修飾キーの名前だけ**を上の口で検査する。正本 `key_input.md`「hotkey のアクションは保存時にキー名を検査しない」はレイアウトで送れる名前が変わるための規則であり、修飾キーの名前はレイアウトに依らないため、この検査だけを例外として足す（hotkey のそれ以外の名前は今どおり実行時のエラー）。**`key_hold`** は今の OK 時の全キー名の検査（`validate_key_name`・正本 `features.md` の key_hold の項）を維持し、他方の OS の名前はその検査の中で上の口により拒否される（Codex 敵対的レビュー 3 回目 medium・ユーザー 2026-11-15）。切替 / 停止 / トグルキーは記録専用の欄のため、記録の確定時に上の口で検査する。
+  - **既存データ**（読み込み）: 他方の OS の名前を含む設定も読み込みでは拒否・変換せず保持する（JSON の後方互換・既存キーは削除しない）。そのキー名は使う時点で上の拒否に当たる（置換・トリガーは効かない・hotkey / `key_hold` は実行時の既存のエラー経路）。Windows で `command` / `option` の別名を保存していた設定がこれに当たり、ユーザーが `windows` / `alt` に直す（自動変換はしない）。
+- **domain / application の語彙**: 修飾キーの集合（`key_hold` の修飾キー・hotkey の修飾キーの並び・割り当て禁止・`key_state_manager` の左右の寄せ・`input_router` の修飾キーの一覧 等）に `command` / `option` 系を OS 非依存の語として足す。割り当て禁止（Q5）には `command` / `left command` / `right command` を足す。
+- **Tk の記録**: aqua の `Meta_L` / `Meta_R` → `command` 系、`Alt_L` / `Alt_R` → `option` 系（`key_hold` は左右つき）。Windows の Tk の解釈は変えない。修飾キーの名前の決め方は backend（`tk_keys`）から得て、presentation で OS を判定しない。
+- **修飾キー単独の読み飛ばし**（Codex 敵対的レビュー 2 回目 medium・ユーザー 2026-11-15）: 記録で修飾キー単独を読み飛ばす判定（今は `ctrl` / `shift` / `alt` / `windows` の固定の並び。トリガー・キーマップ編集・まとめて設定・切替 / 停止 / トグルキー・キーボードUI・hotkey の修飾キーの集め方）を、domain の修飾キーの判定（両 OS の名前を含む）に揃える。hotkey の記録の修飾キーの並び順は `ctrl` → `alt` / `option` → `shift` → `windows` / `command`。`key_hold` の記録（修飾キー単独を左右つきで記録する）は変えない。
+- **廃止するもの**: `OsBackend.modifier_display_names`・`key_symbols` の修飾キーの表示名の差し替え（task_09a）と、その適用箇所・記録専用の欄の表示用の変数（task_09c）。表示はキー名そのものに戻す。恒久的な互換レイヤーとして残さない。
+- **既定データとサンプル**: Mac の既定データ（Q2 のプリセット・サンプル）は `command` / `option` 系で持つ。Windows の既定データは変えない。phase 75 の途中に Mac で保存した `windows` / `alt` を含む設定は変換しない（開発中のデータ・Q8）。
+- **画面の文言**: キー名を差し込む文言・一覧はキー名をそのまま出す（Mac では `command+c` 等）。割り当て禁止の文言の Mac 向けの言い換えは task_11 のまま。
+- **Windows への影響**: キー名・表示・保存の形式は変わらない。ただし `command` / `cmd` / `option` 系の別名が不明なキーになる（上の「受け付け」。既存の設定に含まれていれば動かなくなる）。正本 `features.md` の別名の列挙はフェーズ末の正本反映で直す。
+
 
 #### §5.3.1 記号キーの対応表（task_06）
 
@@ -253,11 +283,11 @@ keyseq/infrastructure/os_backend/
 既存の見本（`jis` / `us_tkl` / `de`）は Windows 用キーボードの並びと表示名（`Win` / `Alt` 等）で、Mac の Command / Option / fn の位置が無い。Mac 用の見本を 2 つ足す。
 
 - 追加するファイル: `config/user/keylayout/us_mac.json`（`layout_id` = `us_mac_sample`）・`jis_mac.json`（`jis_mac_sample`）。表示名は `ui_terms.md` に従う。
-- **JSON の形式・既存の id の語彙は変えない**（§8 Q7 の範囲内）。修飾キー・英数 / かなは §5.3 の表どおり既存の id で置く: Command = `windows_l` / `windows_r`・Option = `alt_l` / `alt_r`・Control = `ctrl_l`（右があれば `ctrl_r`）・英数 = `muhenkan`・かな = `henkan`（`scan_code` は `jis.json` と同じ値）。記号キーの id は §5.3.1 の表の列（US = `us_tkl`・JIS = `jis`）と同じにする。
+- **JSON の形式・既存の id の語彙は変えない**（§8 Q7 の範囲内）。修飾キー・英数 / かなは §5.3 の表どおり既存の id で置く: Command = ~~`windows_l` / `windows_r`~~ → `command_l` / `command_r`・Option = ~~`alt_l` / `alt_r`~~ → `option_l` / `option_r`（v0.11・§5.3.4）・Control = `ctrl_l`（右があれば `ctrl_r`）・英数 = `muhenkan`・かな = `henkan`（`scan_code` は `jis.json` と同じ値）。記号キーの id は §5.3.1 の表の列（US = `us_tkl`・JIS = `jis`）と同じにする。
 - 並びは Apple の内蔵キーボード（US / JIS）に合わせ、`label` は Mac の印字（`⌘ Command`・`Option`・`Control`・`英数`・`かな`・`delete`・`return` 等）にする。並びの細部は実装時に実機と照合する。
-- **fn は置かず、その位置を空ける**（Mac で常に素通しでキー名が無く、割り当てられそうに見えて動かないことを避ける。表示だけのキーは JSON の形式の拡張になるため採らない）。**CapsLock は既存の id（`caps lock`）で置く**（割り当て禁止のキーとして禁止の色で出る・`features.md` §4.6「割り当て禁止のキー」）。Command（`windows_*`）も同じく禁止の色で出て置換元キーにできない（§8 Q5）。Mac の内蔵キーボードに無いキー（PrtSc・Scroll Lock・Pause・Insert・Menu 等）も置かない。
-- 既存の見本は変えない。Mac で既存の見本を選んだ場合も `Win` / `Alt` の枠は Command / Option として動く（表示名だけ Windows 用のまま）。
-- 見本の同梱と初回のコピーは既存の見本と同じ扱い（§6.1）。Windows でも選べる（Command の枠は Windows キーとして動く）。
+- **fn は置かず、その位置を空ける**（Mac で常に素通しでキー名が無く、割り当てられそうに見えて動かないことを避ける。表示だけのキーは JSON の形式の拡張になるため採らない）。**CapsLock は既存の id（`caps lock`）で置く**（割り当て禁止のキーとして禁止の色で出る・`features.md` §4.6「割り当て禁止のキー」）。Command（v0.11 で `command_*`）も同じく禁止の色で出て置換元キーにできない（§8 Q5）。Mac の内蔵キーボードに無いキー（PrtSc・Scroll Lock・Pause・Insert・Menu 等）も置かない。
+- 既存の見本は変えない。~~Mac で既存の見本を選んだ場合も `Win` / `Alt` の枠は Command / Option として動く（表示名だけ Windows 用のまま）。~~ → v0.11: Mac で Windows 用の見本の `Win` / `Alt` の枠は、キー名が Mac で無効なため割り当てに使えない（§5.3.4・Q8 の非保証の範囲）。
+- 見本の同梱と初回のコピーは既存の見本と同じ扱い（§6.1）。~~Windows でも選べる（Command の枠は Windows キーとして動く）。~~ → v0.11: Windows でも選べるが、Command / Option の枠は Windows で無効（§5.3.4）。
 - **`jis_mac` は JIS として扱う**: §5.3・§5.3.1 の「選択中のレイアウトに合う受信名」の JIS の判定に `jis_mac_sample` を含める（判定の方法は task_09 で決める。`layout_id` の一致で判定する場合は `jis` と `jis_mac_sample` の両方）。
 - JIS の英数 / かなの受信は §5.3.1 の文書値のまま（実測は §9 の 10 と同じく JIS キーボードを用意できたとき）。
 
@@ -312,8 +342,8 @@ keyseq/infrastructure/os_backend/
 - **Q1 macOS の Python**: ~~提案 = python.org 版の 3.13（同梱の Tk 8.6 系）~~ → **Homebrew の Python 3.13 + `python-tk@3.13`（Tk 9.1）**（ユーザー判断 2026-11-10・decisions.md）。Tk 9 の差は presentation の `tk_platform.py` に集める（task_05b・§4.1）。PyInstaller で動くかは task_13 で確認する。
 - **Q2 既定プリセット**: Windows の `Ctrl+C` 相当は macOS では `Command+C`。提案 = 既定データをプロファイルとして presentation の組み立て時に注入し、macOS は `Command` 系を用意する（domain に OS 判定を入れない）。既存の設定の自動変換はしない。
   - 詳細（ユーザー判断 2026-11-11・task_07b）: 既定データの型と Windows / macOS の 2 組は domain に置き（データのみ・OS 判定なし）、どちらを使うかは `OsBackend` が持つ。App の組み立てで `ConfigService` へ渡し、`new_base_data` / `new_default_data`・domain の互換処理の既定への戻し・プリセット管理の「既定に戻す」は渡された既定を使う。
-  - macOS のホットキー・プリセット（8 件）: `Command+Tab`（`windows+tab`）・`Command+Space`（`windows+space`）・`Command+Q`（`windows+q`）・`Command+W`（`windows+w`）・`Command+H`（`windows+h`）・`Command+M`（`windows+m`）・`Option+Command+Esc`（`alt+windows+esc`）・`Ctrl+↑`（`ctrl+up`）。
-  - macOS のサンプル: `ctrl+c` / `ctrl+v` → `windows+c` / `windows+v`、`alt+tab` → `windows+tab`、行の選択（`home`・`shift+end`）→ `windows+left`・`windows+shift+right`。
+  - macOS のホットキー・プリセット（8 件）: `Command+Tab`（~~`windows+tab`~~ → v0.11 `command+tab`。以下同じく `windows` → `command`・`alt` → `option`）・`Command+Space`（`windows+space`）・`Command+Q`（`windows+q`）・`Command+W`（`windows+w`）・`Command+H`（`windows+h`）・`Command+M`（`windows+m`）・`Option+Command+Esc`（`alt+windows+esc` → `option+command+esc`）・`Ctrl+↑`（`ctrl+up`）。
+  - macOS のサンプル: `ctrl+c` / `ctrl+v` → `windows+c` / `windows+v`、`alt+tab` → `windows+tab`、行の選択（`home`・`shift+end`）→ `windows+left`・`windows+shift+right`。v0.11: いずれも `windows` → `command` に置き換える（§5.3.4）。
 - **Q3 ビルド後の設定の保存先**: 提案 = macOS は `~/Library/Application Support/keyseq/`、Windows は `.exe` と同じ場所の `config/`（持ち運びやすさと現行の相対配置の維持）。
 - **Q4 IME 制御**: 文字送信は Unicode 送信で IME を経由しない。キー取得は Tk イベントが主経路で、IME がオンだと影響を受ける可能性がある。提案 = macOS では何もしない。キー取得で問題が出たら TIS による入力ソース切替を追加する。→ **§4.1 で問題を確認（かな入力中は Tk の keycode から vk が失われる）。キー取得の間だけ TIS で入力ソースを英字（ASCII 可能な入力ソース）へ切り替え、終わったら元へ戻す**（ユーザー判断 2026-11-11。Windows の取得中の IME オフと同じ考え方。実装は task_09）。文字送信は従来どおり IME を経由しない。
   - 切替の手順: 取得の開始時に元の入力ソースと切替先を記録し、切り替えた後で現在の入力ソースを読み直して切替先になったかを確かめる（§4.1 で確かめたのは読み取りだけで、切替は task_09 で実測する）。
@@ -323,6 +353,7 @@ keyseq/infrastructure/os_backend/
 - **Q5 Command キーの割り当て禁止**: 提案 = Windows キーと同じく元キーへの割り当てを禁止する（理由 = システムのショートカットの保護）。
 - **Q6 対象 CPU**: 提案 = Apple Silicon（arm64）のみ。
 - **Q7 キー識別の方式**（§5.3）: 提案 = 案 A（macOS の vk を既存のキー名・互換走査コードへ変換し、domain とレイアウト JSON を変えない）。案 B（OS ごとのキーコード体系とレイアウト）は domain まで影響が及ぶため採らない。
+  - **v0.11 の改訂**（ユーザー 2026-11-15）: 案 A を維持したまま、**Command / Option のキー名だけ** Mac 専用の `command` / `option` 系に分ける（§5.3.4）。JSON の形式は変えず、キー名の語彙を足すだけ。理由 = Q8 で OS 間の設定の共有を保証しないため、名前を共用する利点が無く、表示と保存値の食い違い（§5.3.3）を生むだけだった。
 - **Q8 OS 間の設定の共有**: 提案 = 対象外（各 OS で作成した設定だけを保証）。`user\keymaps\main.json` のようなバックスラッシュの相対パス、`C:\` の絶対パスの変換はしない。
 
 ## §9 受け入れ条件（ドラフト）
@@ -339,7 +370,9 @@ keyseq/infrastructure/os_backend/
 10. macOS の JIS 配列で、`^`・`@`・`:` が JIS のレイアウトの枠で作った割り当てと一致する（§5.3）。JIS キーボードを用意できない間は、§5.3.1 の文書値による単体テストで代え、未実測であることを完了報告に明記する（ユーザー判断 2026-11-11）。US 配列で `us_tkl` の記号キーが一致することは実機で確認する。
 11. macOS で、`ctrl` を元キーにして抑止しながら `ctrl+c` を送る割り当てでコピーが動く。左 Shift を抑止して右 Shift を素通しにしたとき右 Shift の入力が効き、左右を同時に押して離す順を変えても、抑止を解いた後に修飾キーが押されたまま残らない（§5.1）。
 12. macOS で、日本語入力（かな）がオンのままキー取得を始めても物理キーが記録され、取得の終了後に元の入力ソースへ戻る。切替に失敗した場合も取得は止まらず、取れないキーは `??` になる（§8 Q4）。
-13. macOS で、Mac 用の見本（`us_mac` / `jis_mac`）を選ぶと Mac の並びと印字で表示され、Command と CapsLock の枠は禁止の色で出て置換元キーにできず、Option・Control（JIS は英数・かなも）の枠で割り当てた操作が動く。`jis_mac` を選択中は JIS の受信名になる（§5.3.2。JIS の英数 / かなと受信名は 10 と同じく文書値のテストで代えてよい）。
+13. macOS で、Mac 用の見本（`us_mac` / `jis_mac`）を選ぶと Mac の並びと印字で表示され、Command / Option の枠のキー名は `command` / `option` 系（§5.3.4）で、Command と CapsLock の枠は禁止の色で出て置換元キーにできず、Option・Control（JIS は英数・かなも）の枠で割り当てた操作が動く。`jis_mac` を選択中は JIS の受信名になる（§5.3.2。JIS の英数 / かなと受信名は 10 と同じく文書値のテストで代えてよい）。
+14. 他方の OS の修飾キーの名前を拒否する（§5.3.4）: Mac で Windows 用の見本の Alt / Win の枠を選んでも置換元の編集が始まらず、`alt` / `windows` 系を置換元・置換先・hotkey・`key_hold`・トリガーに入れると不明なキーのエラーになる。Windows で `command` / `option` 系を入れると同じくエラーになる。他方の OS の名前を含む既存の設定は読み込めて、キー名は保持される。拒否の時点は §5.3.4 の入口のとおり（トリガー = 確定時・hotkey / `key_hold` = 保存時・置換元 = 編集開始と確定時）。`key_hold` の未知のキー名は今どおり OK の時点で拒否される。
+15. macOS で、`key_hold` 以外の記録（トリガー・キーマップ編集・まとめて設定・切替 / 停止 / トグルキー・キーボードUI）で Command / Option を単独で押しても記録が確定せず、続けて押したキーが記録される。hotkey の記録は `option+command+esc` のように修飾キーを集めて確定する（§5.3.4）。
 
 ## §10 スコープ外（本フェーズでやらない）
 
