@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from keyseq.infrastructure.os_backend import get_backend
+
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     KeySpec,
@@ -16,6 +18,10 @@ from keyseq.presentation.keyboard_window import KeyboardWindow
 JIS_LAYOUT_PATH = (
     Path(__file__).resolve().parents[1] / "config" / "user" / "keylayout" / "jis.json"
 )
+
+
+# テンキーの判定は実際の backend のまま（走査コードの解決だけを差し替える）。
+_REAL_NUMPAD_NAME = get_backend().tk_keys.numpad_name
 
 
 class KeyboardWindowScanCodeTest(unittest.TestCase):
@@ -36,8 +42,10 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         event = SimpleNamespace(keysym=keysym, keycode=keycode, state=state)
         window = SimpleNamespace(_layout=layout)
         with patch(
-            "keyseq.presentation.keyboard_window.get_backend",
-            return_value=SimpleNamespace(tk_keys=SimpleNamespace(vk_to_scan_code=Mock(return_value=scan_code))),
+            "keyseq.presentation.tk_keys.get_backend",
+            return_value=SimpleNamespace(tk_keys=SimpleNamespace(
+                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock(return_value=scan_code)
+            )),
         ) as backend:
             result = KeyboardWindow._normalize_tk_key(window, event)
         return result, backend.return_value.tk_keys.vk_to_scan_code
@@ -79,8 +87,10 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
     def test_numpad_and_keysym_table_take_precedence(self):
         window = SimpleNamespace(_layout=resolve_keyboard_layout())
         with patch(
-            "keyseq.presentation.keyboard_window.get_backend",
-            return_value=SimpleNamespace(tk_keys=SimpleNamespace(vk_to_scan_code=Mock())),
+            "keyseq.presentation.tk_keys.get_backend",
+            return_value=SimpleNamespace(tk_keys=SimpleNamespace(
+                numpad_name=_REAL_NUMPAD_NAME, vk_to_scan_code=Mock()
+            )),
         ) as convert:
             numpad = KeyboardWindow._normalize_tk_key(
                 window, SimpleNamespace(keysym="End", keycode=96, state=0)

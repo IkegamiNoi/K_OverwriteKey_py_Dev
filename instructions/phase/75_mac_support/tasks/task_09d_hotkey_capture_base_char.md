@@ -49,3 +49,31 @@ Windows: task_09 / 09a / 09c と合わせて verifier（compile・tests 失敗 0
 ## 起票レビュー
 
 reviewer「修正して採用」（2026-11-15）: 中 2（M1 = 09d のフォールバック先の誤り・M2 = 09d のレイアウトの受け取りと key_hold のファイル名）・低 3（L1 = 09e の modifier_flags と既存 id の扱い・L2 = 09e / 09f の action_dialog の分担・L3 = 09f の tests_ui の指定）を反映（ユーザー「反映してコミット」）。
+
+## 実装後の改訂（2026-11-15・ユーザー「推奨どおり絞る」）
+
+reviewer（採用・中 1）の指摘を調べた結果、上の「keycode → レイアウトの id を先に引く」は記号キーで正本と食い違う: レイアウトの id は記号そのもの（`us_tkl.json` の `,` `.` `;` 等）で、正本 `features.md` §4.6「記号キーのキー名の表示」は単語の名前（`comma` 等）で保存する。そのため hotkey が `ctrl+,` になり、`key_hold` は `,` を `key_invalid_chars` で拒否する。Windows でも Shift+1 が `shift+exclam` → `shift+1` に変わる。**次のとおり範囲を絞る**（この節が上の「対象範囲」の該当部分に優先する）:
+
+- `resolve_tk_event_key_name` は今のまま（キーボードUIは今の結果を保つ）。
+- hotkey（`action_dialog.py`）と `key_hold`（`action_key_hold_fields.py`）は、**keysym を正規化した結果が ASCII 以外の 1 文字、または Tk の Unicode の keysym（`U` + 16 進 4 桁以上・例 `U2264`）のときだけ**（Mac の Option で `å` / `≤` 等に変わったとき。Mac の実測で保存値が `alt+å` = keysym が文字そのもの）keycode から引く。それ以外は従来の正規化（`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`）のまま。→ Windows の keysym は ASCII のため Windows の記録結果は変わらない。
+- keycode から引いた名前が記号 1 文字なら、`domain/key_symbols.py` の `KEY_SYMBOLS` を逆に引いて単語の名前にし（同じ記号が複数あるときは表の先の方 = `backslash` / `grave` / `apostrophe`）、続けて keysym の経路と同じ `TK_KEYSYM_TO_KEYBOARD_NAME` を通す（例: `,` → `comma`・`-` → `minus` → `-`）。結果は、Option を押さずに同じキーを押したときの従来の記録と同じ名前になる。
+- 判定と変換は `tk_keys.py` の関数 1 つにまとめ（例 `resolve_modified_char_key_name(event, layout) -> str`・該当しなければ空文字）、hotkey と `key_hold` はそれを先に呼び、空なら従来の正規化へ戻る。
+- テスト（tests・Tk なし）: keysym `aring` → `a`・`lessequal` 相当の非 ASCII 1 文字で位置が `,` → `comma`・ASCII の keysym（`a`・`exclam`・`comma`）では keycode を引かない（`vk_to_scan_code` を呼ばない）・修飾キーの keysym では空。
+
+Mac の目視（完了条件）の期待値: Option+a → `alt+a`・Option+, → `alt+comma`・Command+→ → `windows+right`（`key_hold` は修飾キーを先に押すとそれを記録して止まるため、目視の対象にしない）。
+
+## 実装後の改訂 2（2026-11-15・Mac 目視の結果・ユーザー「推奨どおり直す」）
+
+Mac 目視: Option+a → `alt+å`・Option+, → `alt+lessthanequal`（直っていない）・Command+→ → `windows+right`（OK）。原因 = ①`self.parent.layout` は `LayoutController`（`app.py:297`）で `KeyboardLayout` ではなく、走査コードから名前が引けず毎回空文字になっていた ②Tk 9 の aqua は `≤` を名前の keysym（`lessthanequal`）で返し、改訂 1 の判定（非 ASCII 1 文字・`U....`）に当たらない。改訂 1 を次のとおり直す:
+
+- **判定**: keysym ではなく **`event.char` が ASCII 以外の 1 文字**のとき（加えて改訂 1 の keysym の判定も残してよい）。Windows で変わるのは AltGr 等で ASCII 以外の文字を出したときだけ（例 de の AltGr+e: 従来 `ctrl+alt+eurosign`〔送れない名前〕→ `ctrl+alt+e`）。
+- **名前の引き方**: `LayoutController.resolve_key_name_from_scan_code`（`layout_controller.py:417`・フックと同じ）を使う。`resolve_modified_char_key_name` は `KeyboardLayout` ではなく「走査コード → キー名」の関数を受け取る（hotkey / key_hold は `getattr(self.parent, "layout", None)` の `resolve_key_name_from_scan_code`・無ければ空文字）。テンキー名は除外、記号 1 文字は改訂 1 のとおり逆引き。
+- **テスト**: 偽のレイアウトではなく実物の `LayoutController` 相当（`config/user/keylayout/us_tkl.json` を読んだ `KeyboardLayout` を `resolve_layout_key_id_from_scan_code` で引く関数）で、`char="å"`・`keysym="aring"`・vk 0 → `a`、`char="≤"`・`keysym="lessthanequal"`・vk 43（`,`）→ `comma`。`char` が ASCII（`a`・`!`）では keycode を引かない。
+
+## 実装後の改訂 3（2026-11-15）・結果
+
+- 改訂 2 の後もレイアウトから `a` が引けなかった（`us_tkl` は文字キーに走査コードを持たない）→ メインが「レイアウトの走査コード → backend の `vk_to_char`」の順に修正（`keymap_panel_controller.py:467-477` のグリッドと同じ順）。テストは Mac の `key_table` を使う偽の backend + 実物の `us_tkl.json`。
+- reviewer 再レビュー 2「修正して採用」・中 1 = `event.char` の判定が Windows でも効く（de / 北欧の専用キー・非ラテン配列・AltGr の文字）。従来の記録（`adiaeresis` 等）は送れない名前のため、変化は「使えなかったものが使える」方向の見込み → **ユーザー判断: Windows も含める**（2026-11-15）。
+- **Mac 実機目視 OK**（2026-11-15）: Option+a → `alt+a`・Option+, → `alt+comma`・Command+→ → `windows+right`。
+- **Windows の完了条件に追加**（task_09〜09f の Windows 検証でまとめて・未実測）: Windows の入力にドイツ語を足し、hotkey の記録で ä の位置のキーと AltGr+e を記録 → 記録された値で hotkey を実行して ä / € が出ること。従来は送れなかった名前（`adiaeresis` / `ctrl+alt+eurosign`）が変わることの確認。
+- 実装: codex-implementer（4 回の resume）。メイン修正 = `aring` の特例の除去（Windows の北欧配列で記録が変わるため）・`vk_to_char` への戻り・tests の Mock の import と `_mac_tk_keys_backend`・tests_ui の patch 先の行き過ぎと numpad_name の欠け。reviewer の低（docstring・import 順・関数の行数・型注釈）は参考扱いで未対応。

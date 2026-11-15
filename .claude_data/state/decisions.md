@@ -773,3 +773,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - Codex 敵対的レビュー（needs-attention・2 件・メインが `ファイル:行` を実測確認）→ ユーザー判断 2026-11-15: high（Windows で `command` / `option` が既に別名として通る〔`features.md:426`・`key_hold.py:33-41`〕）= **Windows でも拒否する**（互換性の変更として既存データは保持・自動変換なし・正本の別名の列挙はフェーズ末に直す）。medium（置換元は `validate_key_name` を通らない〔`keyboard_window.py:565`・`keymap_panel_controller.py:636-660`〕）= 推奨どおり backend の受付の口を置換元の編集開始と割り当て確定で使う。§9 に 14 を追加。
 - Codex 敵対的レビュー 2 回目（needs-attention・medium 2 件・メインが実測確認）→ ユーザー「推奨どおり反映」2026-11-15: ①トリガーは確定時・hotkey / `key_hold` は保存時に他方の OS の修飾キーの名前だけ検査（正本 `key_input.md` の「保存時に検査しない」の例外）・切替 / 停止 / トグルは記録の確定時 ②修飾キー単独の読み飛ばしを domain の修飾キーの判定に揃える（`trigger_dialog.py:126`・`key_capture.py:155`・`keyboard_window.py:618` 等の固定の並び）。§9 に 15 を追加。
 - Codex 敵対的レビュー 3 回目（medium 1 件・起票の誤り = `key_hold` の OK 時の全キー名の検査〔`action_dialog.py:309-317`〕を狭めていた）→ ユーザー「直して確定」2026-11-15: hotkey だけ他方の OS の修飾キーの名前を保存時に追加検査・`key_hold` は既存の全検査を維持。**v0.11 確定**。次 = task_09d（Option+å）と §5.3.4 の実装タスクの起票。
+
+### 【task_09d 実装】reviewer 修正して採用・Mac 目視 OK（2026-11-15・Mac）
+- hotkey / key_hold の記録で Mac の Option の文字（`å` / `≤`）を物理キーの名前へ。判定 = `event.char` が非 ASCII 1 文字 等・引き方 = レイアウトの走査コード → `vk_to_char`・記号は `KEY_SYMBOLS` の逆引き（§4.6 の単語名）。
+- 経緯: 当初の「keycode を先に引く」は記号キーで §4.6 と食い違う（`ctrl+,`・key_hold が `,` を拒否）→ ユーザー「推奨どおり絞る」。目視で直らず（LayoutController の取り違え・`lessthanequal`・us_tkl に走査コードなし）→ `event.char` と `vk_to_char` へ。
+- Windows でも `event.char` の判定が効く（de / 北欧 / 非ラテン / AltGr）→ ユーザー判断「Windows も含める」。従来の記録は送れない名前のため悪化しない見込み。Windows はドイツ語入力で目視（未実測）。

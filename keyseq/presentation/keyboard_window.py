@@ -11,11 +11,9 @@ from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_symbols import display_key_name, display_modifier_names
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
-from keyseq.domain.numpad_keys import is_numpad_key_name
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
-    resolve_layout_key_id_from_scan_code,
     resolve_keyboard_layout,
 )
 from keyseq.presentation.keyboard_key_text import fit_key_text
@@ -33,8 +31,8 @@ from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_captu
 from keyseq.presentation.tk_platform import key_label_font_family
 from keyseq.presentation.tk_keys import (
     TK_KEYSYM_TO_KEYBOARD_NAME,
+    resolve_tk_event_key_name,
     is_unresolved_capture_key,
-    numpad_name_from_tk_event,
 )
 from keyseq.shared.i18n import tr
 
@@ -634,32 +632,13 @@ class KeyboardWindow(tk.Toplevel):
         return "break"
 
     def _normalize_tk_key(self, event: object) -> str:
-        numpad_name = numpad_name_from_tk_event(
-            getattr(event, "keycode", None), getattr(event, "state", 0)
-        )
-        if numpad_name:
-            return numpad_name
         keysym = str(getattr(event, "keysym", "") or "")
         k = keysym.lower()
-        if k in TK_KEYSYM_TO_KEYBOARD_NAME:
-            return TK_KEYSYM_TO_KEYBOARD_NAME[k]
-
-        keycode = getattr(event, "keycode", None)
-        try:
-            vk = int(keycode)
-        except (TypeError, ValueError, OverflowError):
-            vk = None
-        scan_code = get_backend().tk_keys.vk_to_scan_code(vk) if vk is not None else None
-        resolved = (
-            resolve_layout_key_id_from_scan_code(self._layout, scan_code)
-            if scan_code is not None
-            else ""
-        )
-        normalized = normalize_key_name(resolved)
-        if normalized and not is_numpad_key_name(normalized):
+        normalized = resolve_tk_event_key_name(event, self._layout)
+        if normalized:
             return normalized
 
-        return k
+        return TK_KEYSYM_TO_KEYBOARD_NAME.get(k, k)
 
     def _update_title(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")

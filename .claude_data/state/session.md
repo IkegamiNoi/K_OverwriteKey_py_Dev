@@ -4,44 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-14T15:40:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.10・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
+last_updated: 2026-11-15T18:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.11・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 58
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/continue-f5ebb7`（Mac の worktree・task_09c 実装 f8a976a1 まで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_09d のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 75 段階 ③。task_09（Mac 目視 OK）・09a（Mac 再目視 OK・3 は idea_57 と task_09c へ分離）・09c（修飾キーの表示名の適用範囲・暫定 57 v0.10 §5.3.3・reviewer 採用）を Mac で実装済み。残り = 09c の Mac 実機目視・09 / 09a / 09c の Windows 検証・Caps Lock の未決。**
-mode: pending_review
+presence: 在席
+focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（hotkey の記録の Option の文字）を Mac で実装・目視 OK。次 = task_09e。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-14T15:40:00
+ts: 2026-11-15T18:00:00
 who: main
 summary: |
-  実施: task_09a の目視後の修正（暫定 57 v0.9 §5.1 = 送るフラグは物理側 + 送信側・一覧の hotkey 表示・aqua の Command+Option+P・7a56770e）→ 再目視で 3 以外 OK → 置換先の修飾キーは当初からの仕様で idea_57 へ分離 → 暫定 57 v0.10 §5.3.3（表示名の適用範囲・Codex 敵対的レビュー 1 件反映で確定）・task_09c 起票（b58d22cb）→ task_09c 実装（f8a976a1）。
-  実装: codex-delegating-implementer（サブエージェント 2 名・自己申告）。application の文言の判定候補は keyboard_layouts / save_plan_execution を対象外、他を対象。メイン修正 1 件（新規 tests_ui のテストデータに km1）。
-  reviewer: 採用。低 3 件は任意のため保留（decisions.md 参照）。
-  ユーザー: /away（戻る予定 未定）→ 目視待ちで終了処理。
+  発端: task_09c の Mac 目視で hotkey の値の欄が `windows+left`・Option+a が `alt+å`・キーボードUIで修飾キーを記録できない（= idea_57・既知）。
+  仕様: 暫定 57 v0.11 §5.3.4 を起票 → Codex 敵対的レビュー 3 回（Windows でも command / option を拒否する互換性の変更〔ユーザー判断〕・置換元の受付の口・トリガー / hotkey / key_hold の拒否の時点・修飾キー単独の読み飛ばし・key_hold の全検査の維持）→ 確定（9753e703）。task_09d / 09e / 09f 起票（reviewer 修正して採用・ab15aa71）。
+  task_09d 実装: codex-implementer（4 回 resume）+ メイン修正。判定 = `event.char` が非 ASCII 1 文字 等のときだけ keycode から物理キー（レイアウトの走査コード → `vk_to_char`）・記号は KEY_SYMBOLS の逆引き。Windows でも効く（de / 北欧 / AltGr）= ユーザー判断で含める・Windows はドイツ語入力で目視（未実測）。
+  reviewer: 修正して採用（中 1 = Windows 範囲 → ユーザー判断で採用）。Mac 目視 OK（Option+a → `alt+a`・Option+, → `alt+comma`・Command+→ → `windows+right`）。
 result_files:
-  - keyseq/presentation/ui_vars.py・views/full_view/hook_frame.py・views/compact_view/hook_frame.py
-  - keyseq/presentation/dialogs/keymap_edit_dialog.py・keymap_switch_batch_dialog.py・action_control_fields.py・keyboard_window.py
-  - keyseq/presentation/controllers/（key_capture・hook_controller・keymap_panel/keymap_panel_controller・keymap_add_flow・trigger_panel/trigger_row_edit・trigger_list_edit・effective_row_transition）
-  - keyseq/application/（call_context・hotkey_service・keymap_switch_batch・sequence_steps・sequence_runner/input_acceptance）
-  - tests_ui/test_modifier_display_scope.py・instructions/common/codebase_map.md
+  - keyseq/presentation/tk_keys.py・keyboard_window.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py
+  - tests/test_tk_keys.py・tests_ui/test_keyboard_window_scan_code.py
+  - instructions/phase/75_mac_support/tasks/task_09d_hotkey_capture_base_char.md・instructions/common/codebase_map.md・.claude_data/state/decisions.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2057 件・失敗 6・エラー 10・skip 28（既知のみ）
+  tests_mac: 2064 件・失敗 6・エラー 10・skip 28（基準線どおり）
   smoke_mac: pass
-  tests_ui_mac: 15 本 1 本ずつ 失敗 0（test_modifier_display_scope はテストデータ修正後 7 件 OK）
+  tests_ui_mac: 関係 6 モジュール 1 本ずつ 失敗 0
   tests_windows: not_run
-  visual_mac: task_09c 未実施
+  visual_mac: task_09d OK
 
 ## next_action
-- **【確認事項・ユーザー】(1) task_09c の Mac 実機目視**: キーマップ一覧の切替キー・停止 / トグルキーの欄（幅 8 文字で `left Command` が欠けて読めなくならないか）・キーマップ編集 / まとめて設定の切替キーの欄・キーボードUIのタイトル（編集中のキー名）・切替キーの重複のエラーで `Command` / `Option` と出るか。保存した設定（`config/config.json`）のキー名は `windows` / `alt` のままか。
-- **【確認事項・ユーザー】(2) Caps Lock の未決**: Mac のキー表に `caps lock` が無い（常に素通し・暫定 57 §5.1）ため、既存の Caps Lock の切替キーが変わっていなくても「不明なキー名」で再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py:166` が落ちる・正本 `features.md` §4.6「既存データは拒否しない・消さない」と食い違い）。案 A = Mac のキー表に `caps lock` を vk 57 の検証・送信だけの名前として足す / 案 B = Mac の仕様差として暫定 57 に記録しテストを Mac で skip。メインがコードを確かめて推奨を付けてからユーザーへ出す（未提示）。
-- **(3) task_09・09a・09c の Windows 検証**: ユーザーが push → Windows 側で verifier（`.venv\Scripts\python.exe`・compile・`tests` 失敗 0・`tests_ui` 1 本ずつ失敗 0・smoke）→ 完了判定。
-- 続き: task_09b（Mac 用のレイアウトの見本 us_mac / jis_mac）→ task_10 → task_11。実測（右 Option の keysym・テンキーの keycode）は測れたら暫定 57 §4.1 へ。
+- **task_09e を実装**: `codex-delegating-implementer` に `instructions/phase/75_mac_support/tasks/task_09e_mac_modifier_key_names.md` を依頼（Mac のキー名 command / option・表示名の差し替えの撤去〔27 ファイル〕・Mac の既定データ）→ verifier（Mac）→ reviewer。目視は task_09f の後にまとめて。
+- 続けて task_09f（`task_09f_modifier_name_acceptance.md`・codex-delegating-implementer）→ Mac 目視（§9 の 13〜15・task_09c の目視もここで代える）→ task_09b（Mac 用のレイアウトの見本・id は `command_*` / `option_*`）。
+- **【確認事項・ユーザー】Caps Lock の未決**: Mac のキー表に `caps lock` が無く、既存の Caps Lock の切替キーが再検証を通らない（`tests_ui/test_prohibited_assign_keys_ui.py:166`・`features.md` §4.6「既存データは拒否しない」と食い違い）。案 A = Mac のキー表に vk 57 の検証・送信だけの名前を足す / 案 B = Mac の仕様差として記録・テストを Mac で skip。メインが推奨を付けて提示（未提示）。
+- **task_09〜09f の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0・tests_ui 1 本ずつ・smoke）。task_09d はドイツ語入力で hotkey に ä の位置のキーと AltGr+e を記録 → 実行して ä / € が出るかを目視。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

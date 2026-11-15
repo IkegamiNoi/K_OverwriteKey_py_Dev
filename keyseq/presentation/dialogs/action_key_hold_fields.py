@@ -10,6 +10,7 @@ from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_captu
 from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     normalize_key_hold_tk_key_event,
+    resolve_modified_char_key_name,
 )
 from keyseq.shared.i18n import tr
 
@@ -237,7 +238,12 @@ class ActionKeyHoldFields:
         if keysym.lower() == "escape":
             self.stop_recording()
             return "break"
-        key = normalize_key_hold_tk_key_event(event)
+        layout = getattr(self.dialog.parent, "layout", None)
+        key = resolve_modified_char_key_name(
+            event, getattr(layout, "resolve_key_name_from_scan_code", None)
+        )
+        if not key:
+            key = normalize_key_hold_tk_key_event(event)
         if is_unresolved_capture_key(key):
             self.key_hint.configure(text=unknown_capture_key_hint_text())
             return "break"

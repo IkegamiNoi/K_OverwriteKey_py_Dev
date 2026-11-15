@@ -17,7 +17,7 @@ from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import SEQUENCE
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
-from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event
+from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event, resolve_modified_char_key_name
 from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
@@ -447,7 +447,12 @@ class ActionDialog(tk.Toplevel):
     def _on_key_press(self, event):
         if not self._recording:
             return
-        key = normalize_tk_key_event(event)
+        layout = getattr(self.parent, "layout", None)
+        key = resolve_modified_char_key_name(
+            event, getattr(layout, "resolve_key_name_from_scan_code", None)
+        )
+        if not key:
+            key = normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
             return "break"
         if key in ("ctrl", "shift", "alt", "windows"):
