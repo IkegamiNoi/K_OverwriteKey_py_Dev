@@ -172,7 +172,8 @@ class LayoutController:
             if foreground is not None:
                 main = backend.window_handle(self._app)
                 keyboard = backend.window_handle(window)
-                is_dialog = foreground not in (main, keyboard)
+                if main is not None and keyboard is not None:
+                    is_dialog = foreground not in (main, keyboard)
             try:
                 has_grab = self._app.grab_current() is not None
             except Exception:

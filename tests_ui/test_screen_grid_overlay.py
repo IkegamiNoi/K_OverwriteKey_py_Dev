@@ -89,7 +89,7 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.assertEqual(window.state(), "normal")
         self.assertEqual((window.winfo_rootx(), window.winfo_rooty()), (0, -768))
         self.assertEqual((window.winfo_width(), window.winfo_height()), (1024, 768))
-        self.styles.assert_called_once_with(window)
+        self.styles.assert_called_once_with(window, "#ff00fe")
         self.assertEqual(len(self.app.screen_grid.session.view().cells), 12)
         for field, value, restored in (
             ("hook_active", False, True),
@@ -132,13 +132,13 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.app.action_executor.execute_router_action.assert_not_called()
 
     def test_style_is_applied_while_window_is_withdrawn_and_failure_is_reported(self):
-        def fail_style(target_window):
+        def fail_style(target_window, transparent_color):
             window = self.root.winfo_children()[0]
             self.assertIs(window, target_window)
             self.assertEqual(window.state(), "withdrawn")
             self.assertTrue(window.overrideredirect())
             self.assertEqual(str(window.cget("background")), "#ff00fe")
-            self.assertEqual(str(window.attributes("-transparentcolor")), "#ff00fe")
+            self.assertEqual(transparent_color, "#ff00fe")
             return False
 
         self.styles.side_effect = fail_style

@@ -57,8 +57,13 @@ class WindowsWindowBackend:
     def list_monitor_rects(self) -> list[tuple[tuple[int, int, int, int], bool]]:
         return win32_window.list_monitor_rects()
 
-    def make_click_through_overlay(self, window: tkinter.Misc) -> bool:
-        return win32_window.make_click_through_overlay(window.winfo_id())
+    def make_click_through_overlay(self, window: tkinter.Misc, transparent_color: str) -> bool:
+        try:
+            window.attributes("-transparentcolor", transparent_color)
+            window.update_idletasks()
+            return win32_window.make_click_through_overlay(window.winfo_id())
+        except tkinter.TclError:
+            return False
 
     def is_mouse_button_down(self) -> bool:
         return win32_window.is_mouse_button_down()

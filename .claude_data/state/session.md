@@ -4,40 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-16T02:30:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.15・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59
+last_updated: 2026-11-16T23:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.16・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11a のコミットまで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11b のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 75 段階 ③。暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 `command` / `option`・§5.3.3 の表示名の差し替えを廃止・両 OS で他方の名前を拒否）を確定し task_09d / 09e / 09f を起票。task_09d（Option の文字・Mac 目視 OK）・task_09e（Mac のキー名・表示名の差し替えの撤去）・task_09f（他方の OS の名前の拒否と入口・修飾キー単独の読み飛ばし）・task_09b（Mac 用のレイアウトの見本・v0.12 = fn を禁止のキーとして置く）を Mac で実装・目視 OK。Caps Lock の未決は案 B で解決。task_10（権限の案内）・task_11（前面の判定・リピート間隔・v0.13）を Mac で実装・目視 OK。task_11 は 11〜11d に分割。task_11a（マウス・v0.14 = Quartz のクリック / ドラッグ / 保持中の移動の書き換え）を Mac で実装・目視 OK（中クリックは未確認）。task_11b（窓と画面・v0.15 = NSWindow を `Tk_MacOSXGetNSWindowForDrawable` で引く）を Mac で実装・reviewer 採用（未コミット）。残り = tests_ui 4 本と Mac 実機目視 1〜4。残り = 09〜09f の Windows 検証・Caps Lock の未決。**
-mode: pending_review
+focus: **phase 75 段階 ③。task_09〜11b を Mac で実装・目視 OK（task_11b = 窓と画面・暫定 57 v0.15 / v0.16 = カーソルグリッドは `-alpha` 0.5 の半透明・素通しとレベル 25 を表示のたびにかけ直す）。次 = task_11c（aqua のモーダル・メインやキーボードUIが最前面のときダイアログが後ろへ回る件）→ 11d。残り = task_09〜11b の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-16T02:30:00
+ts: 2026-11-16T23:00:00
 who: main
 summary: |
-  task_11a をコミット（ae6095fa）→ task_11b を起票（起票前にメインが実測: Tk_MacOSXGetNSWindowForDrawable で NSWindow を一意に引ける・-transparent / systemTransparent・NSScreen は下原点・未表示の窓の windowNumber は -1）→ reviewer 修正して採用 → ユーザー承認で暫定 57 v0.15・phase.md:83 を改訂 → codex-implementer（3 回の継続）で実装 → メインが segfault するテスト（実物の C 関数を偽の drawable で呼んでいた）と参考の指摘 2 点を修正 → reviewer 採用。ユーザーは不在（/away・戻る予定 未定）。
+  task_11b の tests_ui 4 本（テストの追従漏れ 4 件をメインが修正・test_modal_grab の既知 4 件のみ）→ Mac 目視で NG が続き、メインの実測で原因を特定して 3 回改訂（Tk 9.1: `-transparent` は描画で黒 → ユーザー判断 A で `-alpha` 0.5〔v0.16〕/ 表示のたびに ignoresMouseEvents とレベルが戻る → `<Map>` の後の after(0) でかけ直し・レベル 25）。各改訂は codex-implementer → verifier pass → reviewer 採用 → Mac 目視 OK。2 枚目のモニタは保留（ユーザー）。「未保存があります」が前に来ない件・「取得」でダイアログが後ろへ回る件は task_11c へ（phase.md:84）。
 result_files:
-  - keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py・macos/ns_window.py（新規）
-  - keyseq/presentation/screen_grid/grid_overlay_window.py・presentation/controllers/layout_controller.py
-  - tests/test_macos_window_backend.py（新規）・tests/test_os_backend_contracts.py・tests_ui/test_screen_grid_overlay.py・tests_ui/test_app_ui_flows.py
-  - instructions/history/57_mac_support.md（v0.15）・phase.md・task_11b 定義（新規）・codebase_map.md
+  - keyseq/infrastructure/os_backend/macos/backend.py・tests/test_macos_window_backend.py・tests_ui/test_screen_grid_overlay.py・test_help_window.py・test_app_ui_flows.py
+  - instructions/history/57_mac_support.md（v0.16）・phase.md・task_11b 定義（改訂 1〜3）・codebase_map.md・mac_test_baseline.md・current.md・decisions.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2114 件・失敗 1（test_third_party）・エラー 0・skip 30
+  tests_mac: 2115 件・失敗 1（test_third_party）・エラー 0・skip 30
   smoke_mac: pass
-  tests_ui_mac: test_modal_app_foreground pass。test_screen_grid_overlay・test_help_window・test_modal_grab・test_app_ui_flows は未実行（画面のロック中で tkinter.Tk() が返らない）
+  tests_ui_mac: test_screen_grid_overlay・test_help_window・test_app_ui_flows OK・test_modal_grab 失敗 4（既知・task_11c）
   tests_windows: not_run
-  visual_mac: task_11b 未実施
+  visual_mac: task_11b OK（2 枚目のモニタは保留）
 
 ## next_action
-- **【ユーザーの戻り待ち】task_11b の残り（画面のロックを解いた状態で）**:
-  1. verifier で tests_ui を 1 本ずつ: test_screen_grid_overlay（基準線 失敗 4・エラー 9 → 減る見込み）・test_help_window・test_modal_grab（基準線 失敗 4・変化を報告）・test_app_ui_flows（基準線 失敗 3・新規 test_keyboard_topmost_watch_ignores_foreground_when_handle_unknown の成否）。増えた失敗はメインがトレースを読んで切り分ける。
-  2. ユーザーに Mac 実機目視 1〜4 を依頼（task_11b 定義の完了条件: カーソルグリッドが透けてクリックが通る / モニタの位置 / 最前面のキーボードUIがダイアログの下へ回る / モーダルにフォーカスが戻る）。
-  3. OK なら mac_test_baseline.md の test_screen_grid_overlay の行を追従・current.md / decisions.md に記録 → コミットの確認。NG なら報告して止める（動かない機能があれば、無効化の UI の起票を提案）。
+- **task_11c を始める**: `instructions/phase/75_mac_support/phase.md:84` の task_11c の行を読み、/task_new で起票（aqua のモーダルの grab・最小化の入れ子・メイン / キーボードUIが最前面〔Tk の `-topmost` = レベル 19〕のときトリガーの追加ダイアログ・「取得」・「未保存があります」の messagebox が後ろへ回る件）。起票前に Mac で実測する。
 - **task_09〜11b の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_os_backend_contracts の Windows の委譲・呼び出し順を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッドが今どおり透けてクリックが通る・マウスのアクション・task_09d のドイツ語入力の hotkey 等。
 
 ## blockers

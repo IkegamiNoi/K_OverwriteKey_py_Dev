@@ -10,6 +10,7 @@ from contextlib import ExitStack
 from unittest.mock import Mock, patch
 
 from keyseq.application.config_service import ConfigService, contracts
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
 from keyseq.presentation.help.help_window import HelpWindow
@@ -534,6 +535,12 @@ class HelpWindowTest(unittest.TestCase):
         self.assertFalse(bool(reopened.attributes("-topmost")))
 
     def test_main_topmost_change_resyncs_keyboard_watch_around_help_window(self) -> None:
+        # Handles follow wm_frame on every OS so the test drives the controller logic
+        # (the Mac handle is a windowNumber; see test_macos_window_backend).
+        handle_patch = patch.object(get_backend().window, "window_handle",
+                                    side_effect=lambda w: int(w.wm_frame(), 16))
+        handle_patch.start()
+        self.addCleanup(handle_patch.stop)
         layout = self.app.layout
         main_topmost = self.app.ui_vars.always_on_top_var
         keyboard_topmost = self.app.ui_vars.keyboard_always_on_top_var

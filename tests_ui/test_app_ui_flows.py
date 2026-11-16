@@ -15,6 +15,7 @@ from unittest.mock import Mock, call, patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.app import App
 from keyseq.presentation.keyboard_layouts import (
     BUILTIN_LAYOUTS,
@@ -2427,6 +2428,12 @@ class AppUiFlowsTest(unittest.TestCase):
                 window._handle_close()
 
     def test_keyboard_topmost_watch_releases_only_for_other_own_window(self):
+        # Handles follow wm_frame on every OS so the test drives the controller logic
+        # (the Mac handle is a windowNumber; see test_macos_window_backend).
+        handle_patch = patch.object(get_backend().window, "window_handle",
+                                    side_effect=lambda w: int(w.wm_frame(), 16))
+        handle_patch.start()
+        self.addCleanup(handle_patch.stop)
         variable = self.app.ui_vars.keyboard_always_on_top_var
         layout = self.app.layout
         foreground_provider = self.app.foreground_own_window
@@ -2454,6 +2461,40 @@ class AppUiFlowsTest(unittest.TestCase):
                 layout._watch_topmost_tick()
                 self.assertTrue(bool(window.attributes("-topmost")))
                 self.app.place_window_below.assert_called_once()
+        finally:
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.app.foreground_own_window = foreground_provider
+            self.app.place_window_below = place_below_provider
+            if window is not None:
+                window._handle_close()
+            self.assertIsNone(layout._topmost_watch_job)
+
+    def test_keyboard_topmost_watch_ignores_foreground_when_handle_unknown(self):
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        layout = self.app.layout
+        foreground_provider = self.app.foreground_own_window
+        place_below_provider = self.app.place_window_below
+        window = None
+        variable.set(False)
+        try:
+            with patch.object(self.app, "after", return_value="watch-job"):
+                variable.set(True)
+                layout.open_keyboard_window()
+                window = layout.keyboard_window
+
+            self.app.foreground_own_window = Mock(return_value=12345)
+            self.app.place_window_below = Mock(return_value=True)
+            backend_window = Mock()
+            backend_window.window_handle.return_value = None
+            with patch(
+                "keyseq.presentation.controllers.layout_controller.get_backend",
+                return_value=Mock(window=backend_window),
+            ):
+                layout._watch_topmost_tick()
+
+            self.assertTrue(bool(window.attributes("-topmost")))
+            self.app.place_window_below.assert_not_called()
         finally:
             variable.set(False)
             layout.on_keyboard_topmost_changed()

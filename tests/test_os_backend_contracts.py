@@ -94,7 +94,7 @@ class OsBackendContractTests(unittest.TestCase):
             for name in expected:
                 self.assertEqual(list(inspect.signature(actual[name]).parameters), list(inspect.signature(expected[name]).parameters))
         backend = create_backend()
-        self.assertEqual(backend.capabilities, Capabilities(False, False, False, False))
+        self.assertEqual(backend.capabilities, Capabilities(True, True, False, False))
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertTrue(backend.queued_hook_dispatch)
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
@@ -261,13 +261,17 @@ class OsBackendContractTests(unittest.TestCase):
         window = Mock()
         window.wm_frame.return_value = "2a"
         window.winfo_id.return_value = 17
+        calls = []
+        window.attributes.side_effect = lambda *args: calls.append(("attributes", args))
+        window.update_idletasks.side_effect = lambda: calls.append(("update", ()))
         with patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.place_window_below", return_value=True) as place, \
-             patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.make_click_through_overlay", return_value=True) as overlay:
+             patch("keyseq.infrastructure.os_backend.windows.backend.win32_window.make_click_through_overlay", side_effect=lambda hwnd: calls.append(("overlay", (hwnd,))) or True) as overlay:
             self.assertEqual(backend.window_handle(window), 42)
             self.assertTrue(backend.place_window_below(window, 99))
-            self.assertTrue(backend.make_click_through_overlay(window))
+            self.assertTrue(backend.make_click_through_overlay(window, "#ff00fe"))
         place.assert_called_once_with(42, 99)
         overlay.assert_called_once_with(17)
+        self.assertEqual([call[0] for call in calls], ["attributes", "update", "overlay"])
 
     def test_translator_and_app_identity_delegate_through_modules(self) -> None:
         if sys.platform != "win32": self.skipTest("Windows implementation")

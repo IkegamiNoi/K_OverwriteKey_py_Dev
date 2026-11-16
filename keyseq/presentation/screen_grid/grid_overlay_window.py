@@ -37,9 +37,8 @@ class GridOverlayWindow:
                 window, background=_TRANSPARENT, highlightthickness=0, borderwidth=0,
             )
             canvas.pack(fill="both", expand=True)
-            window.attributes("-transparentcolor", _TRANSPARENT)
             window.update_idletasks()
-            if not get_backend().window.make_click_through_overlay(window):
+            if not get_backend().window.make_click_through_overlay(window, _TRANSPARENT):
                 raise RuntimeError(tr("screen_grid.overlay.click_through_failed"))
         except Exception:
             window.destroy()

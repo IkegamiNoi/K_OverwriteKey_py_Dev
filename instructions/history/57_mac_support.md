@@ -1,9 +1,9 @@
 # 暫定仕様 57: macOS 対応（mac_support）
 
-> 状態: **未凍結・v0.14・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.15・主入力（ユーザー確定済・実装着手可）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。
-> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）→ v0.6 task_06 の probe の結果を §4.1 に記録し §5・§8 Q1・Q4・§9 を改訂（ユーザー 2026-11-11: IME は取得中に TIS で英字へ切替・JIS 専用キーは文書値で段階 ③ へ）。続けて Codex 敵対的レビューの 4 件（修飾キーのフラグの左右別・送信フラグの分離・TIS 切替の失敗と戻し方・NSWindow の取り違え）を反映し §9 に 11・12 を追加（ユーザー 2026-11-11）。 → v0.7 ディスパッチャの契約を §5.1.1 に追加（段階 ① の区切り M1・M2。task_08 を OS 非依存の受け渡し〔task_08〕と CGEventTap〔task_08b〕に分割・ユーザー 2026-11-13）。続けて Codex 敵対的レビューの 3 件（あふれた後の素通しの継続 = 過負荷の印・世代の不一致では on_discard を呼ばない・取得のフックの受付拒否）を反映。再レビューの 3 件（受付拒否したキーの up まで素通し・優先の処理にフックの稼働番号・切替の予約番号）を反映。3 回目の 1 件（素通し中のキーがある間は取得のフックを解除しない）を反映して確定（ユーザー 2026-11-13）。 → v0.8 Mac 用のレイアウトの見本 2 つ（`us_mac` / `jis_mac`）を §5.3.2 に追加・fn は置かない（ユーザー 2026-11-14）。続けて Codex 敵対的レビューの 1 件（§9 の 13 と Q5 の Command の割り当て禁止の矛盾）とメインの確認 1 件（JIS の判定に jis_mac を含める）を反映・CapsLock は禁止の色で置く（ユーザー 2026-11-14）。 続けて task_09 の起票レビューの 1 件（物理の Shift が押されているときの Shift の要る文字の送信）を §5.1 に反映（ユーザー 2026-11-14）。 → v0.9 task_09a の Mac 目視を受けて §5.1 の送るフラグを「物理側（押されていて抑止中でない）+ 送信側（自分が down を送った）」に改訂（ユーザー 2026-11-14）。 → v0.10 修飾キーの表示名の適用範囲を §5.3.3 に追加（task_09a の Mac 目視・ユーザー 2026-11-14）。 → v0.11 Mac の修飾キーのキー名を `command` / `option` に分け（§5.3.4）、§5.3.3 の表示名の差し替えを廃止・§8 Q2・Q7 と §5.3.2 を改訂（task_09c の Mac 目視・ユーザー 2026-11-15）。Codex 敵対的レビュー 3 回（Windows でも `command` / `option` を拒否する互換性の変更・置換元の受付の口・トリガー / hotkey / `key_hold` の拒否の時点・修飾キー単独の読み飛ばし・`key_hold` の全キー名の検査の維持）を反映して確定（ユーザー 2026-11-15）。 → v0.12 task_09b の Mac 目視を受けて §5.3.2 を改訂: fn を禁止のキーとして置く・矢印は右 Shift の下・jis_mac の右 Option の位置は fn（ユーザー 2026-11-15）。続けて §5.1 に Windows で作った Caps Lock の切替キーが Mac で拒否されることを記録（ユーザー 2026-11-15）。§5.2 に task_10 の実測（同じプロセスでの再試行が成功）を記録（2026-11-15）。 → v0.13 task_11 の Mac 目視を受けて §5.4 のリピート間隔の取得元を NSEvent からグローバル設定の `InitialKeyRepeat` / `KeyRepeat` に変更（ユーザー 2026-11-15）。 → v0.14 task_11a の Mac 目視を受けて §5.4 のマウス操作を改訂: 回数つきのクリック・ドラッグ・押したままの移動を Quartz で送る・横スクロールの符号（ユーザー 2026-11-15）。
+> 版: v0.1 起票 → v0.2 deep-reviewer「修正して採用」の H1〜H6・M1〜M8・L1〜L5 を反映 → v0.3 §8 Q0〜Q8 をユーザー確定 → v0.4 Codex 敵対的レビューの 3 件（配送の滞留・独自レイアウトの送信・JIS の記号キー）を反映（ユーザー 2026-11-09）→ v0.5 v0.4 の再レビュー（Codex 敵対的）の 1 件 = アクションを捨てるときの状態の復元を反映（ユーザー 2026-11-10）→ v0.6 task_06 の probe の結果を §4.1 に記録し §5・§8 Q1・Q4・§9 を改訂（ユーザー 2026-11-11: IME は取得中に TIS で英字へ切替・JIS 専用キーは文書値で段階 ③ へ）。続けて Codex 敵対的レビューの 4 件（修飾キーのフラグの左右別・送信フラグの分離・TIS 切替の失敗と戻し方・NSWindow の取り違え）を反映し §9 に 11・12 を追加（ユーザー 2026-11-11）。 → v0.7 ディスパッチャの契約を §5.1.1 に追加（段階 ① の区切り M1・M2。task_08 を OS 非依存の受け渡し〔task_08〕と CGEventTap〔task_08b〕に分割・ユーザー 2026-11-13）。続けて Codex 敵対的レビューの 3 件（あふれた後の素通しの継続 = 過負荷の印・世代の不一致では on_discard を呼ばない・取得のフックの受付拒否）を反映。再レビューの 3 件（受付拒否したキーの up まで素通し・優先の処理にフックの稼働番号・切替の予約番号）を反映。3 回目の 1 件（素通し中のキーがある間は取得のフックを解除しない）を反映して確定（ユーザー 2026-11-13）。 → v0.8 Mac 用のレイアウトの見本 2 つ（`us_mac` / `jis_mac`）を §5.3.2 に追加・fn は置かない（ユーザー 2026-11-14）。続けて Codex 敵対的レビューの 1 件（§9 の 13 と Q5 の Command の割り当て禁止の矛盾）とメインの確認 1 件（JIS の判定に jis_mac を含める）を反映・CapsLock は禁止の色で置く（ユーザー 2026-11-14）。 続けて task_09 の起票レビューの 1 件（物理の Shift が押されているときの Shift の要る文字の送信）を §5.1 に反映（ユーザー 2026-11-14）。 → v0.9 task_09a の Mac 目視を受けて §5.1 の送るフラグを「物理側（押されていて抑止中でない）+ 送信側（自分が down を送った）」に改訂（ユーザー 2026-11-14）。 → v0.10 修飾キーの表示名の適用範囲を §5.3.3 に追加（task_09a の Mac 目視・ユーザー 2026-11-14）。 → v0.11 Mac の修飾キーのキー名を `command` / `option` に分け（§5.3.4）、§5.3.3 の表示名の差し替えを廃止・§8 Q2・Q7 と §5.3.2 を改訂（task_09c の Mac 目視・ユーザー 2026-11-15）。Codex 敵対的レビュー 3 回（Windows でも `command` / `option` を拒否する互換性の変更・置換元の受付の口・トリガー / hotkey / `key_hold` の拒否の時点・修飾キー単独の読み飛ばし・`key_hold` の全キー名の検査の維持）を反映して確定（ユーザー 2026-11-15）。 → v0.12 task_09b の Mac 目視を受けて §5.3.2 を改訂: fn を禁止のキーとして置く・矢印は右 Shift の下・jis_mac の右 Option の位置は fn（ユーザー 2026-11-15）。続けて §5.1 に Windows で作った Caps Lock の切替キーが Mac で拒否されることを記録（ユーザー 2026-11-15）。§5.2 に task_10 の実測（同じプロセスでの再試行が成功）を記録（2026-11-15）。 → v0.13 task_11 の Mac 目視を受けて §5.4 のリピート間隔の取得元を NSEvent からグローバル設定の `InitialKeyRepeat` / `KeyRepeat` に変更（ユーザー 2026-11-15）。 → v0.14 task_11a の Mac 目視を受けて §5.4 のマウス操作を改訂: 回数つきのクリック・ドラッグ・押したままの移動を Quartz で送る・横スクロールの符号（ユーザー 2026-11-15）。 → v0.15 task_11b の起票前の実測で §4.1・§5.4 の NSWindow の引き方を `Tk_MacOSXGetNSWindowForDrawable` に訂正・§3.2 に `make_click_through_overlay` の透明色を追加・`Capabilities` の無効化の UI は目視で動かない機能が見つかったときに起票（ユーザー 2026-11-16）。 → v0.16 task_11b の Mac 目視を受けて §3.2・§5.4 のクリック透過を改訂: aqua は透かす色を黒に塗り替え、窓全体を半透明（`-alpha` 0.5）にする（Tk 9.1 は `-transparent` の窓に描画すると透明の部分が不透明な黒になると実測・ユーザー 2026-11-16）。
 
 ---
 
@@ -71,7 +71,8 @@ keyseq/infrastructure/os_backend/
 - `InputGateway` の公開メソッドは維持し、application から見た契約を変えない。
 - 窓を受ける API は **Tk の窓オブジェクトを引数にする**（HWND の int を Protocol に出さない）。Windows 実装の内部で HWND に変換する。
 - モニタ一覧の座標は左上原点・Tk と同じ座標系を契約とする（`NSScreen` は実装内で変換する）。
-- `Capabilities`（dataclass）は OS ごとに無い**機能**を宣言し、presentation が UI を無効化するのに使う。
+- **v0.15**: クリック透過は `make_click_through_overlay(window, transparent_color)` とし、「`transparent_color` で塗った部分を透かし、窓全体をクリック透過にする」までを backend が持つ（Windows = `-transparentcolor`・aqua = **v0.16** 透かす色を黒に塗り替えて窓全体を `-alpha` 0.5 の半透明にする〔下が暗く透けて見える・線と文字も半透明〕。presentation で OS を見ないため）。`window_handle` は引けなければ None。
+- `Capabilities`（dataclass）は OS ごとに無い**機能**を宣言し、presentation が UI を無効化するのに使う。**v0.15**: macOS はクリック透過・窓の重なり順を実装するので True にする（根拠 = task_11b の Mac 目視）。無効化の UI は、目視で動かない機能が見つかったときに起票する（それまでは、作れないときの今の失敗の経路〔カーソルグリッドが始まらず通知〕を無効化とみなす）。
 - フックスレッドから UI スレッドへの受け渡しは、注入するディスパッチャで行う（契約は §5.1.1）。Windows は現状の `after` のまま。
 
 ### §3.3 段階 ① の進め方と不変条件
@@ -120,7 +121,7 @@ keyseq/infrastructure/os_backend/
 | fn | fn 単独の押下・離しで FlagsChanged（vk 63・フラグ `0x800000`）に加えて vk 179 の down / up が届く。F キー（例 vk 109）には fn のフラグ `0x800000` が付く | task_08（fn を修飾キーと誤認しない） |
 | 未実測 | 右 Option 61・右 Control 62（キーの無い機種・task_08b で確認できず）→ 外付けキーボードを用意できたとき。CapsLock 57 が届く条件（task_08b で届かず）→ 必要になったとき。テンキーの vk・Tk の keycode（手元に無い）→ task_09。英数 / かな・JIS 専用キーの受信と Tk の記録（US 配列の機種）→ JIS キーボードを用意できたとき（§9 の 10）。中クリックの番号（押していない）→ task_11 | 各タスク |
 | Dock のアイコン | `iconphoto` で Dock のアイコンが変わる（ユーザー目視） | §5.4 |
-| 窓 | `overrideredirect` は効く。`winfo_id` / `wm frame` の値を pyobjc のオブジェクトとして扱うとプロセスが落ちる。NSWindow は `NSApp.windows()` の `TKWindow` の位置（Cocoa の座標は下が原点）で対応が取れた。`wm attributes` に `-transparentcolor` は無く `-transparent` がある | §5.4（task_11） |
+| 窓 | `overrideredirect` は効く。`winfo_id` / `wm frame` の値を pyobjc のオブジェクトとして扱うとプロセスが落ちる。NSWindow は `NSApp.windows()` の `TKWindow` の位置（Cocoa の座標は下が原点）で対応が取れた（**v0.15 で訂正: 位置の照合は使わない。Tk の公開の C 関数 `Tk_MacOSXGetNSWindowForDrawable` を ctypes〔`CDLL(None)`〕で引き `winfo_id()` を渡すと、同じ位置・大きさの窓でも別の NSWindow が返った・一度も表示していない窓の `windowNumber` は -1・task_11b の起票前の実測 2026-11-16**）。`wm attributes` に `-transparentcolor` は無く `-transparent` がある | §5.4（task_11） |
 | Tk 9 の長さ | task_05b の Canvas・PanedWindow の `sashwidth` のほか、PanedWindow の `handlepad` / `handlesize`、Scale の `length` / `sliderlength` / `width` も単位つき。アプリはこれらを使っていない（grep 0 件） | 対応不要 |
 
 ## §5 macOS の入力（段階 ③）
@@ -304,14 +305,14 @@ Command / Option は Windows の `windows` / `alt` と共用せず、Mac 専用�
 | 前面の判定（フックスレッド） | `NSWorkspace.frontmostApplication` の pid（§4.1: tap のスレッドから呼べる） | — |
 | モニタ一覧 | `NSScreen`（座標変換あり） | — |
 | 物理状態 | `CGEventSourceButtonState` / `CGEventSourceFlagsState` | — |
-| クリック透過 | Tk の `-transparent` + `NSWindow.ignoresMouseEvents`（`-transparentcolor` は aqua に無い。NSWindow の引き方は表の下） | カーソルグリッドを無効化 |
+| クリック透過 | **v0.16** 窓全体を `-alpha` 0.5 の半透明（透かす色の部分は黒）+ `NSWindow.ignoresMouseEvents`（Tk 9.1 は表示のたびに戻すので、`<Map>` の後の `after(0)` でかけ直す。窓のレベルも表示のたびに 0 に戻るので、同じ所で `NSStatusWindowLevel` にする〔メインの `-topmost` は 19〕。`-transparentcolor` は aqua に無い。Tk 9.1 の `-transparent` は描画すると透明の部分が不透明な黒になる〔task_11b の Mac 目視・実測〕。NSWindow の引き方は表の下） | カーソルグリッドを無効化 |
 | 窓の重なり順 | `NSWindow.orderWindow`（NSWindow の引き方は表の下） | 無効 |
 | Tk のキー取得 | aqua の `keycode` を §5.3 の表で解釈（`TkKeyTranslator`） | 取れないキーは `??` |
 | IME | Q4 | Q4 |
 | 状態のアイコン | Tk の `iconphoto`（§4.1: Dock に反映される） | — |
 | AppUserModelID | 何もしない | — |
 
-- **Tk の窓から NSWindow を引く**: §4.1 では `NSApp.windows()` の `TKWindow` を窓の位置で照合して対応が取れたが、同じ位置に複数の窓があると一意にならない。task_11 で一意に決まる引き方を確かめる。位置の照合を使う場合、候補が 1 つでなければ（0 または 2 以上）その窓には何も適用せず、その機能は無効と同じ扱いにする（別の窓へ誤って適用しない）。同じ位置に窓が重なる場合を task_11 の確認項目にする。
+- **Tk の窓から NSWindow を引く**: §4.1 では `NSApp.windows()` の `TKWindow` を窓の位置で照合して対応が取れたが、同じ位置に複数の窓があると一意にならない。task_11 で一意に決まる引き方を確かめる。位置の照合を使う場合、候補が 1 つでなければ（0 または 2 以上）その窓には何も適用せず、その機能は無効と同じ扱いにする（別の窓へ誤って適用しない）。同じ位置に窓が重なる場合を task_11 の確認項目にする。 → **v0.15: `Tk_MacOSXGetNSWindowForDrawable(winfo_id())` で一意に引く（位置の照合は使わない・§4.1）。引けない（NULL・関数が無い）ときはその窓に何も適用しない。窓の識別子は `windowNumber`（0 以下は引けないとみなす）。**
 
 ## §6 ビルド（段階 ④）
 

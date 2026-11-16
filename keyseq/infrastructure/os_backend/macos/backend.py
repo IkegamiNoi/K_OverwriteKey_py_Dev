@@ -6,6 +6,7 @@ import math
 import os
 import subprocess
 import time
+import tkinter
 from threading import Lock, RLock
 from typing import Callable, Sequence
 
@@ -21,9 +22,11 @@ from .key_table import (
 from .input_source import InputSourceAPI
 from .modifier_state import modifier_flags
 from .mouse_hold_tap import MOUSE_BUTTON_EVENTS, MouseHoldTap
+from .ns_window import ns_window_for
 
 
 _LOG = logging.getLogger(__name__)
+_OVERLAY_ALPHA = 0.5
 _PHYSICAL_FLAGS_FAILURE_LOGGED = False
 _EXTENDED_VKS = frozenset((54, 55, 61, 62, 75, 76, 114, 115, 116, 117,
                            119, 121, 123, 124, 125, 126))
@@ -419,6 +422,30 @@ class MacWindowBackend:
         self._appkit = appkit
         self._foreground_failure_logged = False
         self._mouse_button_failure_logged = False
+        self._window_failure_logged = False
+        self._key_window_failure_logged = False
+        self._overlay_reapply_failure_logged = False
+
+    def _log_overlay_reapply_failure(self) -> None:
+        if not self._overlay_reapply_failure_logged:
+            _LOG.exception("Could not reapply click-through overlay")
+            self._overlay_reapply_failure_logged = True
+
+    def _reapply_overlay_click_through(self, window) -> None:
+        try:
+            native = ns_window_for(window)
+            if native is not None:
+                native.setIgnoresMouseEvents_(True)
+                native.setLevel_(self._get_appkit().NSStatusWindowLevel)
+        except Exception:
+            self._log_overlay_reapply_failure()
+
+    def _overlay_mapped(self, window, event) -> None:
+        try:
+            if event.widget is window:
+                window.after(0, lambda: self._reapply_overlay_click_through(window))
+        except Exception:
+            self._log_overlay_reapply_failure()
 
     def is_own_process_foreground(self) -> bool:
         try:
@@ -434,11 +461,87 @@ class MacWindowBackend:
                 _LOG.exception("Could not determine frontmost application")
                 self._foreground_failure_logged = True
             return False
-    def foreground_own_window(self): return None
-    def window_handle(self, window): return window.winfo_id()
-    def place_window_below(self, window, above): return False
-    def list_monitor_rects(self): return []
-    def make_click_through_overlay(self, window): return False
+    def _get_appkit(self):
+        if self._appkit is None:
+            import AppKit
+            return AppKit
+        return self._appkit
+
+    def window_handle(self, window):
+        native = ns_window_for(window)
+        return self._window_number(native)
+
+    @staticmethod
+    def _window_number(native):
+        try:
+            number = int(native.windowNumber()) if native is not None else 0
+            return number if number > 0 else None
+        except Exception:
+            return None
+
+    def foreground_own_window(self):
+        try:
+            app = self._get_appkit().NSApplication.sharedApplication()
+            native = app.keyWindow()
+            return self._window_number(native) if app.isActive() and native is not None else None
+        except Exception:
+            if not self._key_window_failure_logged:
+                _LOG.exception("Could not determine foreground window")
+                self._key_window_failure_logged = True
+            return None
+
+    def place_window_below(self, window, above):
+        if not isinstance(above, int):
+            return False
+        try:
+            native = ns_window_for(window)
+            if native is None:
+                return False
+            native.orderWindow_relativeTo_(self._get_appkit().NSWindowBelow, above)
+            return True
+        except Exception:
+            return False
+
+    def list_monitor_rects(self):
+        try:
+            screens = list(self._get_appkit().NSScreen.screens())
+            if not screens:
+                return []
+            height = screens[0].frame().size.height
+            result = []
+            for index, screen in enumerate(screens):
+                frame = screen.frame()
+                x, y = frame.origin.x, frame.origin.y
+                w, h = frame.size.width, frame.size.height
+                result.append(((round(x), round(height-y-h), round(x+w), round(height-y)), index == 0))
+            return result
+        except Exception:
+            if not self._window_failure_logged:
+                _LOG.exception("Could not list monitors")
+                self._window_failure_logged = True
+            return []
+
+    def make_click_through_overlay(self, window, transparent_color):
+        try:
+            pending = [window]
+            while pending:
+                widget = pending.pop()
+                try:
+                    if str(widget.cget("background")).lower() == transparent_color.lower():
+                        widget.configure(background="#000000")
+                except tkinter.TclError:
+                    continue
+                pending.extend(widget.winfo_children())
+            window.attributes("-alpha", _OVERLAY_ALPHA)
+            native = ns_window_for(window)
+            if native is None:
+                return False
+            native.setIgnoresMouseEvents_(True)
+            native.setLevel_(self._get_appkit().NSStatusWindowLevel)
+            window.bind("<Map>", lambda event: self._overlay_mapped(window, event), add="+")
+            return True
+        except Exception:
+            return False
     def is_mouse_button_down(self):
         try:
             q = self._quartz if self._quartz is not None else load_quartz()
@@ -597,7 +700,7 @@ class MacAppIdentity:
 def create_backend() -> OsBackend:
     keyboard = MacKeyboardBackend()
     return OsBackend(
-        Capabilities(False, False, False, False), MacImeBackend(), MacWindowBackend(),
+        Capabilities(True, True, False, False), MacImeBackend(), MacWindowBackend(),
         MacTkKeyTranslator(keyboard), MacAppIdentity(), keyboard, MacMouseBackend(),
         default_profile=MACOS_DEFAULT_PROFILE,
         queued_hook_dispatch=True,
