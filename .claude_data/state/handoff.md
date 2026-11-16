@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.15。冒頭の版の履歴で v0.11〜v0.15 の改訂を確認する）を読む。
-   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.18。冒頭の版の履歴で v0.11〜v0.18 の改訂を確認する）を読む。
+   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 60（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,10 +24,10 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ③。task_09〜11a は Mac で実装・目視 OK・コミット済み（task_11a = `ae6095fa`）。task_11b（窓と画面・暫定 57 v0.15）を Mac で実装・reviewer 採用（未コミット）。残り = task_11b の tests_ui 4 本と Mac 実機目視 1〜4・task_09〜11b の Windows 検証。続き = task_11c → 11d。**
+**phase 75 段階 ③。task_09〜11c を Mac で実装・目視 OK・コミット済み（task_11c = `57937163`・idea_59 = `92895d0e`）。task_11e（最前面とモーダル・暫定 57 v0.18）を Mac で実装・reviewer 採用・検証 pass・未コミット。残り = task_11e の Mac 実機目視・task_11d・task_11f（parent なしの messagebox）・task_09〜11e の Windows 検証。**
 **presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
-Mac の worktree = `claude/modifier-key-registration-issue-faa33a`（task_11a `ae6095fa` まで・未 push）。push と main へのマージはユーザー（PR は作らない）。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_11b 後 2114 件・失敗 1〔test_third_party〕・エラー 0・skip 30）。
+Mac の worktree = `claude/modifier-key-registration-issue-faa33a`（未 push）。push と main へのマージはユーザー（PR は作らない）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_11e 後 2124 件・失敗 1〔test_third_party〕・エラー 0・skip 31）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -40,7 +40,7 @@ Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_basel
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
 直近の実測（**Windows = task_08b 完了時・2026-11-14**）:
 compile **clean** / tests **2065 pass**（skip 7）/ tests_ui **1271 pass**（task_08 時）/ smoke **pass**（verifier）。tests_ui の `invalid command name "...apply_if_already_sized"` は破棄後の after のノイズで失敗ではない。
-**Mac（task_11b 後・2026-11-16・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2114 件・失敗 1（test_third_party）・エラー 0・skip 30 / smoke pass。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
+**Mac（task_11e 後・2026-11-17・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2124 件・失敗 1（test_third_party）・エラー 0・skip 31 / smoke pass / tests_ui 8 本 失敗 0。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
 **件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕→ 2065〔task_08b〕 / tests_ui: 1270 → 1271）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
@@ -56,12 +56,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーの戻り待ち】task_11b の残り（画面のロックを解いた状態で）**:
-  1. verifier で tests_ui を 1 本ずつ: test_screen_grid_overlay（基準線 失敗 4・エラー 9 → 減る見込み）・test_help_window・test_modal_grab（基準線 失敗 4・変化を報告）・test_app_ui_flows（基準線 失敗 3・新規 `test_keyboard_topmost_watch_ignores_foreground_when_handle_unknown` の成否）。増えた失敗はメインがトレースを読んで切り分ける。
-  2. ユーザーに Mac 実機目視 1〜4 を依頼（`instructions/phase/75_mac_support/tasks/task_11b_macos_window_and_screen.md` の完了条件: カーソルグリッドが透けてクリックが通る / モニタの位置 / 「最前面に表示」のキーボードUIがダイアログの下へ回る / モーダルにフォーカスが戻る）。
-  3. OK なら mac_test_baseline.md の test_screen_grid_overlay の行・current.md・decisions.md を更新 → コミットの確認。NG なら報告して止める（動かない機能があれば無効化の UI の起票を提案・暫定 57 v0.15 §3.2）。
-- **task_09〜11b の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔`test_os_backend_contracts` の Windows の委譲・呼び出し順を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッドが今どおり透けてクリックが通る・マウスのアクション・task_09d のドイツ語入力の hotkey 等。
-- 続き: task_11c（aqua のモーダル・トリガーの追加ダイアログが後ろへ回る件）→ 11d（割り当て禁止の文言）。idea_57・idea_58 は検討段階。
+- **【ユーザーの戻り待ち】task_11e の Mac 実機目視**（`instructions/phase/75_mac_support/tasks/task_11e_macos_modal_level.md` の完了条件と反映節の M4・M6）:
+  1. メインの「最前面に表示」をオン → トリガーの追加ダイアログの中（記録のボタン・余白・「クリック位置を取得」）をクリック・キーの記録を始めてもダイアログがメインの前
+  2. 同じ状態でメインをクリックしてもダイアログが前
+  3. 「キーボードUIを最前面に表示」をオン → ダイアログで「取得」を押してもメインとキーボードUIの前（NG なら報告して止める・`keyseq/presentation/controllers/layout_controller.py:158-190`）
+  4. 入れ子（トリガーの追加 → プリセット管理）で内側をクリックしても両方が前
+  5. 最前面オンでダイアログを開いたままメインを最小化 → 戻してもダイアログが前
+  6. 最前面オフの動作が今までどおり
+  - OK なら codebase_map（modal / macOS backend に `keep_level_with_parent`）・mac_test_baseline・decisions.md・current.md を更新して task_11e をコミット。reviewer の参考指摘（`_level_windows` が破棄後の窓を持ち続ける・WeakSet か `<Destroy>` で除く）の採否をユーザーに聞く。
+- 次のタスク: task_11d（割り当て禁止の文言）または task_11f（parent なしの messagebox 162 か所・`keymap_set_io.py:49` の「未保存があります」を含む）。順番はユーザーに確認。
+- **task_09〜11e の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子）・task_09d のドイツ語入力の hotkey 等。
 
 ## 運用インフラ
 
