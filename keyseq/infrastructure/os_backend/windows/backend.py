@@ -42,6 +42,15 @@ class WindowsImeBackend:
 
 
 class WindowsWindowBackend:
+    def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
+        return True
+
+    def disable_minimize_button(self, window: tkinter.Misc) -> bool:
+        return True
+
+    def order_out(self, window: tkinter.Misc) -> bool:
+        return True
+
     def is_own_process_foreground(self) -> bool:
         return win32_window.is_own_process_foreground()
 

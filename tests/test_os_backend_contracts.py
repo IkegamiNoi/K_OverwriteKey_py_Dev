@@ -148,6 +148,9 @@ class OsBackendContractTests(unittest.TestCase):
                         list(inspect.signature(implementation_methods[name]).parameters),
                         list(inspect.signature(method).parameters),
                     )
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsWindowBackend
+        self.assertTrue(WindowsWindowBackend().order_out(Mock()))
+        self.assertTrue(WindowsWindowBackend().install_minimize_preparation(Mock()))
 
     def test_windows_keyboard_permission_api_and_listener_preserve_hook(self) -> None:
         if sys.platform != "win32": self.skipTest("Windows implementation")
@@ -269,6 +272,7 @@ class OsBackendContractTests(unittest.TestCase):
             self.assertEqual(backend.window_handle(window), 42)
             self.assertTrue(backend.place_window_below(window, 99))
             self.assertTrue(backend.make_click_through_overlay(window, "#ff00fe"))
+            self.assertTrue(backend.disable_minimize_button(window))
         place.assert_called_once_with(42, 99)
         overlay.assert_called_once_with(17)
         self.assertEqual([call[0] for call in calls], ["attributes", "update", "overlay"])

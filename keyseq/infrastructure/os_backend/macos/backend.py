@@ -417,14 +417,73 @@ class MacMouseBackend(PyAutoGuiMouseBackend):
 
 
 class MacWindowBackend:
-    def __init__(self, *, quartz=None, appkit=None) -> None:
+    def __init__(self, *, quartz=None, appkit=None, notification_center=None) -> None:
         self._quartz = quartz
         self._appkit = appkit
+        self._notification_center = notification_center
+        self._minimize_observers: dict[object, object] = {}
+        self._minimize_preparation_failure_logged = False
         self._foreground_failure_logged = False
         self._mouse_button_failure_logged = False
         self._window_failure_logged = False
         self._key_window_failure_logged = False
         self._overlay_reapply_failure_logged = False
+        self._minimize_button_failure_logged = False
+        self._order_out_failure_logged = False
+
+    def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
+        try:
+            from keyseq.infrastructure.os_backend.macos.minimize_observer import create_minimize_observer
+
+            native = ns_window_for(window)
+            if native is None:
+                raise RuntimeError("Could not resolve native window")
+            key = native  # NSWindow identity (windowNumber is -1 before first show and can be reused)
+            if key in self._minimize_observers:
+                return True
+            center = self._notification_center
+            if center is None:
+                from Foundation import NSNotificationCenter
+                center = NSNotificationCenter.defaultCenter()
+                self._notification_center = center
+            appkit = self._get_appkit()
+            observer = create_minimize_observer()
+            center.addObserver_selector_name_object_(
+                observer, "willMiniaturize:", appkit.NSWindowWillMiniaturizeNotification, native
+            )
+            self._minimize_observers[key] = observer
+            return True
+        except Exception:
+            if not self._minimize_preparation_failure_logged:
+                _LOG.exception("Could not install minimize preparation")
+                self._minimize_preparation_failure_logged = True
+            return False
+
+    def order_out(self, window: tkinter.Misc) -> bool:
+        try:
+            native = ns_window_for(window)
+            if native is None:
+                return False
+            native.orderOut_(None)
+            return True
+        except Exception:
+            if not self._order_out_failure_logged:
+                _LOG.exception("Could not order window out")
+                self._order_out_failure_logged = True
+            return False
+
+    def disable_minimize_button(self, window: tkinter.Misc) -> bool:
+        try:
+            stylemask = window.attributes("-stylemask")
+            window.attributes(
+                "-stylemask", tuple(item for item in stylemask if item != "miniaturizable")
+            )
+            return True
+        except Exception:
+            if not self._minimize_button_failure_logged:
+                _LOG.exception("Could not disable minimize button")
+                self._minimize_button_failure_logged = True
+            return False
 
     def _log_overlay_reapply_failure(self) -> None:
         if not self._overlay_reapply_failure_logged:

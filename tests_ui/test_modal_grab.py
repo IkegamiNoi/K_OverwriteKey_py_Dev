@@ -17,6 +17,15 @@ class ModalGrabTest(unittest.TestCase):
         minimized_patch = patch.object(modal, "_app_minimized", False)
         minimized_patch.start()
         self.addCleanup(minimized_patch.stop)
+        hidden_patch = patch.object(modal, "_hidden_by_minimize", [])
+        hidden_patch.start()
+        self.addCleanup(hidden_patch.stop)
+        check_patch = patch.object(modal, "_minimize_check_id", None)
+        check_patch.start()
+        self.addCleanup(check_patch.stop)
+        restore_patch = patch.object(modal, "_restore_check_id", None)
+        restore_patch.start()
+        self.addCleanup(restore_patch.stop)
         self.root = tk.Tk()
         self.addCleanup(self.root.destroy)
         self.root.report_callback_exception = Mock()
@@ -26,9 +35,29 @@ class ModalGrabTest(unittest.TestCase):
         self.addCleanup(self.root.report_callback_exception.assert_not_called)
         self.addCleanup(self.root.deiconify)
 
+    def test_install_minimize_grab_custody_prepares_backend_window(self):
+        window_backend = Mock()
+        with patch("keyseq.presentation.modal.get_backend", return_value=Mock(window=window_backend)):
+            install_minimize_grab_custody(self.root)
+        window_backend.install_minimize_preparation.assert_called_once_with(self.root)
+
     def make_window(self):
         # 非 LIFO 終了で連鎖破棄されないよう、すべて root の直接の子にする。
         window = tk.Toplevel(self.root)
+        self.addCleanup(self.cleanup_window, window)
+        window.update_idletasks()
+        self.assertTrue(window.winfo_viewable())
+        return window
+
+    def test_grab_modal_disables_minimize_button(self):
+        window = self.make_window()
+        backend = Mock()
+        with patch.object(modal, "get_backend", return_value=Mock(window=backend)):
+            grab_modal(window, self.root)
+        backend.disable_minimize_button.assert_called_once_with(window)
+
+    def make_grandchild_window(self, parent):
+        window = tk.Toplevel(parent)
         self.addCleanup(self.cleanup_window, window)
         window.update_idletasks()
         self.assertTrue(window.winfo_viewable())
@@ -180,6 +209,92 @@ class ModalGrabTest(unittest.TestCase):
 
         self.assertIs(self.root.grab_current(), window)
         self.assertIsNone(modal._custody_window)
+
+    def test_minimize_hides_grandchild_and_restores_grab(self):
+        parent = self.make_window()
+        child = self.make_grandchild_window(parent)
+        grab_modal(parent, self.root)
+        grab_modal(child, parent)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        self.root.iconify()
+        self.root.update()
+        self.assertFalse(child.winfo_viewable())
+        self.assertIs(modal._custody_window, child)
+        self.root.deiconify()
+        self.root.update()
+        self.assertTrue(child.winfo_viewable())
+        self.assertIs(self.root.grab_current(), child)
+
+    def test_minimize_calls_order_out_for_each_hidden_window(self):
+        parent = self.make_window()
+        child = self.make_grandchild_window(parent)
+        grab_modal(parent, self.root)
+        grab_modal(child, parent)
+        backend = Mock()
+        with patch.object(modal, "get_backend", return_value=Mock(window=backend)):
+            install_minimize_grab_custody(self.root)
+            self.root.update()
+            self.root.iconify()
+            self.root.update()
+        called_windows = [entry.args[0] for entry in backend.order_out.call_args_list]
+        self.assertTrue(all(window in called_windows for window in modal._hidden_by_minimize))
+        # Tk's iconify may already hide the direct child (and on Windows the grandchild);
+        # such windows are only ordered out, not recorded; either way the order is innermost first and the record keeps
+        # the opening order.
+        self.assertEqual(called_windows, [child, parent])
+        self.assertEqual(
+            modal._hidden_by_minimize,
+            [window for window in (parent, child) if window in modal._hidden_by_minimize],
+        )
+
+    def test_minimize_orders_out_tk_hidden_direct_child_without_recording(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        backend = Mock()
+        with patch.object(modal, "get_backend", return_value=Mock(window=backend)):
+            install_minimize_grab_custody(self.root)
+            self.root.update()
+            self.root.iconify()
+            self.root.update()
+
+        backend.order_out.assert_any_call(window)
+        self.assertNotIn(window, modal._hidden_by_minimize)
+
+    def test_return_grab_accepts_window_just_reshown_before_map(self):
+        window = Mock()
+        window.winfo_exists.return_value = True
+        window.winfo_viewable.return_value = False
+        app = Mock()
+        app.grab_current.return_value = None
+        with (
+            patch.object(modal, "_custody_window", window),
+            patch.object(modal, "_active_modals", []),
+            patch.object(app, "after_idle"),
+        ):
+            modal._return_grab(app, shown=(window,))
+
+        window.grab_set.assert_called_once_with()
+
+    def test_map_before_deferred_check_cancels_minimize_work(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.event_generate("<Unmap>")
+        self.root.event_generate("<Map>")
+        self.root.update()
+        self.assertTrue(window.winfo_viewable())
+        self.assertIs(self.root.grab_current(), window)
+        self.assertEqual(modal._hidden_by_minimize, [])
+
+    def test_fake_unmap_when_not_iconic_does_not_hide_modals(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.event_generate("<Unmap>")
+        self.root.update()
+        self.assertTrue(window.winfo_viewable())
+        self.assertEqual(modal._hidden_by_minimize, [])
 
     def test_new_modal_restores_holder_taken_into_custody(self):
         previous = self.make_window()

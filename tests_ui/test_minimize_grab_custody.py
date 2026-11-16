@@ -31,6 +31,9 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_opened_while_minimized", [])
         self._patch(modal, "_custody_window", None)
         self._patch(modal, "_app_minimized", False)
+        self._patch(modal, "_hidden_by_minimize", [])
+        self._patch(modal, "_minimize_check_id", None)
+        self._patch(modal, "_restore_check_id", None)
         self._patch(modal, "_is_app_foreground", return_value=False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
         self._patch(self.app.hook, "resume_hook_after_dialog")
@@ -285,13 +288,15 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self.app.update()
         self.assertFalse(dialog.winfo_viewable())
         self.assertIs(self.app.grab_current(), dialog)
-        with patch.object(self.app, "grab_current", side_effect=KeyError("unknown holder")) as current:
-            with patch.object(dialog, "grab_release", wraps=dialog.grab_release) as release:
-                self.app.event_generate("<Unmap>")
-                current.assert_called_once_with()
-                release.assert_not_called()
-                self.assertIsNone(modal._custody_window)
-                self.app.report_callback_exception.assert_not_called()
+        with patch.object(self.app, "wm_state", return_value="iconic"):
+            with patch.object(self.app, "grab_current", side_effect=KeyError("unknown holder")) as current:
+                with patch.object(dialog, "grab_release", wraps=dialog.grab_release) as release:
+                    self.app.event_generate("<Unmap>")
+                    self.app.update()
+                    current.assert_called_once_with()
+                    release.assert_not_called()
+                    self.assertIsNone(modal._custody_window)
+                    self.app.report_callback_exception.assert_not_called()
         self.assertIs(self.app.grab_current(), dialog)
 
     def test_a12_unmap_destroyed_holder_does_not_take_custody(self):
@@ -300,14 +305,16 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         dialog.destroy()
         self.app.update()
         self.assertFalse(dialog.winfo_exists())
-        with patch.object(self.app, "grab_current", return_value=dialog) as current:
-            # 破棄済み窓への Tk 呼び出しを避け、存在判定のガードだけを検査する。
-            with patch.object(dialog, "winfo_viewable", return_value=0):
-                with patch.object(dialog, "grab_release") as release:
-                    self.app.event_generate("<Unmap>")
-                    current.assert_called_once_with()
-                    release.assert_not_called()
-                    self.assertIsNone(modal._custody_window)
+        with patch.object(self.app, "wm_state", return_value="iconic"):
+            with patch.object(self.app, "grab_current", return_value=dialog) as current:
+                # 破棄済み窓への Tk 呼び出しを避け、存在判定のガードだけを検査する。
+                with patch.object(dialog, "winfo_viewable", return_value=0):
+                    with patch.object(dialog, "grab_release") as release:
+                        self.app.event_generate("<Unmap>")
+                        self.app.update()
+                        current.assert_called_once_with()
+                        release.assert_not_called()
+                        self.assertIsNone(modal._custody_window)
 
     def test_a13_repeated_unmap_does_not_overwrite_custody(self):
         """A13: 預かり中の再 Unmap は別保持者で記録を上書きしない。"""

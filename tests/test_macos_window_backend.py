@@ -42,6 +42,57 @@ class MacWindowBackendTests(unittest.TestCase):
         with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
             self.assertIsNone(self.backend.window_handle(self.window))
 
+    def test_minimize_preparation_registers_once_and_handles_missing_window(self):
+        center = Mock()
+        appkit = SimpleNamespace(NSWindowWillMiniaturizeNotification="will-minimize")
+        backend = MacWindowBackend(appkit=appkit, notification_center=center)
+        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=self.native), patch(
+            "keyseq.infrastructure.os_backend.macos.minimize_observer.create_minimize_observer", return_value="observer"
+        ):
+            self.assertTrue(backend.install_minimize_preparation(self.window))
+            self.assertTrue(backend.install_minimize_preparation(self.window))
+        center.addObserver_selector_name_object_.assert_called_once_with(
+            "observer", "willMiniaturize:", "will-minimize", self.native
+        )
+        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+            self.assertFalse(MacWindowBackend(appkit=appkit, notification_center=center).install_minimize_preparation(self.window))
+
+    def test_minimize_observer_recursively_detaches_children(self):
+        from keyseq.infrastructure.os_backend.macos import minimize_observer
+
+        class NSObject:
+            @classmethod
+            def alloc(cls): return cls()
+            def init(self): return self
+
+        with patch.dict("sys.modules", {"Foundation": SimpleNamespace(NSObject=NSObject)}):
+            minimize_observer._observer_class = None
+            observer = minimize_observer.create_minimize_observer()
+        grandchild, child, root = Mock(), Mock(), Mock()
+        root.childWindows.return_value = [child]
+        child.childWindows.return_value = [grandchild]
+        grandchild.childWindows.return_value = []
+        observer.willMiniaturize_(SimpleNamespace(object=lambda: root))
+        child.removeChildWindow_.assert_called_once_with(grandchild)
+        root.removeChildWindow_.assert_called_once_with(child)
+
+    def test_disable_minimize_button_removes_style_and_handles_tcl_error(self):
+        self.window.attributes.return_value = ("titled", "miniaturizable", "closable")
+        self.assertTrue(self.backend.disable_minimize_button(self.window))
+        self.window.attributes.assert_called_with("-stylemask", ("titled", "closable"))
+        self.window.attributes.side_effect = __import__("tkinter").TclError()
+        self.assertFalse(self.backend.disable_minimize_button(self.window))
+
+    def test_order_out_calls_native_and_handles_missing_or_exception(self):
+        with self.resolve():
+            self.assertTrue(self.backend.order_out(self.window))
+        self.native.orderOut_.assert_called_once_with(None)
+        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+            self.assertFalse(self.backend.order_out(self.window))
+        self.native.orderOut_.side_effect = RuntimeError()
+        with self.resolve():
+            self.assertFalse(self.backend.order_out(self.window))
+
     def test_foreground_window_reads_key_window_number(self):
         app = Mock(); app.isActive.return_value = True; app.keyWindow.return_value = self.native
         self.backend._appkit = SimpleNamespace(NSApplication=SimpleNamespace(sharedApplication=lambda: app))

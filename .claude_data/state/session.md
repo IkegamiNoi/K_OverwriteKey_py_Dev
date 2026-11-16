@@ -4,35 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-16T23:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.16・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59
+last_updated: 2026-11-17T10:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.17・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 59
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11b のコミットまで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11c のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09〜11b を Mac で実装・目視 OK（task_11b = 窓と画面・暫定 57 v0.15 / v0.16 = カーソルグリッドは `-alpha` 0.5 の半透明・素通しとレベル 25 を表示のたびにかけ直す）。次 = task_11c（aqua のモーダル・メインやキーボードUIが最前面のときダイアログが後ろへ回る件）→ 11d。残り = task_09〜11b の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。**
+focus: **phase 75 段階 ③。task_09〜11c を Mac で実装・目視 OK（task_11c = 最小化と grab・暫定 57 v0.17）。task_11c を 11c / 11e に分割。次 = task_11d（割り当て禁止の文言）・task_11e（最前面のときダイアログが後ろへ回る件・実際のアプリで再現から）。残り = task_09〜11c の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-16T23:00:00
+ts: 2026-11-17T10:00:00
 who: main
 summary: |
-  task_11b の tests_ui 4 本（テストの追従漏れ 4 件をメインが修正・test_modal_grab の既知 4 件のみ）→ Mac 目視で NG が続き、メインの実測で原因を特定して 3 回改訂（Tk 9.1: `-transparent` は描画で黒 → ユーザー判断 A で `-alpha` 0.5〔v0.16〕/ 表示のたびに ignoresMouseEvents とレベルが戻る → `<Map>` の後の after(0) でかけ直し・レベル 25）。各改訂は codex-implementer → verifier pass → reviewer 採用 → Mac 目視 OK。2 枚目のモニタは保留（ユーザー）。「未保存があります」が前に来ない件・「取得」でダイアログが後ろへ回る件は task_11c へ（phase.md:84）。
+  task_11c を起票（11e を分割）→ v0.17 承認 → codex-implementer で実装 → Mac 目視で NG が続き、メインの実測で 5 回改訂（復元も after(0)・ダイアログの最小化ボタンを無効・withdraw の後に order_out・Tk が隠した窓も order_out し内側から・しまう直前に子の窓のつながりを外す〔残像〕）。各回 verifier pass・reviewer 採用（修正して採用の推奨はメインが反映）→ Mac 目視 OK。最前面のときメインのクリックでダイアログが後ろへ回る件は task_11e へ。
 result_files:
-  - keyseq/infrastructure/os_backend/macos/backend.py・tests/test_macos_window_backend.py・tests_ui/test_screen_grid_overlay.py・test_help_window.py・test_app_ui_flows.py
-  - instructions/history/57_mac_support.md（v0.16）・phase.md・task_11b 定義（改訂 1〜3）・codebase_map.md・mac_test_baseline.md・current.md・decisions.md
+  - keyseq/presentation/modal.py・keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py・macos/minimize_observer.py（新規）
+  - tests/test_macos_window_backend.py・tests/test_os_backend_contracts.py・tests_ui/test_modal_grab.py・tests_ui/test_minimize_grab_custody.py
+  - instructions/history/57_mac_support.md（v0.17）・phase.md・task_11c 定義（新規）・codebase_map.md・mac_test_baseline.md・current.md・decisions.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2115 件・失敗 1（test_third_party）・エラー 0・skip 30
+  tests_mac: 2119 件・失敗 1（test_third_party）・エラー 0・skip 30
   smoke_mac: pass
-  tests_ui_mac: test_screen_grid_overlay・test_help_window・test_app_ui_flows OK・test_modal_grab 失敗 4（既知・task_11c）
+  tests_ui_mac: test_modal_grab・test_minimize_grab_custody・test_modal_app_foreground・test_app_ui_flows・test_help_window・test_task06_keymap_management_ui・test_welcome_window・test_screen_grid_overlay 失敗 0
   tests_windows: not_run
-  visual_mac: task_11b OK（2 枚目のモニタは保留）
+  visual_mac: task_11c OK（最前面のときの件は task_11e）
 
 ## next_action
-- **task_11c を始める**: `instructions/phase/75_mac_support/phase.md:84` の task_11c の行を読み、/task_new で起票（aqua のモーダルの grab・最小化の入れ子・メイン / キーボードUIが最前面〔Tk の `-topmost` = レベル 19〕のときトリガーの追加ダイアログ・「取得」・「未保存があります」の messagebox が後ろへ回る件）。起票前に Mac で実測する。
-- **task_09〜11b の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_os_backend_contracts の Windows の委譲・呼び出し順を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッドが今どおり透けてクリックが通る・マウスのアクション・task_09d のドイツ語入力の hotkey 等。
+- **task_11d または task_11e を起票**（ユーザーに順番を確認）。task_11e は phase.md の task_11e の行を読み、実際のアプリで再現と原因の特定から（メインの `-topmost` = レベル 19・transient はレベルを受け継ぐ・単体では再現しない。記録の仕掛けは scratchpad の `trace_app.py` が参考）。
+- **task_09〜11c の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔test_os_backend_contracts の Windows の委譲を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子のダイアログ）・task_09d のドイツ語入力の hotkey 等。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

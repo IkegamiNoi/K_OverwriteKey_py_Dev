@@ -471,6 +471,11 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     `_opened_while_minimized`（最小化中に `grab_modal` した窓。復帰の対象外にする・**その回の復元の処理で空にする**・破棄時にも除く）。
     `grab_modal` 側は **預かり中に開いたモーダルなら預かり窓を直前の保持者にする** /
     **最小化中に復元できなかった直前の保持者は（預かりが空なら）預かりへ戻す**。
+    **phase 75 task_11c（暫定 57 v0.17）**: 冒頭で `get_backend().window.install_minimize_preparation(app)`（aqua = しまう直前に子の窓のつながりを外し残像を防ぐ・Windows は何もしない）。
+    `<Unmap>` / `<Map>` の判断は `after(0)` へ遅らせる（aqua は子の窓を `iconify()` / `deiconify()` の後に隠す・表示し直すため。予約の id は `_minimize_check_id` / `_restore_check_id`・逆のイベントで取り消す）。
+    遅らせた最小化の処理は `wm_state() == "iconic"` のときだけ、台帳を内側から辿り、transient の鎖が App に届く窓を、表示中なら `withdraw()` + `order_out` して `_hidden_by_minimize` に開いた順で記録・Tk が隠した窓は `order_out` だけ（aqua は withdraw しても NSWindow が残る）。
+    遅らせた復元は記録窓を開いた順に `deiconify()` してから `_return_grab(app, shown)`（表示し直した直後の窓は viewable の判定を省く）。
+    `grab_modal` は grab の前に `disable_minimize_button(window)`（aqua = `-stylemask` から `miniaturizable` を外す）。
     固定テスト = `tests_ui/test_minimize_grab_custody.py`（テストは `setUp` でモジュール状態を patch して独立させ、
     `_is_app_foreground` を既定 `False` に差し替える）/ `tests_ui/test_modal_app_foreground.py`（前面判定と FFI の型設定）
 

@@ -8,6 +8,9 @@ _active_modals: list[tk.Toplevel] = []
 _opened_while_minimized: list[tk.Toplevel] = []
 _custody_window: tk.Toplevel | None = None
 _app_minimized: bool = False
+_hidden_by_minimize: list[tk.Toplevel] = []
+_minimize_check_id: str | None = None
+_restore_check_id: str | None = None
 
 
 def _is_app_foreground(app: tk.Misc) -> bool:
@@ -44,13 +47,42 @@ def _restore_modal_focus(app: tk.Misc) -> None:
 
 def install_minimize_grab_custody(app: tk.Misc) -> None:
     """App の最小化中だけ非表示の保持者から grab を預かる。"""
-    def take_custody(event: tk.Event) -> None:
-        global _custody_window, _app_minimized
-        if event.widget is not app:
+    get_backend().window.install_minimize_preparation(app)
+
+    def belongs_to_app(window: tk.Misc) -> bool:
+        try:
+            parent = str(window.wm_transient())
+            for _ in range(32):
+                if not parent:
+                    return False
+                if parent == str(app):
+                    return True
+                parent = str(app.nametowidget(parent).wm_transient())
+        except (tk.TclError, KeyError):
+            return False
+        return False
+
+    def deferred_check() -> None:
+        global _custody_window, _minimize_check_id
+        _minimize_check_id = None
+        if not _app_minimized or app.wm_state() != "iconic":
             return
-        _app_minimized = True
         if _custody_window is not None:
             return
+        hidden_windows: list[tk.Toplevel] = []
+        for window in reversed(tuple(_active_modals)):
+            try:
+                if not window.winfo_exists() or not belongs_to_app(window):
+                    continue
+                if window.winfo_viewable():
+                    window.withdraw()
+                    get_backend().window.order_out(window)
+                    hidden_windows.append(window)
+                else:
+                    get_backend().window.order_out(window)
+            except tk.TclError:
+                continue
+        _hidden_by_minimize.extend(reversed(hidden_windows))
         try:
             holder = app.grab_current()
         except (tk.TclError, KeyError):
@@ -65,39 +97,82 @@ def install_minimize_grab_custody(app: tk.Misc) -> None:
             return
         _custody_window = holder
 
+    def take_custody(event: tk.Event) -> None:
+        global _app_minimized, _minimize_check_id, _restore_check_id
+        if event.widget is not app:
+            return
+        _app_minimized = True
+        if _restore_check_id is not None:
+            try:
+                app.after_cancel(_restore_check_id)
+            except tk.TclError:
+                pass
+            _restore_check_id = None
+        if _minimize_check_id is None:
+            _minimize_check_id = app.after(0, deferred_check)
+
     def return_custody(event: tk.Event) -> None:
-        global _custody_window, _app_minimized
+        global _app_minimized, _minimize_check_id, _restore_check_id
         if event.widget is not app:
             return
         _app_minimized = False
-        try:
-            if _custody_window is None:
-                return
-            recorded = _custody_window
-            _custody_window = None
+        if _minimize_check_id is not None:
             try:
-                current = app.grab_current()
-            except (tk.TclError, KeyError):
-                return
-            if current is not None:
-                return
-            # 記録窓を優先し、非表示・破棄済みなら台帳の最内から探す。
-            for candidate in (recorded, *reversed(_active_modals)):
-                try:
-                    if not candidate.winfo_exists() or not candidate.winfo_viewable():
-                        continue
-                except tk.TclError:
-                    continue
-                try:
-                    candidate.grab_set()
-                except tk.TclError:
-                    pass
-                return
-        finally:
-            app.after_idle(_restore_modal_focus, app)
+                app.after_cancel(_minimize_check_id)
+            except tk.TclError:
+                pass
+            _minimize_check_id = None
+        if _restore_check_id is None:
+            _restore_check_id = app.after(0, deferred_return)
+
+    def deferred_return() -> None:
+        global _restore_check_id
+        _restore_check_id = None
+        if _app_minimized or app.wm_state() == "iconic":
+            return
+        shown = []
+        for window in tuple(_hidden_by_minimize):
+            try:
+                if window.winfo_exists():
+                    window.deiconify()
+                    shown.append(window)
+            except tk.TclError:
+                continue
+        _hidden_by_minimize.clear()
+        _return_grab(app, shown=tuple(shown))
 
     app.bind("<Unmap>", take_custody, add="+")
     app.bind("<Map>", return_custody, add="+")
+
+
+def _return_grab(app: tk.Misc, shown: tuple[tk.Misc, ...] = ()) -> None:
+    global _custody_window
+    try:
+        if _custody_window is None:
+            return
+        recorded = _custody_window
+        _custody_window = None
+        try:
+            current = app.grab_current()
+        except (tk.TclError, KeyError):
+            return
+        if current is not None:
+            return
+        for candidate in (recorded, *reversed(_active_modals)):
+            try:
+                if not candidate.winfo_exists():
+                    continue
+                if not any(candidate is window for window in shown) and not candidate.winfo_viewable():
+                    continue
+            except tk.TclError:
+                continue
+            try:
+                candidate.grab_set()
+            except tk.TclError:
+                pass
+            return
+    finally:
+        app.after_idle(_restore_modal_focus, app)
 
 
 def _apply_initial_focus(window: tk.Toplevel, focus: tk.Misc | None) -> None:
@@ -137,6 +212,7 @@ def grab_modal(
         _custody_window = None
     if parent is not None:
         window.transient(parent)
+    get_backend().window.disable_minimize_button(window)
     window.grab_set()
     _apply_initial_focus(window, focus)
     _active_modals.append(window)
@@ -153,6 +229,10 @@ def grab_modal(
         for index, opened in enumerate(_opened_while_minimized):
             if opened is window:
                 del _opened_while_minimized[index]
+                break
+        for index, hidden in enumerate(_hidden_by_minimize):
+            if hidden is window:
+                del _hidden_by_minimize[index]
                 break
         for index, active_modal in enumerate(_active_modals):
             if active_modal is window:
