@@ -7,7 +7,8 @@ import sys
 def relaunch_app(startup_cwd: str) -> OSError | None:
     """Start the same command in its original working directory."""
     try:
-        subprocess.Popen([sys.executable, *sys.argv], cwd=startup_cwd)
+        argv = [sys.executable, *sys.argv[1:]] if getattr(sys, "frozen", False) else [sys.executable, *sys.argv]
+        subprocess.Popen(argv, cwd=startup_cwd)
     except OSError as error:
         logging.getLogger(__name__).exception("Could not restart the app")
         return error

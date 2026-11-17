@@ -16,7 +16,7 @@
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.18。冒頭の版の履歴で v0.11〜v0.18 の改訂を確認する）を読む。
-   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 60（暫定 47 は idea_53 で保留中の番号）
+   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,10 +24,11 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ③。task_09〜11c を Mac で実装・目視 OK・コミット済み（task_11c = `57937163`・idea_59 = `92895d0e`）。task_11e（最前面とモーダル・暫定 57 v0.18）を Mac で実装・reviewer 採用・検証 pass・未コミット。残り = task_11e の Mac 実機目視・task_11d・task_11f（parent なしの messagebox）・task_09〜11e の Windows 検証。**
+**phase 75 段階 ④。task_09〜11f は Mac・Windows とも検証・目視済み（Windows でテスト側の取りこぼし 3 件を修正・Win+D の白い窓は既存の問題で idea_61）。task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残り = task_12 の Windows 目視（ユーザー）→ task_13 起票。**
 **presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
-Mac の worktree = `claude/modifier-key-registration-issue-faa33a`（未 push）。push と main へのマージはユーザー（PR は作らない）。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（tests は task_11e 後 2124 件・失敗 1〔test_third_party〕・エラー 0・skip 31）。
+Windows の worktree = `claude/continue-c6c37b`（未 push）。Mac の worktree = `claude/modifier-key-registration-issue-faa33a`。push と main へのマージはユーザー（PR は作らない）。
+直近の実測（Windows・task_12 後・2026-11-17）: compile clean / tests 2202・失敗 0・skip 7 / smoke pass / tests_ui は task_09〜11f の検証で 79 本 1 本ずつ失敗 0（修正後）。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（task_11d 後 2131 件・失敗 1〔test_third_party〕）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -56,16 +57,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーの戻り待ち】task_11e の Mac 実機目視**（`instructions/phase/75_mac_support/tasks/task_11e_macos_modal_level.md` の完了条件と反映節の M4・M6）:
-  1. メインの「最前面に表示」をオン → トリガーの追加ダイアログの中（記録のボタン・余白・「クリック位置を取得」）をクリック・キーの記録を始めてもダイアログがメインの前
-  2. 同じ状態でメインをクリックしてもダイアログが前
-  3. 「キーボードUIを最前面に表示」をオン → ダイアログで「取得」を押してもメインとキーボードUIの前（NG なら報告して止める・`keyseq/presentation/controllers/layout_controller.py:158-190`）
-  4. 入れ子（トリガーの追加 → プリセット管理）で内側をクリックしても両方が前
-  5. 最前面オンでダイアログを開いたままメインを最小化 → 戻してもダイアログが前
-  6. 最前面オフの動作が今までどおり
-  - OK なら codebase_map（modal / macOS backend に `keep_level_with_parent`）・mac_test_baseline・decisions.md・current.md を更新して task_11e をコミット。reviewer の参考指摘（`_level_windows` が破棄後の窓を持ち続ける・WeakSet か `<Destroy>` で除く）の採否をユーザーに聞く。
-- 次のタスク: task_11d（割り当て禁止の文言）または task_11f（parent なしの messagebox 162 か所・`keymap_set_io.py:49` の「未保存があります」を含む）。順番はユーザーに確認。
-- **task_09〜11e の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子）・task_09d のドイツ語入力の hotkey 等。
+- **【ユーザーの確認待ち】task_12 の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）で言語を切り替え、再起動が今どおり動くか（再起動後に同じ設定・キーボードUIのレイアウトが読めること）。
+  - OK なら task_12 完了（`instructions/phase/current.md` の task_12 を完了に）→ task_13 を起票（`packaging/`・`.spec`・`requirements-build.txt`・datas の相対配置〔`config/user/keylayout` を `bundled_keylayout_dir()` の場所へ〕・ビルドと各 OS の実機確認・`.app` の再起動に `open -n` を使うか・同梱する見本の選別〔`jis_test.json`〕・`test_third_party`）。
+  - NG なら症状を聞いて切り分け（再起動 = `keyseq/infrastructure/os_backend/app_relaunch.py`・基点 = `keyseq/presentation/app.py:122`）。
+- Mac 側の task_12 の確認（tests・smoke）は task_13 でまとめて行う（ユーザーが push した後）。
+- **Codex の注意（task_12 で判明）**: CRLF のファイルには apply_patch が当たらず途中で止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では index.lock を作れず失敗する → メインで行う。
 
 ## 運用インフラ
 

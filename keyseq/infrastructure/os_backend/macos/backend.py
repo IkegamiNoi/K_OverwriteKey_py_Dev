@@ -5,12 +5,15 @@ import logging
 import math
 import os
 import subprocess
+import sys
 import time
 import tkinter
 from threading import Lock, RLock
+from pathlib import Path
 from typing import Callable, Sequence
 
 from keyseq.domain.default_profile import MACOS_DEFAULT_PROFILE
+from keyseq.infrastructure.os_backend import app_relaunch
 from keyseq.infrastructure.os_backend.contracts import Capabilities, KeySend, OsBackend, ResolveLayoutScanCode
 from keyseq.infrastructure.os_backend.pyautogui_mouse import PyAutoGuiMouseBackend
 
@@ -768,7 +771,13 @@ class MacImeBackend:
 
 class MacAppIdentity:
     def apply_process_identity(self, app_id: str) -> bool: return True
-    def relaunch(self, startup_cwd: str) -> OSError | None: return OSError("Application relaunch is not implemented")
+    def relaunch(self, startup_cwd: str) -> OSError | None:
+        return app_relaunch.relaunch_app(startup_cwd)
+
+    def app_data_root(self, dev_root: Path) -> Path:
+        if getattr(sys, "frozen", False):
+            return Path.home() / "Library" / "Application Support" / "keyseq"
+        return dev_root
 
 
 def create_backend() -> OsBackend:

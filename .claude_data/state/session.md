@@ -4,36 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-17T17:00:00
+last_updated: 2026-11-17T23:55:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11d のコミットまで）。push はユーザー
+last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③ の Mac 側が完了（task_09〜11f を Mac で実装・目視 OK・コミット済み。最後 = task_11d 割り当て禁止の文言・暫定 57 v0.20）。次 = task_09〜11f の Windows 検証（ユーザーが push）→ 段階 ④（task_12 起票）。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59・idea_60 は検討段階。**
+presence: away（戻る予定 未定）
+focus: **phase 75 段階 ④ の task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残 = ユーザーの Windows 目視（開発実行での言語切り替え＝再起動）。その後 task_13（packaging とビルド）を起票。task_09〜11f の Windows 検証・目視は完了（既存の問題 1 件を idea_61 へ）。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59〜61 は検討段階。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-17T15:00:00
+ts: 2026-11-17T23:55:00
 who: main
 summary: |
-  task_11d を起票（ユーザー判断: 両 OS 共通の文言・ヒントは ctrl+c）→ reviewer 修正して採用（ヘルプの本文も含める・ユーザー判断）→ v0.20 承認 → codex-implementer で実装 → verifier pass・reviewer 採用 → Mac 目視 3・4 OK（1・2 は画面から出せずテストで代える・ユーザー判断）→ コミット。目視の際の新しい発見（ダイアログから開いたヘルプに入力できない）を idea_60 に起票。
+  task_09〜11f の Windows 検証（テスト側の取りこぼし 3 件を修正・目視 OK・Win+D の白い窓は既存の問題で idea_61）→ task_12 を起票（見本のコピーは keylayout が無いときだけ・Mac は Application Support/keyseq/config・v0.21 ユーザー確定・起票レビュー修正して採用）→ codex-implementer（3 回に分けて実行。止まった分 = git mv・import の抜け 3 か所・Mac の relaunch の import をメインが補った。Codex のパッチが CRLF のテストに当たらない → 対象を LF に揃えて再依頼）→ verifier pass → reviewer 完了可（codebase_map に app_data_root を一言追記）→ コミット。不在モード中（戻り未定）のため目視待ちで止めた。
 result_files:
-  - keyseq/shared/i18n/locales/ja.json・en.json・keyseq/presentation/help/content/help_ja.json・help_en.json・tests/test_keymap_switch_batch.py・tests_ui/test_prohibited_assign_keys_ui.py
-  - instructions/history/57_mac_support.md（v0.20）・task_11d 定義（新規）・current.md・decisions.md・backlog/idea_60（新規）・INDEX.md
+  - keyseq/infrastructure/os_backend/app_relaunch.py（windows/ から移動）・contracts.py・windows/backend.py・macos/backend.py・keyseq/infrastructure/bundled_layouts.py（新規）・keyseq/presentation/bundled_paths.py・app.py
+  - tests/test_app_relaunch.py・test_os_backend_contracts.py・test_bundled_layouts.py（新規）・test_bundled_paths.py（新規）・instructions/common/codebase_map.md
+  - instructions/history/57_mac_support.md（v0.21）・task_12 定義（新規）・decisions.md
 verified:
-  compile: clean（Mac）
-  tests_mac: 2131 件・失敗 1（test_third_party）・エラー 0・skip 32
-  smoke_mac: pass
-  tests_ui_mac: test_prohibited_assign_keys_ui・test_preset_manager_i18n・test_task06_keymap_management_ui・test_help_window 失敗 0
-  tests_windows: compile clean / tests 2193・失敗 0（テスト側の取りこぼし 3 件を修正後）/ smoke OK / tests_ui 79 本 1 本ずつ・失敗 0（修正後）
-  visual_mac: task_11d OK（3・4）
-  visual_windows: task_09〜11f OK（Win+D で入れ子のプリセット追加が白くなる件は phase 75 前の main でも起きる既存の問題 → idea_61。task_09d は記号キーの記録で確認・ドイツ語入力は省略〔ユーザー判断〕）
+  tests_windows: compile clean / tests 2202・失敗 0・skip 7 / smoke OK / tests_ui（first_launch_flow・app_ui_flows・help_window・ui_language）失敗 0。テスト実行で config/ に keylayout.tmp 等は出来ていない
+  tests_mac: not_run（task_13 でまとめて）
+  visual_windows: task_09〜11f OK。task_12 は未実施
 
 ## next_action
-- **task_09〜11f の Windows 自動検証は完了（2026-11-17・テスト側の取りこぼし 3 件を修正・reviewer 採用・コミット済み）。Windows の目視も完了（既存の問題 1 件を idea_61 へ）**
-- その後、段階 ④ の task_12（`app_data_root` への統一と同梱物のパス・再起動）を起票。
+- **【ユーザーの確認待ち】task_12 の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）で言語を切り替えて再起動が今どおり動くか（再起動後に同じ設定・キーボードUIのレイアウトが読めること）。OK なら task_12 完了 → task_13（`packaging/`・`.spec`・ビルドと実機確認・`.app` の `open -n` の判断・同梱する見本の選別〔`jis_test.json`〕・`test_third_party`）を起票。
+- Mac 側の task_12 の確認（tests・smoke）は task_13 でまとめて行う。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

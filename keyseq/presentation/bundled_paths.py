@@ -1,11 +1,18 @@
 """同梱データの場所を解決する。exe 化時は bundled_root だけを変更する。"""
 
 from pathlib import Path
+import sys
 
 
 def bundled_root() -> Path:
     """同梱データの基準位置を返す。exe 化時の位置変更はこの関数に集約する。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[2]
+
+
+def bundled_keylayout_dir() -> Path:
+    return bundled_root() / "config" / "user" / "keylayout"
 
 
 def license_path() -> Path:

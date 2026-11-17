@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from keyseq.domain.default_profile import WINDOWS_DEFAULT_PROFILE
 
 from keyseq.infrastructure.os_backend.contracts import Capabilities, OsBackend
-from keyseq.infrastructure.os_backend.windows import app_relaunch, ime_control, own_ime_status, tk_key_translator, win32_window
+from keyseq.infrastructure.os_backend import app_relaunch
+from keyseq.infrastructure.os_backend.windows import ime_control, own_ime_status, tk_key_translator, win32_window
 from keyseq.infrastructure.os_backend.windows.keyboard_backend import WindowsKeyboardBackend
 from keyseq.infrastructure.os_backend.windows.mouse_backend import WindowsMouseBackend
 
@@ -110,6 +113,9 @@ class WindowsAppIdentity:
 
     def relaunch(self, startup_cwd: str) -> OSError | None:
         return app_relaunch.relaunch_app(startup_cwd)
+
+    def app_data_root(self, dev_root: Path) -> Path:
+        return Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else dev_root
 
 
 def create_backend() -> OsBackend:

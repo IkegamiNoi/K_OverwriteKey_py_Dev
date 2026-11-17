@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Protocol, Sequence, TYPE_CHECKING
 
 from keyseq.domain.default_profile import DefaultProfile, WINDOWS_DEFAULT_PROFILE
@@ -117,6 +118,7 @@ class TkKeyTranslator(Protocol):
 class AppIdentity(Protocol):
     def apply_process_identity(self, app_id: str) -> bool: ...
     def relaunch(self, startup_cwd: str) -> OSError | None: ...
+    def app_data_root(self, dev_root: Path) -> Path: ...
 
 
 @dataclass(frozen=True)

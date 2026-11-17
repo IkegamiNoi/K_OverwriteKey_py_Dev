@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from contextlib import contextmanager
+from pathlib import Path
 import tkinter as tk
 from typing import Callable
 from tkinter import ttk
@@ -63,7 +64,8 @@ from keyseq.presentation import modal
 from keyseq.presentation.modal import install_minimize_grab_custody
 from keyseq.presentation.status_text import one_line
 from keyseq.presentation.status_icon import StatusIcon
-from keyseq.presentation.bundled_paths import status_icon_dir
+from keyseq.presentation.bundled_paths import bundled_keylayout_dir, bundled_root, status_icon_dir
+from keyseq.infrastructure.bundled_layouts import install_bundled_layouts
 from keyseq.presentation.screen_grid import ScreenGridController
 from keyseq.presentation.key_capture_hook import KeyCaptureHook
 from keyseq.presentation.key_capture_ime import (
@@ -118,10 +120,14 @@ class App(tk.Tk):
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository, default_profile=backend.default_profile)
 
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.base_dir = str(backend.app.app_data_root(bundled_root()))
         self.config_root = os.path.join(self.base_dir, "config")
         self.user_root = os.path.join(self.config_root, "user")
         self.config_service.ensure_split_config_dirs(self.config_root)
+        try:
+            install_bundled_layouts(bundled_keylayout_dir(), Path(self.user_root))
+        except OSError:
+            logging.getLogger(__name__).exception("Could not install bundled key layouts")
         self.paths = ConfigPaths(
             base_dir=self.base_dir,
             config_root=self.config_root,
