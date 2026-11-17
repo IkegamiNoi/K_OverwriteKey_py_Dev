@@ -29,7 +29,7 @@ verified:
   visual_windows: task_13a は未実施
 
 ## next_action
-- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（`.......venvScriptspython.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること。OK なら task_13a 完了。
+- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（`.......venvScriptspython.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること・見出しとバージョン情報が「GNU General Public License v3 以降」になっていること（v0.23）。OK なら task_13a 完了。
 - 次 = task_13 を起票（`packaging/`・`.spec`〔pynput は module_collection_mode で .py・hiddenimports・アイコンの差し替え口〕・`requirements-build.txt`〔PyInstaller の版を固定・.venv へ入れる〕・手順書と同梱の README〔本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外〕・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行〔GPL v2 + 例外・Apache-2.0〕・見本 5 本の datas・Windows のビルドと実機確認〔保存先・見本のコピー・再起動・pynput の差し替え〕）。暫定 57 §6.2・§6.3。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
 

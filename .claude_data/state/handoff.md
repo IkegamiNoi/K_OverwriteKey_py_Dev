@@ -57,7 +57,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること。OK なら task_13a 完了（current.md・session.md を更新してコミット）。
+- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること・見出しとバージョン情報が「GNU General Public License v3 以降」（v0.23）。OK なら task_13a 完了（current.md・session.md を更新してコミット）。
 - 次 = **task_13 を起票**（暫定 57 §6.2・§6.3）: `packaging/`・`.spec`（pynput は `module_collection_mode` で `.py`・hiddenimports・アイコンの差し替え口）・`requirements-build.txt`（PyInstaller の版を固定・`.venv` へ入れる）・手順書と同梱の README（本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外）・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行（GPL v2 + 例外・Apache-2.0）・見本 5 本の datas・Windows のビルドと実機確認（保存先・見本のコピー・再起動・pynput の差し替え）。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では失敗する → メインで。Codex は 1 回で全部終わらないことが多い（本体 → テストの 2 回に分けると通る）。
