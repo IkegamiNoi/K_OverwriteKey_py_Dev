@@ -58,6 +58,7 @@ from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcu
 from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
+from keyseq.presentation import modal
 from keyseq.presentation.modal import install_minimize_grab_custody
 from keyseq.presentation.status_text import one_line
 from keyseq.presentation.status_icon import StatusIcon
@@ -374,6 +375,7 @@ class App(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
+        modal.set_modal_presence_listener(self._on_modal_presence_changed)
 
     def _prepare_first_launch(self) -> None:
         result = run_first_launch_welcome(self)
@@ -727,7 +729,7 @@ class App(tk.Tk):
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
         try:
-            self.attributes("-topmost", bool(self.ui_vars.always_on_top_var.get()))
+            self.attributes("-topmost", self.effective_always_on_top())
         except Exception:
             # 失敗してもアプリは止めない
             pass
@@ -743,6 +745,24 @@ class App(tk.Tk):
             self.layout.resync_keyboard_topmost()
         except Exception:
             logging.getLogger(__name__).exception("Could not resync keyboard window topmost")
+
+    def _on_modal_presence_changed(self) -> None:
+        """Re-apply always-on-top only where the OS releases it during a modal (Windows unchanged)."""
+        from keyseq.infrastructure.os_backend import get_backend
+        try:
+            releases = get_backend().window.releases_topmost_during_modal()
+        except Exception:
+            logging.getLogger(__name__).exception("Could not read modal topmost policy")
+            return
+        if releases:
+            self._apply_always_on_top()
+
+    def effective_always_on_top(self) -> bool:
+        """Always-on-top as applied: released while a modal is open where the OS needs it (aqua)."""
+        from keyseq.infrastructure.os_backend import get_backend
+        return bool(self.ui_vars.always_on_top_var.get()) and not (
+            modal.is_modal_active() and get_backend().window.releases_topmost_during_modal()
+        )
 
     # ---------------- Startup config ----------------
     def suggest_keymap_set_dialog_path(self) -> str:

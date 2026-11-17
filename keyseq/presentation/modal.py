@@ -1,6 +1,8 @@
 """モーダルウィンドウの grab 取得と破棄時の復元。"""
 
 import tkinter as tk
+import logging
+from collections.abc import Callable
 
 from keyseq.infrastructure.os_backend import get_backend
 
@@ -11,6 +13,25 @@ _app_minimized: bool = False
 _hidden_by_minimize: list[tk.Toplevel] = []
 _minimize_check_id: str | None = None
 _restore_check_id: str | None = None
+_modal_presence_listener: Callable[[], None] | None = None
+
+
+def set_modal_presence_listener(callback: Callable[[], None] | None) -> None:
+    global _modal_presence_listener
+    _modal_presence_listener = callback
+
+
+def is_modal_active() -> bool:
+    return bool(_active_modals)
+
+
+def _notify_modal_presence_changed() -> None:
+    if _modal_presence_listener is None:
+        return
+    try:
+        _modal_presence_listener()
+    except Exception:
+        logging.getLogger(__name__).exception("Could not notify modal presence listener")
 
 
 def _is_app_foreground(app: tk.Misc) -> bool:
@@ -215,7 +236,10 @@ def grab_modal(
     get_backend().window.disable_minimize_button(window)
     window.grab_set()
     _apply_initial_focus(window, focus)
+    was_active = bool(_active_modals)
     _active_modals.append(window)
+    if not was_active:
+        _notify_modal_presence_changed()
     if _app_minimized:
         _opened_while_minimized.append(window)
     restored = False
@@ -234,10 +258,13 @@ def grab_modal(
             if hidden is window:
                 del _hidden_by_minimize[index]
                 break
+        was_active = bool(_active_modals)
         for index, active_modal in enumerate(_active_modals):
             if active_modal is window:
                 del _active_modals[index]
                 break
+        if was_active and not _active_modals:
+            _notify_modal_presence_changed()
         if previous is None:
             return
         current = current_holder()

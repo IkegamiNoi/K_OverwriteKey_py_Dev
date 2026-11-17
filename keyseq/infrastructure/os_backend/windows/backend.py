@@ -42,6 +42,9 @@ class WindowsImeBackend:
 
 
 class WindowsWindowBackend:
+    def releases_topmost_during_modal(self) -> bool:
+        return False
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         return True
 

@@ -26,6 +26,9 @@ class ModalGrabTest(unittest.TestCase):
         restore_patch = patch.object(modal, "_restore_check_id", None)
         restore_patch.start()
         self.addCleanup(restore_patch.stop)
+        listener_patch = patch.object(modal, "_modal_presence_listener", None)
+        listener_patch.start()
+        self.addCleanup(listener_patch.stop)
         self.root = tk.Tk()
         self.addCleanup(self.root.destroy)
         self.root.report_callback_exception = Mock()
@@ -74,6 +77,34 @@ class ModalGrabTest(unittest.TestCase):
         with patch.object(window, "focus_set") as focus_set:
             grab_modal(window, self.root)
         focus_set.assert_called_once_with()
+
+    def test_presence_listener_fires_only_for_outer_transitions(self):
+        first = self.make_window()
+        second = self.make_window()
+        listener = Mock()
+        modal.set_modal_presence_listener(listener)
+        grab_modal(first)
+        listener.assert_called_once_with()
+        grab_modal(second)
+        listener.assert_called_once_with()
+        second.destroy()
+        listener.assert_called_once_with()
+        first.destroy()
+        self.assertEqual(listener.call_count, 2)
+
+    def test_raising_presence_listener_is_logged_and_tolerated(self):
+        window = self.make_window()
+        modal.set_modal_presence_listener(Mock(side_effect=RuntimeError("listener failed")))
+        with self.assertLogs("keyseq.presentation.modal", level="ERROR"):
+            grab_modal(window)
+        self.assertTrue(modal.is_modal_active())
+
+    def test_none_clears_presence_listener(self):
+        listener = Mock()
+        modal.set_modal_presence_listener(listener)
+        modal.set_modal_presence_listener(None)
+        grab_modal(self.make_window())
+        listener.assert_not_called()
 
     def test_initial_focus_uses_explicit_child(self):
         window = self.make_window()
@@ -319,6 +350,10 @@ class ModalGrabTest(unittest.TestCase):
         self.assertIs(self.root.grab_current(), previous)
 
     def test_grab_current_key_error_and_restore_tcl_error_are_tolerated(self):
+        # Mock windows: backend-specific window operations are out of scope here.
+        backend_patch = patch.object(modal, "get_backend", return_value=Mock())
+        backend_patch.start()
+        self.addCleanup(backend_patch.stop)
         with self.subTest(branch="grab_current_key_error"):
             window = Mock()
             parent = Mock()

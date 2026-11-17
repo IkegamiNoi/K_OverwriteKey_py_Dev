@@ -17,7 +17,7 @@ class HelpWindowController:
         self._window: HelpWindow | None = None
 
     def _always_on_top(self) -> bool:
-        return bool(self.app.ui_vars.always_on_top_var.get())
+        return self.app.effective_always_on_top()
 
     def apply_topmost(self) -> None:
         if self._window is not None:

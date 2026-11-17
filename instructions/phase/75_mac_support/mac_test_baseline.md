@@ -49,7 +49,7 @@ macOS の backend はスタブ（フックは `OSError`・キーの解決と送�
 | `test_capture_ime_entries` | 1 / 0 | キー取得と IME（Q4 の入力ソースの切替） | task_09 |
 | `test_prohibited_assign_keys_ui` | 1 / 0 | 割り当て禁止のキーの判定（キーの識別） | task_09 |
 | ~~`test_screen_grid_overlay`~~ | ~~4 / 9~~ → 0 | ~~モニタ一覧が空・クリック透過（スタブ）~~ → **task_11b で解消**（2026-11-16。以降の tests の基準線 = 2115 件・失敗 1〔`test_third_party`〕・エラー 0・skip 30） | task_11b |
-| ~~`test_minimize_grab_custody`~~ | ~~25 / 0~~ → 0 | ~~aqua では最小化で入れ子の transient が隠れない~~ → **task_11c で解消**（2026-11-17。以降の tests の基準線 = 2119 件・失敗 1〔`test_third_party`〕・エラー 0・skip 30。tests_ui は通しで流さない運用のまま） | task_11c |
+| ~~`test_minimize_grab_custody`~~ | ~~25 / 0~~ → 0 | ~~aqua では最小化で入れ子の transient が隠れない~~ → **task_11c で解消**（2026-11-17。以降の tests の基準線 = 2119 件・失敗 1〔`test_third_party`〕・エラー 0・skip 30。tests_ui は通しで流さない運用のまま。task_11e の後 = 2122 件・失敗 1・skip 31） | task_11c |
 | ~~`test_modal_grab`~~ | ~~4 / 0~~ → 0 | ~~モーダルの grab が残る~~ → **task_11c で解消**（`<Unmap>` の時点で子がまだ表示中だった・2026-11-17） | task_11c |
 
 task_07 時点の「要調査」7 モジュール（失敗 9・エラー 1。窓の自動幅・ペイン幅・スクロールバー・キーの文字の大きさ・ツールチップ・コンパクト表示・省略表示）は Tk 9 / aqua の窓・フォントの差で、task_07d で解消した（再計測で 0）。

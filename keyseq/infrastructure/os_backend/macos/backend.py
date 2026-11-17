@@ -431,6 +431,9 @@ class MacWindowBackend:
         self._minimize_button_failure_logged = False
         self._order_out_failure_logged = False
 
+    def releases_topmost_during_modal(self) -> bool:
+        return True
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         try:
             from keyseq.infrastructure.os_backend.macos.minimize_observer import create_minimize_observer

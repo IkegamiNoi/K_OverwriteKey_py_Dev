@@ -34,6 +34,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_hidden_by_minimize", [])
         self._patch(modal, "_minimize_check_id", None)
         self._patch(modal, "_restore_check_id", None)
+        self._patch(modal, "_modal_presence_listener", None)
         self._patch(modal, "_is_app_foreground", return_value=False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
         self._patch(self.app.hook, "resume_hook_after_dialog")

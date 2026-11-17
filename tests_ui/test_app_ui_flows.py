@@ -7,6 +7,7 @@
 import copy
 import os
 import tempfile
+import tkinter as tk
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -17,6 +18,7 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.app import App
+from keyseq.presentation import modal
 from keyseq.presentation.keyboard_layouts import (
     BUILTIN_LAYOUTS,
     load_layout_from_json,
@@ -138,6 +140,35 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app._sync_control_vars_from_data()
         self.app.ui_vars.hook_keys_individual_var.set(False)
         self.app.toggle_hook_keys_individual()
+
+    def test_modal_topmost_policy_tracks_backend_capability(self):
+        active_modals_patch = patch.object(modal, "_active_modals", [])
+        active_modals_patch.start()
+        self.addCleanup(active_modals_patch.stop)
+        listener_patch = patch.object(modal, "_modal_presence_listener", None)
+        listener_patch.start()
+        self.addCleanup(listener_patch.stop)
+        modal.set_modal_presence_listener(self.app._apply_always_on_top)
+        self.app.ui_vars.always_on_top_var.set(True)
+        self.app._apply_always_on_top()
+        window = tk.Toplevel(self.app)
+        self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+
+        backend = get_backend()
+        with patch.object(backend.window, "releases_topmost_during_modal", return_value=True):
+            grab_modal = modal.grab_modal
+            grab_modal(window, self.app)
+            self.assertFalse(bool(self.app.attributes("-topmost")))
+            window.destroy()
+            self.assertTrue(bool(self.app.attributes("-topmost")))
+
+        window = tk.Toplevel(self.app)
+        self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+        with patch.object(backend.window, "releases_topmost_during_modal", return_value=False):
+            modal.grab_modal(window, self.app)
+            self.assertTrue(bool(self.app.attributes("-topmost")))
+            window.destroy()
+            self.assertTrue(bool(self.app.attributes("-topmost")))
 
     def _prepare_trigger_list_data(self):
         # 共有 App を変更する先行テストや既定サンプルに依存させない。

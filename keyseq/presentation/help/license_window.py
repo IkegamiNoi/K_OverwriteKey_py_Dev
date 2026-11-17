@@ -84,7 +84,7 @@ class LicenseWindowController:
 
     def apply_topmost(self) -> None:
         if self._window is not None:
-            self._window.apply_topmost(bool(self.app.ui_vars.always_on_top_var.get()))
+            self._window.apply_topmost(self.app.effective_always_on_top())
 
     def _on_destroy(self, event: tk.Event) -> None:
         if event.widget is self._window:

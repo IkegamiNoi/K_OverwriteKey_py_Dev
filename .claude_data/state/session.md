@@ -4,45 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-17T01:12:00
+last_updated: 2026-11-17T12:00:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.18・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 60
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11c のコミットまで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11e のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 75 段階 ③。task_09〜11c を Mac で実装・目視 OK・コミット済み（task_11c = 57937163）。task_11e（最前面とモーダル・暫定 57 v0.18）を Mac で実装・reviewer 採用（必須のテスト修正はメインが反映）・検証 pass・未コミット。残り = task_11e の Mac 実機目視・task_11d・task_11f（parent なしの messagebox 162 か所）・task_09〜11e の Windows 検証。**
-mode: pending_review
+focus: **phase 75 段階 ③。task_09〜11e を Mac で実装・目視 OK・コミット済み（task_11e = 最前面とモーダル・暫定 57 v0.18 = モーダルの間はメインの最前面を外す）。次 = task_11d（割り当て禁止の文言）・task_11f（parent なしの messagebox 162 か所・エラーを前面に）。残り = task_09〜11e の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-17T01:12:00
+ts: 2026-11-17T12:00:00
 who: main
 summary: |
-  task_11e を起票（起票前の実測: grab を持つ transient のダイアログの中をクリックすると Tk がレベルを 0 に戻す・parent なしの messagebox はレベル 8 → task_11f へ分割〔ユーザー判断〕）→ reviewer 修正して採用 → v0.18 承認 → codex-implementer で実装（backend の keep_level_with_parent・grab_modal から呼ぶ）→ 本物のクリックで 0 に戻る → 記録でクリックを離した後と描き直し（Expose）の直前の 2 回下がると特定 → Expose を足して実際の App でレベル 19 を保つと確認 → reviewer（実装は採用・テスト 1 件の必須修正）・verifier（test_modal_grab の偽の窓のテスト 2 件）→ メインがテスト 2 件を修正し tests 2124 件 失敗 1（基準線）・test_modal_grab 35 件 OK を確認。idea_59（wait_window 中にアプリを閉じるとエラー）を起票・コミット済み。
+  task_11e: 1 回目の実装（keep_level_with_parent）は Mac 目視でちらつき・取りこぼし → 本物のクリック 12 回で 3 方式を比較 → ユーザー判断 B（モーダルの間は最前面を外す）・v0.18 を書き直し（承認）→ codex-implementer で実装（Codex の差分で resync_keyboard_topmost が届かなくなっていたのをメインが修正）→ verifier pass・reviewer 完了可（F1 = Windows でかけ直しを走らせない・F2 をメインが反映）→ Mac 目視 OK。エラーダイアログを前面に出す要件（ユーザー）を task_11f に追記。
 result_files:
-  - keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py・keyseq/presentation/modal.py
-  - tests/test_os_backend_contracts.py・tests/test_macos_window_backend.py・tests_ui/test_modal_grab.py
-  - instructions/history/57_mac_support.md（v0.18）・phase.md（task_11e の実測・task_11f を追加）・task_11e 定義（新規）
+  - keyseq/infrastructure/os_backend/contracts.py・windows/backend.py・macos/backend.py・keyseq/presentation/modal.py・app.py・help/help_window_controller.py・help/license_window.py
+  - tests/test_os_backend_contracts.py・tests/test_macos_window_backend.py・tests_ui/test_modal_grab.py・tests_ui/test_minimize_grab_custody.py・tests_ui/test_app_ui_flows.py
+  - instructions/history/57_mac_support.md（v0.18）・phase.md（task_11f）・task_11e 定義・codebase_map.md・mac_test_baseline.md・current.md・decisions.md
 verified:
   compile: clean（Mac）
-  tests_mac: 2124 件・失敗 1（test_third_party）・エラー 0・skip 31
+  tests_mac: 2122 件・失敗 1（test_third_party）・エラー 0・skip 31
   smoke_mac: pass
-  tests_ui_mac: test_modal_grab 35 OK（メイン 2 回）・test_minimize_grab_custody・test_modal_app_foreground・test_app_ui_flows・test_help_window・test_task06_keymap_management_ui・test_welcome_window・test_screen_grid_overlay 失敗 0（verifier）
+  tests_ui_mac: test_modal_grab・test_minimize_grab_custody・test_modal_app_foreground・test_app_ui_flows・test_help_window・test_task06_keymap_management_ui・test_welcome_window・test_screen_grid_overlay 失敗 0
   tests_windows: not_run
-  visual_mac: task_11e 未実施
+  visual_mac: task_11e OK
 
 ## next_action
-- **【ユーザーの戻り待ち】task_11e の Mac 実機目視**（`instructions/phase/75_mac_support/tasks/task_11e_macos_modal_level.md` の完了条件と反映節の M4・M6）。依頼する項目:
-  1. メインの「最前面に表示」をオン → トリガーの追加ダイアログを開き、ダイアログの中（記録のボタン・余白・「クリック位置を取得」）をクリック・キーの記録を始めても、ダイアログがメインの前。
-  2. 同じ状態でメインをクリックしてもダイアログが前。
-  3. 「キーボードUIを最前面に表示」をオン → ダイアログで「取得」を押しても、ダイアログがメインとキーボードUIの前（NG なら報告して止める・`layout_controller.py:158-190` の最前面の監視との関わりを調べる）。
-  4. 入れ子（トリガーの追加 → プリセット管理）で内側をクリックしても両方がメインの前。
-  5. 最前面オンでダイアログを開いたままメインを最小化 → 戻してもダイアログが前（task_11c の組み合わせ）。
-  6. 最前面オフのときの動作が今までどおり。
-  - OK なら codebase_map（modal / macOS backend の節に keep_level_with_parent）・decisions.md・current.md を更新して task_11e をコミット。reviewer の参考指摘（`_level_windows` が破棄後の窓を持ち続ける・WeakSet か `<Destroy>` で除く案）は採否をユーザーに聞く。
-- 次のタスク: task_11d（割り当て禁止の文言）または task_11f（parent なしの messagebox 162 か所に parent を補う入口・`keymap_set_io.py:49` の「未保存があります」を含む）。順番はユーザーに確認。
-- **task_09〜11e の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。
+- **task_11d か task_11f を起票**（順番はユーザーに確認）。task_11f = parent なしの messagebox（presentation の 162 か所・`keymap_set_io.py:49` の「未保存があります」を含む）に parent を補う入口（今の grab の保持者かメイン）・**エラーダイアログを前面に出す**（他のアプリを操作中でも背面に隠れない・ユーザー要件）。Mac の実測: parent つき = メインに付くシート（レベル 19）・parent なし = アプリ全体のアラート（レベル 8）。
+- **task_09〜11e の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子）・task_09d のドイツ語入力の hotkey 等。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

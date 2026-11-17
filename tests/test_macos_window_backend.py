@@ -19,6 +19,9 @@ class MacWindowBackendTests(unittest.TestCase):
     def resolve(self, native=None):
         return patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=native or self.native)
 
+    def test_releases_topmost_during_modal(self):
+        self.assertTrue(self.backend.releases_topmost_during_modal())
+
     def test_ns_window_for_null_exception_missing_and_logs_once(self):
         class ObjC:
             objc_object = staticmethod(lambda **kwargs: object())
