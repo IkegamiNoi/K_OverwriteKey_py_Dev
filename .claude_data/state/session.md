@@ -11,7 +11,7 @@ last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の 
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09〜11f を Mac で実装・目視 OK・コミット済み（task_11f = messagebox の入口・暫定 57 v0.19）。次 = task_11d（割り当て禁止の文言）。残り = task_09〜11f の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。新しい発見 = 入れ子のダイアログの途中を ✕ で閉じると子が残る（扱いはユーザー確認中）。**
+focus: **phase 75 段階 ③。task_09〜11f を Mac で実装・目視 OK・コミット済み（task_11f = messagebox の入口・暫定 57 v0.19）。次 = task_11d（割り当て禁止の文言）。残り = task_09〜11f の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。入れ子のダイアログの途中を ✕ で閉じると子が残る件は idea_59 に追記（ユーザー判断 A）。**
 mode: implementing
 
 ## last_action
@@ -32,7 +32,6 @@ verified:
   visual_mac: task_11f OK
 
 ## next_action
-- **新しい発見の扱いをユーザーに確認**: 入れ子のダイアログの途中のダイアログを ✕ で閉じると、その子のダイアログが残る（task_11f の目視の際・2026-11-17）。idea_59（ダイアログを開いたままメインを閉じられる）と同じ系統。
 - **task_11d を起票**（割り当て禁止の文言の Mac 向けの言い換え）。
 - **task_09〜11f の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子）・messagebox の親・task_09d のドイツ語入力の hotkey 等。
 
