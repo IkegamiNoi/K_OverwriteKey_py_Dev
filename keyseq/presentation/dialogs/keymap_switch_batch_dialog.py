@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from keyseq.presentation import message_box as messagebox
 from typing import TYPE_CHECKING, Callable, Collection
 
 from keyseq.domain.config import normalize_key_name

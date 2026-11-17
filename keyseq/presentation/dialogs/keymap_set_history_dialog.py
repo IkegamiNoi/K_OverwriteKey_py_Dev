@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import font as tkfont, messagebox, ttk
+from tkinter import font as tkfont, ttk
+from keyseq.presentation import message_box as messagebox
 from typing import TYPE_CHECKING
 
 from keyseq.presentation import keymap_set_history_text as text

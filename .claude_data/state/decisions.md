@@ -834,3 +834,7 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 起票前の実測: grab を持つ transient のダイアログの中をクリックすると Tk がレベルを 0 に戻す（素の Tk でも）。parent なしの messagebox はアプリ全体のアラート（レベル 8）→ task_11f へ分割（ユーザー判断）。
 - 1 回目の実装（クリック・描き直しの後にレベルをかけ直す `keep_level_with_parent`）は Mac 目視でちらつき・取りこぼし。本物のクリック 12 回の比較（かけ直し 12 回後ろ / run loop の待ちの前で揃える 1 回 / 最前面を外す 0 回）からユーザー判断 B = モーダルの間はメインの最前面を外す（v0.18 の行を書き直し・承認）。
 - reviewer の F1（Windows でもかけ直しが走る）を反映し、`releases_topmost_during_modal` が真の OS でだけかけ直す。エラーダイアログを前面に出す要件（ユーザー）は task_11f。
+
+### 【task_11f 実装】reviewer 修正して採用・Mac 目視 OK・暫定 57 v0.19（2026-11-17・Mac）
+- messagebox を `presentation/message_box.py` の 1 つの入口に通す（import の 1 行だけを置き換え・呼び出しは変えない＝既存テストの多くが生き残る）。parent を補う・エラーと警告は前面化（ユーザー要件）・メッセージの窓の間は最前面を外す（キーボードUIを含む）。v0.19 はユーザー承認。
+- verifier で characterization の tests_ui 2 本が落ちた（偽の窓の AttributeError・parent が足されて引数が合わない）→ 実装は parent 探しを `_default_parent()` に切り出し例外を広く受ける、テストは setUp で `_default_parent` を None に差し替え（期待値は変えない）。

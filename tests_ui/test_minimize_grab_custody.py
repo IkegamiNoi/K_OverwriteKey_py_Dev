@@ -28,6 +28,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
 
     def setUp(self):
         self._patch(modal, "_active_modals", [])
+        self._patch(modal, "_message_boxes", 0)
         self._patch(modal, "_opened_while_minimized", [])
         self._patch(modal, "_custody_window", None)
         self._patch(modal, "_app_minimized", False)

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button

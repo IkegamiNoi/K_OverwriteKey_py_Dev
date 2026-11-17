@@ -1,5 +1,5 @@
 import os
-from tkinter import messagebox
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.domain.config import normalize_hook_key_pair
 from keyseq.presentation.theme import coerce_font_delta

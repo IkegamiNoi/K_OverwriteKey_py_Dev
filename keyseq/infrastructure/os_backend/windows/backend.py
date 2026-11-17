@@ -42,6 +42,9 @@ class WindowsImeBackend:
 
 
 class WindowsWindowBackend:
+    def bring_app_to_front(self) -> bool:
+        return True
+
     def releases_topmost_during_modal(self) -> bool:
         return False
 

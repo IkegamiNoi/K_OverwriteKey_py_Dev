@@ -27,6 +27,15 @@ def _public_methods(cls: type) -> dict[str, object]:
     }
 
 class OsBackendContractTests(unittest.TestCase):
+    def test_bring_app_to_front_contract(self) -> None:
+        self.assertEqual(list(inspect.signature(WindowBackend.bring_app_to_front).parameters), ["self"])
+
+    def test_windows_bring_app_to_front_returns_true(self) -> None:
+        if sys.platform != "win32":
+            self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsWindowBackend
+        self.assertTrue(WindowsWindowBackend().bring_app_to_front())
+
     def test_releases_topmost_during_modal_contract(self) -> None:
         self.assertEqual(list(inspect.signature(WindowBackend.releases_topmost_during_modal).parameters), ["self"])
 

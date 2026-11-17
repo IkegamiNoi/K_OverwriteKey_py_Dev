@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, ttk
+from keyseq.presentation import message_box as messagebox
 from typing import Any, Callable
 
 from keyseq.domain.config import normalize_key_name

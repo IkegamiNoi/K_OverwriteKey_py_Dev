@@ -1,6 +1,6 @@
 """Range operations for the full-view trigger list."""
 
-from tkinter import messagebox
+from keyseq.presentation import message_box as messagebox
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import normalize_key_name

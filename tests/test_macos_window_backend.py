@@ -22,6 +22,23 @@ class MacWindowBackendTests(unittest.TestCase):
     def test_releases_topmost_during_modal(self):
         self.assertTrue(self.backend.releases_topmost_during_modal())
 
+    def test_bring_app_to_front_activates_application(self):
+        application = Mock()
+        appkit = Mock()
+        appkit.NSApplication.sharedApplication.return_value = application
+        backend = MacWindowBackend(appkit=appkit)
+        self.assertTrue(backend.bring_app_to_front())
+        application.activateIgnoringOtherApps_.assert_called_once_with(True)
+
+    def test_bring_app_to_front_logs_failure_once(self):
+        appkit = Mock()
+        appkit.NSApplication.sharedApplication.side_effect = RuntimeError("failure")
+        backend = MacWindowBackend(appkit=appkit)
+        with self.assertLogs("keyseq.infrastructure.os_backend.macos.backend", level="ERROR") as logs:
+            self.assertFalse(backend.bring_app_to_front())
+            self.assertFalse(backend.bring_app_to_front())
+        self.assertEqual(len(logs.records), 1)
+
     def test_ns_window_for_null_exception_missing_and_logs_once(self):
         class ObjC:
             objc_object = staticmethod(lambda **kwargs: object())

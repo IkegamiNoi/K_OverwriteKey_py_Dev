@@ -20,6 +20,7 @@ from keyseq.application.save_plan import (
     SavePlan,
 )
 from keyseq.presentation import app as app_module
+from keyseq.presentation import message_box as message_box_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 from keyseq.shared.i18n import fix_language
@@ -166,6 +167,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        # Characterization of the save flows: keep message box calls as written (no parent filled in).
+        parent_patch = patch.object(message_box_module, "_default_parent", return_value=None)
+        parent_patch.start()
+        self.addCleanup(parent_patch.stop)
         self._history_record_patch = patch.object(
             app_module.ConfigService, "record_keymap_set_history", return_value=(True, "")
         )
@@ -622,7 +627,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app,
                 "_set_flash_message",
                 side_effect=lambda message, **kw: calls.append(("flash", message, kw)),
-            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args: calls.append(("info", args))):
+            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args, **kwargs: calls.append(("info", args))):
                 self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, path))
             self.assertEqual(
                 Path(path).read_bytes(),
@@ -1423,7 +1428,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app,
                 "_set_flash_message",
                 side_effect=lambda message, **kw: calls.append(("flash", message, kw)),
-            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args: calls.append(("info", args))):
+            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args, **kwargs: calls.append(("info", args))):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(path))
             self.assertEqual(
                 [(row.kind, row.key) for row in ask.call_args.args[0]],
@@ -1777,7 +1782,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app,
                 "_set_flash_message",
                 side_effect=lambda message, **kw: calls.append(("flash", message, kw)),
-            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args: calls.append(("info", args))):
+            ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args, **kwargs: calls.append(("info", args))):
                 self.assertTrue(_sequence_io(self.app).save_sequence_to_path(trigger, path))
             self.assertEqual(
                 Path(path).read_bytes(),

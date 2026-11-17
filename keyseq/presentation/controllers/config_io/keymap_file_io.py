@@ -1,5 +1,6 @@
 import os
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.application.save_plan import (
     ACTION_SAVE,

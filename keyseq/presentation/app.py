@@ -6,7 +6,8 @@ import time
 from contextlib import contextmanager
 import tkinter as tk
 from typing import Callable
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.shared.i18n import resolve_language, set_language, tr, tr_in
 from keyseq.presentation.dialogs import (

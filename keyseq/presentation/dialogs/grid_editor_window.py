@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 import tkinter as tk
-from tkinter import messagebox
+from keyseq.presentation import message_box as messagebox
 from typing import Callable
 
 from keyseq.application.screen_grid_session import MonitorInfo

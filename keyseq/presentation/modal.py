@@ -14,6 +14,7 @@ _hidden_by_minimize: list[tk.Toplevel] = []
 _minimize_check_id: str | None = None
 _restore_check_id: str | None = None
 _modal_presence_listener: Callable[[], None] | None = None
+_message_boxes: int = 0
 
 
 def set_modal_presence_listener(callback: Callable[[], None] | None) -> None:
@@ -22,7 +23,23 @@ def set_modal_presence_listener(callback: Callable[[], None] | None) -> None:
 
 
 def is_modal_active() -> bool:
-    return bool(_active_modals)
+    return bool(_active_modals) or _message_boxes > 0
+
+
+def enter_message_box() -> None:
+    global _message_boxes
+    was_active = is_modal_active()
+    _message_boxes += 1
+    if was_active != is_modal_active():
+        _notify_modal_presence_changed()
+
+
+def leave_message_box() -> None:
+    global _message_boxes
+    was_active = is_modal_active()
+    _message_boxes = max(0, _message_boxes - 1)
+    if was_active != is_modal_active():
+        _notify_modal_presence_changed()
 
 
 def _notify_modal_presence_changed() -> None:
@@ -236,9 +253,9 @@ def grab_modal(
     get_backend().window.disable_minimize_button(window)
     window.grab_set()
     _apply_initial_focus(window, focus)
-    was_active = bool(_active_modals)
+    was_active = is_modal_active()
     _active_modals.append(window)
-    if not was_active:
+    if was_active != is_modal_active():
         _notify_modal_presence_changed()
     if _app_minimized:
         _opened_while_minimized.append(window)
@@ -258,12 +275,12 @@ def grab_modal(
             if hidden is window:
                 del _hidden_by_minimize[index]
                 break
-        was_active = bool(_active_modals)
+        was_active = is_modal_active()
         for index, active_modal in enumerate(_active_modals):
             if active_modal is window:
                 del _active_modals[index]
                 break
-        if was_active and not _active_modals:
+        if was_active != is_modal_active():
             _notify_modal_presence_changed()
         if previous is None:
             return

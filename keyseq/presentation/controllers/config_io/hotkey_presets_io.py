@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.presentation.modal import grab_modal
 from keyseq.shared.i18n import tr

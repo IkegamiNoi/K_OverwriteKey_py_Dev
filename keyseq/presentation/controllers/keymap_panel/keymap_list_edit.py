@@ -1,7 +1,7 @@
 """Range operations for the full-view keymap list."""
 
 import tkinter as tk
-from tkinter import messagebox
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.domain.config import normalize_identifier
 from keyseq.domain.keymap_triggers import iter_trigger_sets

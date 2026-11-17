@@ -11,6 +11,9 @@ class ModalGrabTest(unittest.TestCase):
         registry_patch = patch.object(modal, "_active_modals", [])
         registry_patch.start()
         self.addCleanup(registry_patch.stop)
+        message_boxes_patch = patch.object(modal, "_message_boxes", 0)
+        message_boxes_patch.start()
+        self.addCleanup(message_boxes_patch.stop)
         custody_patch = patch.object(modal, "_custody_window", None)
         custody_patch.start()
         self.addCleanup(custody_patch.stop)
@@ -90,6 +93,19 @@ class ModalGrabTest(unittest.TestCase):
         second.destroy()
         listener.assert_called_once_with()
         first.destroy()
+        self.assertEqual(listener.call_count, 2)
+
+    def test_message_box_presence_notifies_only_on_empty_transitions(self):
+        listener = Mock()
+        modal.set_modal_presence_listener(listener)
+        modal.enter_message_box()
+        self.assertTrue(modal.is_modal_active())
+        modal.enter_message_box()
+        modal.leave_message_box()
+        self.assertTrue(modal.is_modal_active())
+        modal.leave_message_box()
+        self.assertFalse(modal.is_modal_active())
+        modal.leave_message_box()
         self.assertEqual(listener.call_count, 2)
 
     def test_raising_presence_listener_is_logged_and_tolerated(self):

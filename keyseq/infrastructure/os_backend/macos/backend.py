@@ -430,6 +430,18 @@ class MacWindowBackend:
         self._overlay_reapply_failure_logged = False
         self._minimize_button_failure_logged = False
         self._order_out_failure_logged = False
+        self._bring_to_front_failure_logged = False
+
+    def bring_app_to_front(self) -> bool:
+        try:
+            # Deprecated on macOS 14+, but still works.
+            self._get_appkit().NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+            return True
+        except Exception:
+            if not self._bring_to_front_failure_logged:
+                logging.getLogger(__name__).exception("Could not bring application to front")
+                self._bring_to_front_failure_logged = True
+            return False
 
     def releases_topmost_during_modal(self) -> bool:
         return True

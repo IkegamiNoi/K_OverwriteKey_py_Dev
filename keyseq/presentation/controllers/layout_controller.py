@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import os
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
+from keyseq.presentation import message_box as messagebox
+from keyseq.presentation import modal
 
 from keyseq.shared.i18n import tr
 
@@ -123,7 +125,10 @@ class LayoutController:
         try:
             if window.winfo_exists():
                 enabled = bool(self._app.ui_vars.keyboard_always_on_top_var.get())
-                window.attributes("-topmost", enabled and not self._topmost_released)
+                topmost = enabled and not self._topmost_released and not (
+                    modal.is_modal_active() and get_backend().window.releases_topmost_during_modal()
+                )
+                window.attributes("-topmost", topmost)
         except Exception:
             pass
 

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
+from keyseq.presentation import message_box as messagebox
 from typing import TYPE_CHECKING, Callable
 
 from keyseq.application.screen_grid_session import MonitorInfo

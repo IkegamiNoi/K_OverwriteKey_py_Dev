@@ -150,6 +150,7 @@ keyseq/presentation/
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
+    message_box.py             # messagebox の唯一の入口（phase 75 task_11f・暫定 57 v0.19）: tkinter.messagebox と同じ関数名。parent が無ければ `_default_parent()`（台帳の内側の表示中のモーダル → 表示中のルート → なし）を補い、`modal.enter_message_box()` / `leave_message_box()` で出入りを知らせ（モーダル中と同じく最前面を外す）、showerror / showwarning は `get_backend().window.bring_app_to_front()`（aqua = アプリを前面）。presentation は `from keyseq.presentation import message_box as messagebox`（静的テスト `tests/test_message_box_imports.py`）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰・前面判定は get_backend().window に委譲
     child_kind_labels.py       # 子ファイルの種別の文言キーの表 + 親の種類名。kind_label / parent_kind_label の呼出時に shared.i18n.tr で表示名を解決
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳）
@@ -476,7 +477,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     遅らせた最小化の処理は `wm_state() == "iconic"` のときだけ、台帳を内側から辿り、transient の鎖が App に届く窓を、表示中なら `withdraw()` + `order_out` して `_hidden_by_minimize` に開いた順で記録・Tk が隠した窓は `order_out` だけ（aqua は withdraw しても NSWindow が残る）。
     遅らせた復元は記録窓を開いた順に `deiconify()` してから `_return_grab(app, shown)`（表示し直した直後の窓は viewable の判定を省く）。
     `grab_modal` は grab の前に `disable_minimize_button(window)`（aqua = `-stylemask` から `miniaturizable` を外す）。
-    **phase 75 task_11e（暫定 57 v0.18）**: `set_modal_presence_listener(callback)` / `is_modal_active()` = 台帳が空 ↔ 空でないに変わったときだけ通知（`grab_modal` で積んだ後・`restore_grab` で外した後）。`App` は `_on_modal_presence_changed` を登録し、backend の `releases_topmost_during_modal()`（aqua = True・Windows = False）が真のときだけ `_apply_always_on_top` をかけ直す。`App.effective_always_on_top()` = チェック and not（モーダル中 and 外す OS）を、メイン・ヘルプ・ライセンスの窓が使う（aqua は grab を持つダイアログのクリックで Tk がレベルを 0 に戻すため、モーダルの間は最前面を外す）。
+    **phase 75 task_11e（暫定 57 v0.18）**: `set_modal_presence_listener(callback)` / `is_modal_active()` = 台帳が空 ↔ 空でないに変わったときだけ通知（`grab_modal` で積んだ後・`restore_grab` で外した後）。`App` は `_on_modal_presence_changed` を登録し、backend の `releases_topmost_during_modal()`（aqua = True・Windows = False）が真のときだけ `_apply_always_on_top` をかけ直す。`App.effective_always_on_top()` = チェック and not（モーダル中 and 外す OS）を、メイン・ヘルプ・ライセンスの窓が使う（キーボードUIの `apply_keyboard_topmost` も同じ条件で外す・task_11f）（aqua は grab を持つダイアログのクリックで Tk がレベルを 0 に戻すため、モーダルの間は最前面を外す）。
     固定テスト = `tests_ui/test_minimize_grab_custody.py`（テストは `setUp` でモジュール状態を patch して独立させ、
     `_is_app_foreground` を既定 `False` に差し替える）/ `tests_ui/test_modal_app_foreground.py`（前面判定と FFI の型設定）
 

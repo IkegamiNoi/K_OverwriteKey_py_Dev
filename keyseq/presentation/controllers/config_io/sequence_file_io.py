@@ -1,5 +1,6 @@
 import os
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.shared.i18n import tr
 

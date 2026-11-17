@@ -4,7 +4,7 @@ import logging
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox
+from keyseq.presentation import message_box as messagebox
 from typing import Callable
 
 from keyseq.shared.i18n import tr

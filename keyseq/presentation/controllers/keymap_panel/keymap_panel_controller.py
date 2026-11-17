@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import tkinter as tk
 from copy import deepcopy
-from tkinter import messagebox, simpledialog
+from tkinter import simpledialog
+from keyseq.presentation import message_box as messagebox
 
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis

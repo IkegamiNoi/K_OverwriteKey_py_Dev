@@ -38,6 +38,7 @@ from keyseq.application.save_plan import (
     SavePlan,
 )
 from keyseq.presentation import app as app_module
+from keyseq.presentation import message_box as message_box_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 from keyseq.shared.i18n import fix_language, tr
@@ -155,6 +156,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        # Characterization of the save flows: keep message box calls as written (no parent filled in).
+        parent_patch = patch.object(message_box_module, "_default_parent", return_value=None)
+        parent_patch.start()
+        self.addCleanup(parent_patch.stop)
         self._legacy_default_patch = patch.object(
             self.app.config_service, "new_default_data", side_effect=_legacy_default_data
         )
@@ -1203,11 +1208,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             with patch.object(
                 tkinter.messagebox,
                 "askyesnocancel",
-                side_effect=lambda *_args: events.append("save") or False,
+                side_effect=lambda *_args, **_kwargs: events.append("save") or False,
             ), patch.object(
                 tkinter.messagebox,
                 "askyesno",
-                side_effect=lambda *_args: events.append("restore") or False,
+                side_effect=lambda *_args, **_kwargs: events.append("restore") or False,
             ):
                 _config_set_io(self.app).restore_default()
             self.assertEqual(events, ["save", "restore"])
