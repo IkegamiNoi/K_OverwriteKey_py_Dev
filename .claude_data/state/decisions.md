@@ -843,3 +843,12 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 割り当て禁止の文言 3 つ・ヘルプの説明（理由をキーごとに）・プリセットのヒントを両 OS 共通に（案 A・OS で切り替えない・application 層の文言も同じキーのまま）。ヘルプを含めたのは起票レビュー M1 とユーザー判断。
 - 目視 1（Command の置換元）・2（Caps Lock の切替キー）は、Mac では枠が禁止の色でクリックできない・Caps Lock を記録できないため画面から出せず、テストで代えて完了（ユーザー判断）。
 - 目視の際の新しい発見（ダイアログから開いたヘルプに入力できない）は idea_60。
+
+### 【Windows 検証 task_09〜11f】テスト側の取りこぼし 3 件を修正・Windows 目視 OK（2026-11-17・Windows）
+- Mac では skip / 未実行だったテストの追従漏れ 3 件（pyautogui の patch 先・messagebox の parent・スタブ App の input_gateway）をテストだけ直した（reviewer 採用）。
+- Win+D で入れ子のプリセット追加が白くなる件は phase 75 前の main でも起きる → idea_61（ユーザー確認）。task_09d はドイツ語入力を省き記号キーの記録で確認（ユーザー判断）。
+
+### 【task_12 起票】暫定 57 v0.21（2026-11-17・ユーザー確定）
+- レイアウトの見本のコピーは `user/keylayout` が無いときだけ（消した見本を戻さない・ユーザー判断）。一時フォルダへコピーして改名（起票レビュー M1）。
+- Q3 の Mac の `~/Library/Application Support/keyseq/` はルートで、設定はその下の `config/`（Windows と同じ相対構造・起票レビュー M2 を受けてユーザー確定）。
+- 再起動は os_backend 共通の `app_relaunch.py` へ移し Mac も使う。`.app` の `open -n` は task_13 の実測で決める。

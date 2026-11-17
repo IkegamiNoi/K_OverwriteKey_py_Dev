@@ -5,7 +5,7 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-17T17:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.20・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11d のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
