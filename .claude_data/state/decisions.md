@@ -852,3 +852,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - レイアウトの見本のコピーは `user/keylayout` が無いときだけ（消した見本を戻さない・ユーザー判断）。一時フォルダへコピーして改名（起票レビュー M1）。
 - Q3 の Mac の `~/Library/Application Support/keyseq/` はルートで、設定はその下の `config/`（Windows と同じ相対構造・起票レビュー M2 を受けてユーザー確定）。
 - 再起動は os_backend 共通の `app_relaunch.py` へ移し Mac も使う。`.app` の `open -n` は task_13 の実測で決める。
+
+### 【task_12 完了 / task_13 系の起票】暫定 57 v0.22（2026-11-18・ユーザー確定）
+- task_12 は Windows 目視（開発実行の言語切り替え＝再起動）OK で完了。
+- §6.3 を追加: ライセンスの表に OS の列（実行中の OS の行だけ表示・照合）・アイコンは既定（差し替え口だけ）・見本は 5 本（jis_test.json を除く）・README と手順書（本体のソースの入手先とタグ・PyInstaller の例外）。すべて推奨案をユーザーが選択。
+- Codex 敵対的レビュー 1 回目 high 2 件 → ユーザー判断: pynput は `.py` のまま置いて差し替えを実測（onedir だけでは差し替えられない）・GPL / LGPL の依存は同梱した版のソースのアーカイブを配布物に入れる。2 回目 approve。PyInstaller のランタイムの hook の Apache-2.0 も載せる。
+- タスク分割: task_13a（表の OS 列の仕組みと Windows の行）→ task_13（packaging・Windows のビルド・PyInstaller の行）→ task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕）。

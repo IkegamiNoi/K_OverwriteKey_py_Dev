@@ -11,6 +11,7 @@ last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
+presence: away（戻る予定 未定）
 focus: **phase 75 段階 ④。task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）完了（2026-11-18・Windows 目視 OK）。次 = task_13（packaging とビルド・各 OS の実機確認）の起票。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59〜61 は検討段階。**
 mode: implementing
 
