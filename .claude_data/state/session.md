@@ -5,7 +5,7 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-17T17:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.20・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 61
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.20・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11d のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
@@ -29,9 +29,10 @@ verified:
   tests_ui_mac: test_prohibited_assign_keys_ui・test_preset_manager_i18n・test_task06_keymap_management_ui・test_help_window 失敗 0
   tests_windows: compile clean / tests 2193・失敗 0（テスト側の取りこぼし 3 件を修正後）/ smoke OK / tests_ui 79 本 1 本ずつ・失敗 0（修正後）
   visual_mac: task_11d OK（3・4）
+  visual_windows: task_09〜11f OK（Win+D で入れ子のプリセット追加が白くなる件は phase 75 前の main でも起きる既存の問題 → idea_61。task_09d は記号キーの記録で確認・ドイツ語入力は省略〔ユーザー判断〕）
 
 ## next_action
-- **task_09〜11f の Windows 自動検証は完了（2026-11-17・テスト側の取りこぼし 3 件を修正・reviewer 採用・コミット済み）。残 = Windows の目視** = カーソルグリッドが今どおり透けてクリックが通る・マウスのアクション（ダブルクリック・ドラッグ・押す / 離す）・最小化と grab（入れ子のダイアログ）・最前面のときのダイアログと messagebox・割り当て禁止の文言・task_09d のドイツ語入力の hotkey 等。
+- **task_09〜11f の Windows 自動検証は完了（2026-11-17・テスト側の取りこぼし 3 件を修正・reviewer 採用・コミット済み）。Windows の目視も完了（既存の問題 1 件を idea_61 へ）**
 - その後、段階 ④ の task_12（`app_data_root` への統一と同梱物のパス・再起動）を起票。
 
 ## blockers
