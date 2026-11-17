@@ -212,7 +212,7 @@
               },
               {
                 "type": "p",
-                "text": "対象はWindowsキー（左右）・Caps Lock・AltGr配列の右Altで、置換元キーと切替キーにできません。押さえ込んでもOS側の動作が止まらず、置き換えたキーと本来の機能が両方動いてしまうためです。"
+                "text": "対象はWindowsキー（左右）・Commandキー（左右）・Caps Lock・AltGr配列の右Alt・fnで、置換元キーと切替キーにできません。Windowsキー・Caps Lockは押さえ込んでもOS側の動作が止まらず、置き換えたキーと本来の機能が両方動いてしまうためです。CommandキーはOSのショートカットを守るため、fnはアプリが受け取れないためです。"
               }
             ]
           }
@@ -779,11 +779,11 @@
           },
           {
             "id": "limits.forbidden_keys",
-            "title": "Windowsキー・Caps Lock・AltGr",
+            "title": "Windowsキー・Commandキー・Caps Lock・AltGr・fn",
             "body": [
               {
                 "type": "p",
-                "text": "Windowsキー（左右）・Caps Lock・AltGr配列の右Altは、置換元キーと切替キーにできません。AltGr配列の右Altは、アプリが押さえ込めずにOSへ通ることがあります。"
+                "text": "Windowsキー（左右）・Commandキー（左右）・Caps Lock・AltGr配列の右Alt・fnは、置換元キーと切替キーにできません。AltGr配列の右Altは、アプリが押さえ込めずにOSへ通ることがあります。"
               }
             ]
           },

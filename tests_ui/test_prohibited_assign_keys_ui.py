@@ -188,7 +188,7 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
             ))
         showerror.assert_called_once_with(
             "設定できません",
-            "Windowsキー・Caps Lock・AltGrは切替キーにできません:\ncaps lock",
+            "Windowsキー・Commandキー・Caps Lock・AltGr・fnは切替キーにできません:\ncaps lock",
             parent=None,
         )
 

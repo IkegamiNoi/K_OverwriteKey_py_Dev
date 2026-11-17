@@ -838,3 +838,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【task_11f 実装】reviewer 修正して採用・Mac 目視 OK・暫定 57 v0.19（2026-11-17・Mac）
 - messagebox を `presentation/message_box.py` の 1 つの入口に通す（import の 1 行だけを置き換え・呼び出しは変えない＝既存テストの多くが生き残る）。parent を補う・エラーと警告は前面化（ユーザー要件）・メッセージの窓の間は最前面を外す（キーボードUIを含む）。v0.19 はユーザー承認。
 - verifier で characterization の tests_ui 2 本が落ちた（偽の窓の AttributeError・parent が足されて引数が合わない）→ 実装は parent 探しを `_default_parent()` に切り出し例外を広く受ける、テストは setUp で `_default_parent` を None に差し替え（期待値は変えない）。
+
+### 【task_11d 実装】reviewer 採用・Mac 目視 OK・暫定 57 v0.20（2026-11-17・Mac）
+- 割り当て禁止の文言 3 つ・ヘルプの説明（理由をキーごとに）・プリセットのヒントを両 OS 共通に（案 A・OS で切り替えない・application 層の文言も同じキーのまま）。ヘルプを含めたのは起票レビュー M1 とユーザー判断。
+- 目視 1（Command の置換元）・2（Caps Lock の切替キー）は、Mac では枠が禁止の色でクリックできない・Caps Lock を記録できないため画面から出せず、テストで代えて完了（ユーザー判断）。
+- 目視の際の新しい発見（ダイアログから開いたヘルプに入力できない）は idea_60。

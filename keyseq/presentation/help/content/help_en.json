@@ -119,7 +119,7 @@
             "id": "keymap.forbidden", "title": "Keys that cannot be assigned",
             "body": [
               {"type": "p", "text": "Grayed-out keys in the Keyboard UI cannot be assigned."},
-              {"type": "p", "text": "These are the Windows keys (left and right), Caps Lock, and the right Alt key on an AltGr layout. They cannot be Source Keys or Switch Keys because suppressing them does not stop their OS behavior, causing both the remapped key and the original function to run."}
+              {"type": "p", "text": "These are the Windows keys (left and right), the Command keys (left and right), Caps Lock, the right Alt key on an AltGr layout, and fn. They cannot be Source Keys or Switch Keys. Suppressing the Windows keys or Caps Lock does not stop their OS behavior, so both the remapped key and the original function would run. The Command keys are excluded to protect OS shortcuts, and fn cannot be received by the app."}
             ]
           }
         ]
@@ -431,8 +431,8 @@
             "body": [{"type": "p", "text": "Each Trigger, Source Key, Switch Key, and Stop Key must be a single key. Combinations such as ctrl+a cannot be set. The hotkey Action can send key combinations."}]
           },
           {
-            "id": "limits.forbidden_keys", "title": "Windows key, Caps Lock, and AltGr",
-            "body": [{"type": "p", "text": "The Windows keys (left and right), Caps Lock, and the right Alt key on an AltGr layout cannot be Source Keys or Switch Keys. The app may be unable to suppress the right Alt key on an AltGr layout, so it may reach the OS."}]
+            "id": "limits.forbidden_keys", "title": "Windows key, Command key, Caps Lock, AltGr, and fn",
+            "body": [{"type": "p", "text": "The Windows keys (left and right), the Command keys (left and right), Caps Lock, the right Alt key on an AltGr layout, and fn cannot be Source Keys or Switch Keys. The app may be unable to suppress the right Alt key on an AltGr layout, so it may reach the OS."}]
           },
           {
             "id": "limits.make_only", "title": "Some special keys do not repeat",

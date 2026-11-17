@@ -4,36 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-17T14:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.19・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 60
+last_updated: 2026-11-17T15:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.20・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 61
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11f のコミットまで）。push はユーザー
+last_commit_location: `claude/modifier-key-registration-issue-faa33a`（Mac の worktree・task_11d のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ③。task_09〜11f を Mac で実装・目視 OK・コミット済み（task_11f = messagebox の入口・暫定 57 v0.19）。次 = task_11d（割り当て禁止の文言）。残り = task_09〜11f の Windows 検証・2 枚目のモニタの目視（保留）・中クリック（未確認）。入れ子のダイアログの途中を ✕ で閉じると子が残る件は idea_59 に追記（ユーザー判断 A）。**
+focus: **phase 75 段階 ③ の Mac 側が完了（task_09〜11f を Mac で実装・目視 OK・コミット済み。最後 = task_11d 割り当て禁止の文言・暫定 57 v0.20）。次 = task_09〜11f の Windows 検証（ユーザーが push）→ 段階 ④（task_12 起票）。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59・idea_60 は検討段階。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-17T14:00:00
+ts: 2026-11-17T15:00:00
 who: main
 summary: |
-  task_11f を起票（codex-explorer で messagebox 171 か所を洗い出し）→ reviewer 修正して採用 → v0.19 承認 → codex-implementer（2 回の続き）で実装 → verifier で characterization の tests_ui 2 本が落ちた → メインが `_default_parent()` の切り出しとテストの setUp で対応・reviewer の指摘 2 点も反映 → Mac 目視 OK。
+  task_11d を起票（ユーザー判断: 両 OS 共通の文言・ヒントは ctrl+c）→ reviewer 修正して採用（ヘルプの本文も含める・ユーザー判断）→ v0.20 承認 → codex-implementer で実装 → verifier pass・reviewer 採用 → Mac 目視 3・4 OK（1・2 は画面から出せずテストで代える・ユーザー判断）→ コミット。目視の際の新しい発見（ダイアログから開いたヘルプに入力できない）を idea_60 に起票。
 result_files:
-  - keyseq/presentation/message_box.py（新規）・modal.py・app.py・controllers/layout_controller.py・presentation の 28 ファイルの import・os_backend の contracts / windows / macos
-  - tests/test_message_box.py・tests/test_message_box_imports.py（新規）・tests/test_os_backend_contracts.py・tests/test_macos_window_backend.py・tests_ui/test_modal_grab.py・test_minimize_grab_custody.py・test_config_io_characterization*.py
-  - instructions/history/57_mac_support.md（v0.19）・phase.md・task_11f 定義（新規）・codebase_map.md・current.md・decisions.md
+  - keyseq/shared/i18n/locales/ja.json・en.json・keyseq/presentation/help/content/help_ja.json・help_en.json・tests/test_keymap_switch_batch.py・tests_ui/test_prohibited_assign_keys_ui.py
+  - instructions/history/57_mac_support.md（v0.20）・task_11d 定義（新規）・current.md・decisions.md・backlog/idea_60（新規）・INDEX.md
 verified:
   compile: clean（Mac）
   tests_mac: 2131 件・失敗 1（test_third_party）・エラー 0・skip 32
   smoke_mac: pass
-  tests_ui_mac: 14 本 失敗 0（config_io の 2 本はメインが修正後に再実行）
+  tests_ui_mac: test_prohibited_assign_keys_ui・test_preset_manager_i18n・test_task06_keymap_management_ui・test_help_window 失敗 0
   tests_windows: not_run
-  visual_mac: task_11f OK
+  visual_mac: task_11d OK（3・4）
 
 ## next_action
-- **task_11d を起票**（割り当て禁止の文言の Mac 向けの言い換え）。
-- **task_09〜11f の Windows 検証**: ユーザーが push → Windows で verifier（compile・tests 失敗 0〔契約のテストの Windows 側を含む〕・tests_ui 1 本ずつ・smoke）。目視 = カーソルグリッド・マウスのアクション・最小化と grab（入れ子）・messagebox の親・task_09d のドイツ語入力の hotkey 等。
+- **task_09〜11f の Windows 検証**: ユーザーが push → Windows の worktree で verifier（compile・tests 失敗 0〔契約のテストの Windows 側＝`sys.platform != "win32"` で skip していたものを含む〕・tests_ui 1 本ずつ・smoke）。Windows の目視 = カーソルグリッドが今どおり透けてクリックが通る・マウスのアクション（ダブルクリック・ドラッグ・押す / 離す）・最小化と grab（入れ子のダイアログ）・最前面のときのダイアログと messagebox・割り当て禁止の文言・task_09d のドイツ語入力の hotkey 等。
+- その後、段階 ④ の task_12（`app_data_root` への統一と同梱物のパス・再起動）を起票。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

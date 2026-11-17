@@ -35,7 +35,7 @@ class ValidateSwitchBatchTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(
                     validate_switch_batch(make_runtime(), "", "", [], [key], ["new"]),
-                    (0, f"Windowsキー・Caps Lock・AltGrは切替キーにできません:\n{key.strip().lower()}"),
+                    (0, f"Windowsキー・Commandキー・Caps Lock・AltGr・fnは切替キーにできません:\n{key.strip().lower()}"),
                 )
 
     def test_unchanged_prohibited_switch_key_is_accepted(self):
