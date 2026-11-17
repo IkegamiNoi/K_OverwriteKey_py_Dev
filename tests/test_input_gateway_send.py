@@ -10,8 +10,9 @@ if sys.platform != "win32":
 
 from keyseq.infrastructure import input_gateway
 from keyseq.infrastructure.os_backend import KeySend
+from keyseq.infrastructure.os_backend import pyautogui_mouse
 from keyseq.infrastructure.os_backend.windows import (
-    keyboard_backend, mouse_backend, send_input as send_input_api,
+    keyboard_backend, send_input as send_input_api,
 )
 
 
@@ -700,35 +701,35 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
                 self.gateway.key_identity("no such key")
 
     def test_mouse_down_and_up_disable_failsafe_move_and_restore(self) -> None:
-        with patch.object(mouse_backend.pyautogui, "FAILSAFE", True), \
-             patch.object(mouse_backend.pyautogui, "moveTo") as move_to, \
-             patch.object(mouse_backend.pyautogui, "mouseDown") as mouse_down, \
-             patch.object(mouse_backend.pyautogui, "mouseUp") as mouse_up:
+        with patch.object(pyautogui_mouse.pyautogui, "FAILSAFE", True), \
+             patch.object(pyautogui_mouse.pyautogui, "moveTo") as move_to, \
+             patch.object(pyautogui_mouse.pyautogui, "mouseDown") as mouse_down, \
+             patch.object(pyautogui_mouse.pyautogui, "mouseUp") as mouse_up:
             move_to.side_effect = lambda *args: self.assertFalse(
-                mouse_backend.pyautogui.FAILSAFE
+                pyautogui_mouse.pyautogui.FAILSAFE
             )
-            mouse_down.side_effect = lambda **kwargs: self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
-            mouse_up.side_effect = lambda **kwargs: self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
+            mouse_down.side_effect = lambda **kwargs: self.assertFalse(pyautogui_mouse.pyautogui.FAILSAFE)
+            mouse_up.side_effect = lambda **kwargs: self.assertFalse(pyautogui_mouse.pyautogui.FAILSAFE)
             self.gateway.mouse_down("left", 12, 34)
             self.gateway.mouse_up("right", 56, 78)
-            self.assertTrue(mouse_backend.pyautogui.FAILSAFE)
+            self.assertTrue(pyautogui_mouse.pyautogui.FAILSAFE)
         self.assertEqual(move_to.call_args_list, [call(12, 34), call(56, 78)])
         mouse_down.assert_called_once_with(button="left")
         mouse_up.assert_called_once_with(button="right")
 
     def test_mouse_up_without_position_preserves_disabled_failsafe_on_error(self) -> None:
-        with patch.object(mouse_backend.pyautogui, "FAILSAFE", False), \
-             patch.object(mouse_backend.pyautogui, "moveTo") as move_to, \
-             patch.object(mouse_backend.pyautogui, "mouseUp", side_effect=RuntimeError("up failed")):
+        with patch.object(pyautogui_mouse.pyautogui, "FAILSAFE", False), \
+             patch.object(pyautogui_mouse.pyautogui, "moveTo") as move_to, \
+             patch.object(pyautogui_mouse.pyautogui, "mouseUp", side_effect=RuntimeError("up failed")):
             with self.assertRaisesRegex(RuntimeError, "up failed"):
                 self.gateway.mouse_up("left")
-            self.assertFalse(mouse_backend.pyautogui.FAILSAFE)
+            self.assertFalse(pyautogui_mouse.pyautogui.FAILSAFE)
             move_to.assert_not_called()
 
     def test_mouse_restores_failsafe_when_send_raises(self) -> None:
-        with patch.object(mouse_backend.pyautogui, "FAILSAFE", True), \
-             patch.object(mouse_backend.pyautogui, "mouseDown",
+        with patch.object(pyautogui_mouse.pyautogui, "FAILSAFE", True), \
+             patch.object(pyautogui_mouse.pyautogui, "mouseDown",
                           side_effect=RuntimeError("mouse failed")):
             with self.assertRaisesRegex(RuntimeError, "mouse failed"):
                 self.gateway.mouse_down("left")
-            self.assertTrue(mouse_backend.pyautogui.FAILSAFE)
+            self.assertTrue(pyautogui_mouse.pyautogui.FAILSAFE)

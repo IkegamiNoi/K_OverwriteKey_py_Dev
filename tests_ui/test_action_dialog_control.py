@@ -302,7 +302,7 @@ class ActionDialogControlTest(unittest.TestCase):
         invalid.control_fields.system_op_var.set("呼び出し")
         invalid.on_ok()
         self.assertTrue(invalid.winfo_exists())
-        self.showerror.assert_called_with("入力エラー", "呼び出し先を選択してください")
+        self.assertEqual(self.showerror.call_args.args, ("入力エラー", "呼び出し先を選択してください"))
 
     def test_call_check_rejects_without_closing_and_accepts_none(self) -> None:
         rejected = self.make_dialog(
