@@ -11,8 +11,7 @@ last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④ の task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残 = ユーザーの Windows 目視（開発実行での言語切り替え＝再起動）。その後 task_13（packaging とビルド）を起票。task_09〜11f の Windows 検証・目視は完了（既存の問題 1 件を idea_61 へ）。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59〜61 は検討段階。**
+focus: **phase 75 段階 ④。task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）完了（2026-11-18・Windows 目視 OK）。次 = task_13（packaging とビルド・各 OS の実機確認）の起票。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59〜61 は検討段階。**
 mode: implementing
 
 ## last_action
@@ -27,10 +26,10 @@ result_files:
 verified:
   tests_windows: compile clean / tests 2202・失敗 0・skip 7 / smoke OK / tests_ui（first_launch_flow・app_ui_flows・help_window・ui_language）失敗 0。テスト実行で config/ に keylayout.tmp 等は出来ていない
   tests_mac: not_run（task_13 でまとめて）
-  visual_windows: task_09〜11f OK。task_12 は未実施
+  visual_windows: task_09〜11f OK。task_12 OK（開発実行での言語切り替え＝再起動・2026-11-18）
 
 ## next_action
-- **【ユーザーの確認待ち】task_12 の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）で言語を切り替えて再起動が今どおり動くか（再起動後に同じ設定・キーボードUIのレイアウトが読めること）。OK なら task_12 完了 → task_13（`packaging/`・`.spec`・ビルドと実機確認・`.app` の `open -n` の判断・同梱する見本の選別〔`jis_test.json`〕・`test_third_party`）を起票。
+- **task_12 完了（Windows 目視 OK・2026-11-18）。次 = task_13 を起票**（`packaging/`・`.spec`・datas の相対配置・ビルドと各 OS の実機確認・`.app` の `open -n`・同梱する見本の選別・`test_third_party`）。
 - Mac 側の task_12 の確認（tests・smoke）は task_13 でまとめて行う。
 
 ## blockers
