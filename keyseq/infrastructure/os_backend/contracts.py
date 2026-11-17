@@ -140,3 +140,4 @@ class OsBackend:
     mouse: MouseBackend
     default_profile: DefaultProfile = WINDOWS_DEFAULT_PROFILE
     queued_hook_dispatch: bool = False
+    platform_key: str = "win32"

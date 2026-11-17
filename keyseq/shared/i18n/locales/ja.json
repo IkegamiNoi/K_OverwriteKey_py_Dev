@@ -666,6 +666,7 @@
   "help.third_party.entry_invalid": "{index} 件目の項目が不正です。",
   "help.third_party.entry_values_invalid": "{index} 件目に空または文字列以外の値があります。",
   "help.third_party.filename_invalid": "{index} 件目の file 名が不正です。",
+  "help.third_party.platforms_invalid": "{index} 件目の platforms が正しくありません。",
   "help.validation.array": "{location} は配列でなければなりません",
   "help.validation.block_text_string": "{location}.text は文字列でなければなりません",
   "help.validation.block_type_invalid": "{location}.type が不正です: {kind}",

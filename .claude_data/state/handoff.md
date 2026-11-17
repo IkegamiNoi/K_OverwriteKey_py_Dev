@@ -24,10 +24,11 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ④。task_09〜11f は Mac・Windows とも検証・目視済み（Windows でテスト側の取りこぼし 3 件を修正・Win+D の白い窓は既存の問題で idea_61）。task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_12 は Windows 目視 OK で完了（2026-11-18）。次 = task_13 起票。**
+**phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定。task_13a（第三者ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残り = task_13a の Windows 目視（ユーザー）→ task_13 起票 → task_13b（Mac）。**
+**presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
 Windows の worktree = `claude/continue-c6c37b`（未 push）。Mac の worktree = `claude/modifier-key-registration-issue-faa33a`。push と main へのマージはユーザー（PR は作らない）。
-直近の実測（Windows・task_12 後・2026-11-17）: compile clean / tests 2202・失敗 0・skip 7 / smoke pass / tests_ui は task_09〜11f の検証で 79 本 1 本ずつ失敗 0（修正後）。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（task_11d 後 2131 件・失敗 1〔test_third_party〕）。
+直近の実測（Windows・task_13a 後・2026-11-18）: compile clean / tests 2203・失敗 0・skip 7 / smoke pass。
+Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（task_11d 後 2131 件・失敗 1〔test_third_party〕→ task_13a で Python / Tcl / Tk の照合は skip に）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -56,11 +57,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **task_12 完了（2026-11-18・Windows 目視 OK）。次 = task_13 を起票**:
-  - OK なら task_12 完了（`instructions/phase/current.md` の task_12 を完了に）→ task_13 を起票（`packaging/`・`.spec`・`requirements-build.txt`・datas の相対配置〔`config/user/keylayout` を `bundled_keylayout_dir()` の場所へ〕・ビルドと各 OS の実機確認・`.app` の再起動に `open -n` を使うか・同梱する見本の選別〔`jis_test.json`〕・`test_third_party`）。
-  - NG なら症状を聞いて切り分け（再起動 = `keyseq/infrastructure/os_backend/app_relaunch.py`・基点 = `keyseq/presentation/app.py:122`）。
-- Mac 側の task_12 の確認（tests・smoke）は task_13 でまとめて行う（ユーザーが push した後）。
-- **Codex の注意（task_12 で判明）**: CRLF のファイルには apply_patch が当たらず途中で止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では index.lock を作れず失敗する → メインで行う。
+- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（worktree で `..\..\..\.venv\Scripts\python.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること。OK なら task_13a 完了（current.md・session.md を更新してコミット）。
+- 次 = **task_13 を起票**（暫定 57 §6.2・§6.3）: `packaging/`・`.spec`（pynput は `module_collection_mode` で `.py`・hiddenimports・アイコンの差し替え口）・`requirements-build.txt`（PyInstaller の版を固定・`.venv` へ入れる）・手順書と同梱の README（本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外）・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行（GPL v2 + 例外・Apache-2.0）・見本 5 本の datas・Windows のビルドと実機確認（保存先・見本のコピー・再起動・pynput の差し替え）。
+- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
+- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では失敗する → メインで。Codex は 1 回で全部終わらないことが多い（本体 → テストの 2 回に分けると通る）。
 
 ## 運用インフラ
 

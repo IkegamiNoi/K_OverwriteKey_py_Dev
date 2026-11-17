@@ -787,4 +787,5 @@ def create_backend() -> OsBackend:
         MacTkKeyTranslator(keyboard), MacAppIdentity(), keyboard, MacMouseBackend(),
         default_profile=MACOS_DEFAULT_PROFILE,
         queued_hook_dispatch=True,
+        platform_key="darwin",
     )

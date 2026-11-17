@@ -249,8 +249,8 @@ class HelpWindowTest(unittest.TestCase):
             self.assertIs(self.app.license.open(), window)
             content = window.text.get("1.0", "end-1c")
             self.assertTrue(content.startswith("Key Replacer Sequencer\n"))
-            self.assertEqual(content.count(" — "), 14)
             notices, error = load_third_party()
+            self.assertEqual(content.count(" — "), len(notices))
             self.assertEqual(error, "")
             for notice in notices:
                 heading = f"\n{notice.entry.name} {notice.entry.version}\n"

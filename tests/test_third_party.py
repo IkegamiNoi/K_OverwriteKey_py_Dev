@@ -19,20 +19,21 @@ class ThirdPartyTest(unittest.TestCase):
         cls.directory = bundled_paths.third_party_dir()
 
     def test_bundled_notices_are_complete_unique_and_ordered(self) -> None:
-        notices, error = load_third_party()
-        self.assertEqual(error, "")
-        self.assertEqual(len(notices), 14)
-        self.assertTrue(all(notice.text for notice in notices))
-        filenames = [notice.entry.file for notice in notices]
-        self.assertEqual(len(set(filenames)), 14)
-        self.assertEqual(
-            [notice.entry.name for notice in notices],
-            [
-                "keyboard", "pyautogui", "pynput", "pyscreeze", "pymsgbox",
-                "pytweening", "mouseinfo", "pygetwindow", "pyrect", "pyperclip",
-                "six", "Python", "Tcl", "Tk",
-            ],
-        )
+        windows_names = [
+            "keyboard", "pyautogui", "pynput", "pyscreeze", "pymsgbox",
+            "pytweening", "mouseinfo", "pygetwindow", "pyrect", "pyperclip",
+            "six", "Python", "Tcl", "Tk",
+        ]
+        # task_13b adds Mac-specific rows; update this interim ten-row expectation then.
+        mac_names = [name for name in windows_names if name not in {"keyboard", "Python", "Tcl", "Tk"}]
+        for platform_key, expected in (("win32", windows_names), ("darwin", mac_names)):
+            with self.subTest(platform=platform_key):
+                notices, error = load_third_party(platform=platform_key)
+                self.assertEqual(error, "")
+                self.assertEqual([notice.entry.name for notice in notices], expected)
+                self.assertTrue(all(notice.text for notice in notices))
+                filenames = [notice.entry.file for notice in notices]
+                self.assertEqual(len(set(filenames)), len(filenames))
 
     def test_library_versions_match_installed_distributions(self) -> None:
         notices, error = load_third_party()
@@ -51,6 +52,8 @@ class ThirdPartyTest(unittest.TestCase):
         notices, error = load_third_party()
         self.assertEqual(error, "")
         versions = {notice.entry.name: notice.entry.version for notice in notices}
+        if not {"Python", "Tcl", "Tk"} <= versions.keys():
+            self.skipTest("Python/Tcl/Tk rows are not bundled for this platform yet")
         self.assertEqual(versions["Python"], platform.python_version())
         self.assertEqual(versions["Tcl"], tkinter.Tcl().eval("info patchlevel"))
         # Tk は Tcl だけのインタプリタでは読み込めないため、窓を出さないルートで版を引く。
@@ -76,12 +79,29 @@ class ThirdPartyTest(unittest.TestCase):
             ("unsafe filename", json.dumps([
                 {"name": "x", "version": "1", "license": "MIT", "file": "../x.txt"},
             ])),
+            ("unknown platform", json.dumps([{"name": "x", "version": "1", "license": "MIT", "file": "x.txt", "platforms": ["linux"]}])),
+            ("empty platforms", json.dumps([{"name": "x", "version": "1", "license": "MIT", "file": "x.txt", "platforms": []}])),
+            ("non-string platform", json.dumps([{"name": "x", "version": "1", "license": "MIT", "file": "x.txt", "platforms": [1]}])),
+            ("duplicate platform", json.dumps([{"name": "x", "version": "1", "license": "MIT", "file": "x.txt", "platforms": ["win32", "win32"]}])),
+            ("extra key", json.dumps([{"name": "x", "version": "1", "license": "MIT", "file": "x.txt", "extra": True}])),
         )
         for label, content in cases:
             with self.subTest(label=label), self._manifest_directory(content) as directory:
                 notices, error = load_third_party(directory)
                 self.assertEqual(notices, [])
                 self.assertTrue(error)
+
+    def test_platform_filter_keeps_unrestricted_rows_and_selects_matching_rows(self) -> None:
+        content = json.dumps([
+            {"name": "both", "version": "1", "license": "MIT", "file": "both.txt"},
+            {"name": "windows", "version": "1", "license": "MIT", "file": "windows.txt", "platforms": ["win32"]},
+            {"name": "mac", "version": "1", "license": "MIT", "file": "mac.txt", "platforms": ["darwin"]},
+        ])
+        with self._manifest_directory(content) as directory:
+            for key, expected in (("win32", ["both", "windows"]), ("darwin", ["both", "mac"])):
+                notices, error = load_third_party(directory, platform=key)
+                self.assertEqual(error, "")
+                self.assertEqual([notice.entry.name for notice in notices], expected)
 
     def test_missing_license_document_only_marks_that_notice(self) -> None:
         with self._manifest_directory(json.dumps([

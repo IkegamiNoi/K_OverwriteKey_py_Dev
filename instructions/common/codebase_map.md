@@ -43,6 +43,7 @@ infrastructure
 - `keyseq/infrastructure/os_backend/macos/modifier_state.py`: 修飾キーの左右別の押下・抑止中の管理（FlagsChanged → down / up・down を抑止したら対の up も抑止・`physical_modifiers`・`rewrite_flags`・`clear`）と純関数 `modifier_flags(keys, base)`（修飾の vk の集合 → フラグ。backend の送信も使う）。pyobjc を import しない
 - `keyseq/infrastructure/os_backend/macos/input_source.py`: TIS（入力ソース）の ctypes の口（Carbon.framework / CoreFoundation を初回に読む・現在 / ASCII 可能の取得・ASCII 可能か・ID の文字列・選択・CFRelease）。`MacImeBackend` が取得中の入力ソースの切替（ASCII 可能へ・読み直しの ID で確認・切替先の ID のままのときだけ戻す・暫定 57 §8 Q4）に使う。`MacTkKeyTranslator` は aqua の keycode の上位 8 ビットを vk として `key_table.key_for_vk` で解釈（0xFF は解釈しない・JIS は `MacKeyboardBackend` の判定を読む・phase 75 task_09a）
 - `OsBackend.queued_hook_dispatch`（phase 75 task_08・既定 False）: 真ならフックの受け渡しをキュー版のディスパッチャにする（`presentation/hook_dispatcher.py`）。Windows は False（即時版 = `after(0)`）
+- `OsBackend.platform_key`（phase 75 task_13a・既定 `win32`）: Windows は `win32`、Mac は `darwin`。第三者ライセンス表を presentation が実行中 OS ごとに絞るために使う。
 - `OsBackend.default_profile`（phase 75 task_07b）: OS ごとの既定のホットキー・プリセットとサンプル（`domain/default_profile.py` の `DefaultProfile`）。App の組み立てで `ConfigService(repository, default_profile=backend.default_profile)` へ渡し、既定の作成（`new_base_data` / `new_default_data`）と欠損時の補完（`ensure_config_compatibility(..., profile=)`）で使う
 - `TkKeyTranslator.modifier_name(keysym, sided=)`（phase 75 task_09e）: Tk の修飾キー名を backend から取得する。Mac は Meta → `command`、Alt → `option`（`sided=True` は左右つき）、Windows は従来の名前。`presentation/tk_keys.py` とキーボードUIの記録が利用する。Mac の既定プリセット・サンプルも `command` / `option` 系で持つ。`OsBackend` の修飾キー表示名の注入は撤去。
 - `KeyboardBackend.accepts_key_name(name)`（phase 75 task_09f）: trim・小文字・`_` → 空白で他方の OS の修飾キー名だけを拒否する。`InputGateway.accepts_key_name` が横流しし、両 backend の `resolve_send` も先頭で検査（Windows は keyboard の解決より前）。保存済みの設定の読み込みは検査・変換しない。
@@ -166,7 +167,7 @@ keyseq/presentation/
       help_targets.py          # ダイアログから飛ぶタブと大分類 id の対応
       version_dialog.py        # open_version_dialog: バージョン情報のモーダル
       license_window.py        # LicenseWindow / LicenseWindowController: ライセンスの表示と単一性・前面化
-      third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込
+      third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込（platforms による OS 絞込）
       content/                 # help_ja.json / help_en.json（同じ id・phase 72）/ third_party/（third_party.json + ライセンス全文 14 個）
     screen_grid/               # カーソルグリッド（phase 56・下の「カーソルグリッド」節）
       screen_grid_controller.py  # ScreenGridController: ScreenGridSession と infrastructure / 窓の配線・sync / handle / 失敗時に畳む・on_font_changed

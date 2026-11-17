@@ -666,6 +666,7 @@
   "help.third_party.entry_invalid": "Entry {index} is invalid.",
   "help.third_party.entry_values_invalid": "Entry {index} contains an empty or non-string value.",
   "help.third_party.filename_invalid": "The file name in entry {index} is invalid.",
+  "help.third_party.platforms_invalid": "The platforms in entry {index} are invalid.",
   "help.validation.array": "{location} must be an array.",
   "help.validation.block_text_string": "{location}.text must be a string.",
   "help.validation.block_type_invalid": "{location}.type is invalid: {kind}.",

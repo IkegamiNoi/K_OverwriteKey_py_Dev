@@ -34,7 +34,7 @@ macOS の backend はスタブ（フックは `OSError`・キーの解決と送�
 | モジュール | 件数 | 原因 | 担当 |
 |---|---|---|---|
 | ~~`test_input_gateway_drag` / `_screen_grid` / `_scroll`~~ | ~~15~~ → 0 | ~~マウス・カーソルのスタブが `NotImplementedError`~~ → **task_11a で解消**（2026-11-15。以降の tests の基準線 = 2103 件・失敗 1〔`test_third_party`〕・エラー 0・skip 30） | task_11a |
-| `test_third_party` | 1 | 同梱の第三者ライセンスの表が Windows のビルドの Python 3.14.6 | task_13 |
+| `test_third_party` | 1 | task_13a で Python / Tcl / Tk の照合が実行中 OS に行がない場合は skip に。task_13b で Mac の行を足して照合 | task_13a / task_13b |
 
 ### tests_ui
 

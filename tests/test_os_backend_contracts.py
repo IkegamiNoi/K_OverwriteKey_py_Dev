@@ -87,7 +87,7 @@ class OsBackendContractTests(unittest.TestCase):
             [field.name for field in fields(OsBackend)],
             [
                 "capabilities", "ime", "window", "tk_keys", "app", "keyboard",
-                "mouse", "default_profile", "queued_hook_dispatch",
+                "mouse", "default_profile", "queued_hook_dispatch", "platform_key",
             ],
         )
         legacy_constructor = OsBackend(
@@ -95,6 +95,7 @@ class OsBackendContractTests(unittest.TestCase):
         )
         self.assertIs(legacy_constructor.default_profile, WINDOWS_DEFAULT_PROFILE)
         self.assertFalse(legacy_constructor.queued_hook_dispatch)
+        self.assertEqual(legacy_constructor.platform_key, "win32")
 
     def test_macos_stub_contracts_and_factory(self) -> None:
         from keyseq.infrastructure.os_backend.macos.backend import (
@@ -116,6 +117,7 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertEqual(backend.capabilities, Capabilities(True, True, False, False))
         self.assertIs(backend.default_profile, MACOS_DEFAULT_PROFILE)
         self.assertTrue(backend.queued_hook_dispatch)
+        self.assertEqual(backend.platform_key, "darwin")
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
         self.assertIs(backend.tk_keys._keyboard, backend.keyboard)
         with patch("keyseq.infrastructure.os_backend.macos.backend.EventTap") as tap_factory:
@@ -148,6 +150,7 @@ class OsBackendContractTests(unittest.TestCase):
             create_windows_backend().default_profile,
             WINDOWS_DEFAULT_PROFILE,
         )
+        self.assertEqual(create_windows_backend().platform_key, "win32")
         for protocol, implementation in (
             (WindowBackend, WindowsWindowBackend),
             (TkKeyTranslator, WindowsTkKeyTranslator),

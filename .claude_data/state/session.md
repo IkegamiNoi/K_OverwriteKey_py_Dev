@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-17T23:55:00
+last_updated: 2026-11-18T01:20:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 のコミットまで）。push はユーザー
@@ -12,26 +12,26 @@ last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_12（app_data_root・同梱物のパス・見本のコピー・再起動の共通化・暫定 57 v0.21）完了（2026-11-18・Windows 目視 OK）。次 = task_13（packaging とビルド・各 OS の実機確認）の起票。保留 = 2 枚目のモニタの目視・中クリック（未確認）。idea_59〜61 は検討段階。**
+focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残 = task_13a の Windows 目視（ユーザー）→ task_13（packaging と Windows のビルド）起票 → task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-17T23:55:00
+ts: 2026-11-18T01:20:00
 who: main
 summary: |
-  task_09〜11f の Windows 検証（テスト側の取りこぼし 3 件を修正・目視 OK・Win+D の白い窓は既存の問題で idea_61）→ task_12 を起票（見本のコピーは keylayout が無いときだけ・Mac は Application Support/keyseq/config・v0.21 ユーザー確定・起票レビュー修正して採用）→ codex-implementer（3 回に分けて実行。止まった分 = git mv・import の抜け 3 か所・Mac の relaunch の import をメインが補った。Codex のパッチが CRLF のテストに当たらない → 対象を LF に揃えて再依頼）→ verifier pass → reviewer 完了可（codebase_map に app_data_root を一言追記）→ コミット。不在モード中（戻り未定）のため目視待ちで止めた。
+  task_12 完了（再起動の目視 OK）→ task_13 の起票前の調査で §6.2 の未決 4 点をユーザーが決定（表に OS 列・アイコンは既定・見本 5 本・README）→ 暫定 57 §6.3（v0.22）→ Codex 敵対的レビュー high 2 件（pynput の差し替えは onedir だけでは不可・依存のソース）をユーザー判断で反映 → 再レビュー approve → 確定。task_13a を起票（reviewer 修正して採用）→ codex-implementer 2 回（本体 → テスト）→ verifier pass → reviewer 完了可 → コミット。
 result_files:
-  - keyseq/infrastructure/os_backend/app_relaunch.py（windows/ から移動）・contracts.py・windows/backend.py・macos/backend.py・keyseq/infrastructure/bundled_layouts.py（新規）・keyseq/presentation/bundled_paths.py・app.py
-  - tests/test_app_relaunch.py・test_os_backend_contracts.py・test_bundled_layouts.py（新規）・test_bundled_paths.py（新規）・instructions/common/codebase_map.md
-  - instructions/history/57_mac_support.md（v0.21）・task_12 定義（新規）・decisions.md
+  - keyseq/presentation/help/third_party.py・third_party.json・contracts.py・windows/macos backend.py（platform_key）・ja/en.json・tests/test_third_party.py・test_os_backend_contracts.py・tests_ui/test_help_window.py
+  - instructions/history/57_mac_support.md（v0.22）・task_13a 定義・phase.md・decisions.md・codebase_map.md・mac_test_baseline.md
 verified:
-  tests_windows: compile clean / tests 2202・失敗 0・skip 7 / smoke OK / tests_ui（first_launch_flow・app_ui_flows・help_window・ui_language）失敗 0。テスト実行で config/ に keylayout.tmp 等は出来ていない
-  tests_mac: not_run（task_13 でまとめて）
-  visual_windows: task_09〜11f OK。task_12 OK（開発実行での言語切り替え＝再起動・2026-11-18）
+  tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui（help_window・ui_language・dialog_help_buttons・preset_manager_i18n）失敗 0
+  tests_mac: not_run（task_13b で）
+  visual_windows: task_13a は未実施
 
 ## next_action
-- **task_12 完了（Windows 目視 OK・2026-11-18）。次 = task_13 を起票**（`packaging/`・`.spec`・datas の相対配置・ビルドと各 OS の実機確認・`.app` の `open -n`・同梱する見本の選別・`test_third_party`）。
-- Mac 側の task_12 の確認（tests・smoke）は task_13 でまとめて行う。
+- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（`.......venvScriptspython.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること。OK なら task_13a 完了。
+- 次 = task_13 を起票（`packaging/`・`.spec`〔pynput は module_collection_mode で .py・hiddenimports・アイコンの差し替え口〕・`requirements-build.txt`〔PyInstaller の版を固定・.venv へ入れる〕・手順書と同梱の README〔本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外〕・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行〔GPL v2 + 例外・Apache-2.0〕・見本 5 本の datas・Windows のビルドと実機確認〔保存先・見本のコピー・再起動・pynput の差し替え〕）。暫定 57 §6.2・§6.3。
+- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
