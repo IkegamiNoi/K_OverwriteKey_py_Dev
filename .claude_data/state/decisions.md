@@ -858,3 +858,7 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - §6.3 を追加: ライセンスの表に OS の列（実行中の OS の行だけ表示・照合）・アイコンは既定（差し替え口だけ）・見本は 5 本（jis_test.json を除く）・README と手順書（本体のソースの入手先とタグ・PyInstaller の例外）。すべて推奨案をユーザーが選択。
 - Codex 敵対的レビュー 1 回目 high 2 件 → ユーザー判断: pynput は `.py` のまま置いて差し替えを実測（onedir だけでは差し替えられない）・GPL / LGPL の依存は同梱した版のソースのアーカイブを配布物に入れる。2 回目 approve。PyInstaller のランタイムの hook の Apache-2.0 も載せる。
 - タスク分割: task_13a（表の OS 列の仕組みと Windows の行）→ task_13（packaging・Windows のビルド・PyInstaller の行）→ task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕）。
+
+### 【本体のライセンスの表記】GPL v3 以降・暫定 57 v0.23（2026-11-18・ユーザー判断）
+- 画面は「GNU General Public License v3」だけで「のみ / 以降」が曖昧だった（ChatGPT の指摘をユーザーが持ち込み、メインが裏取り）。ユーザー判断で **v3 以降**。ja / en の `help.license.header`・`help.version.content` を直した（メインの文言修正・tests 失敗 0・test_help_window pass）。README（task_13）と正本 features.md（task_14）も揃える。
+- 同じ指摘のうち `{organization}` の残り（pymsgbox / pytweening / pyperclip）は配布元の原文どおり（`.venv` の dist-info で確認）なので直さない。GPL 全文の重複・licenses/ への集約は不要（義務は変わらない）。

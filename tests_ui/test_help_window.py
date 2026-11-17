@@ -183,7 +183,7 @@ class HelpWindowTest(unittest.TestCase):
             )
             self.assertIn(f"バージョン {keyseq.__version__}", content)
             self.assertIn("Copyright (C) 2026 池上ノイ (Ikegami Noi)", content)
-            self.assertIn("GNU General Public License v3", content)
+            self.assertIn("GNU General Public License v3 以降", content)
             self.assertIn("実行環境: Python ", content)
         finally:
             if dialog.winfo_exists():
