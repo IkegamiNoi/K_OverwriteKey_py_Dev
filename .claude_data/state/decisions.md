@@ -862,3 +862,7 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【本体のライセンスの表記】GPL v3 以降・暫定 57 v0.23（2026-11-18・ユーザー判断）
 - 画面は「GNU General Public License v3」だけで「のみ / 以降」が曖昧だった（ChatGPT の指摘をユーザーが持ち込み、メインが裏取り）。ユーザー判断で **v3 以降**。ja / en の `help.license.header`・`help.version.content` を直した（メインの文言修正・tests 失敗 0・test_help_window pass）。README（task_13）と正本 features.md（task_14）も揃える。
 - 同じ指摘のうち `{organization}` の残り（pymsgbox / pytweening / pyperclip）は配布元の原文どおり（`.venv` の dist-info で確認）なので直さない。GPL 全文の重複・licenses/ への集約は不要（義務は変わらない）。
+
+### 【task_13a 完了 / アイコンの別ライセンス】方針のみ・保留（2026-11-18・ユーザー判断）
+- task_13a は Windows 目視 OK（ライセンスの窓に 14 行・見出しとバージョン情報が v3 以降）で完了。ライセンス本文は英語の原文 1 つだけで、ja / en で訳しているのは窓の見出し・一覧の見出し・読めないときの文言だけ（残す）。
+- 独自のアイコンは GPL に含めず、別のライセンス（`ASSETS_LICENSE.md`・公式の配布物の一部としてだけ再配布可・他での利用と改変は許可制）にする方針（ユーザー案）。今はアイコンが PyInstaller の既定なので**未着手**。独自のアイコンを入れるときに暫定 57 / 正本へ条項を足し、`ASSETS_LICENSE.md`・README・LICENSE の除外の明記を一緒に入れる。文中の「GPL v3.0」は本体の表記（v3 以降）に合わせる。

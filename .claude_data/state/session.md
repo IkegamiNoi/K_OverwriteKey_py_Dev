@@ -12,7 +12,7 @@ last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。残 = task_13a の Windows 目視（ユーザー）→ task_13（packaging と Windows のビルド）起票 → task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
+focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。次 = task_13（packaging と Windows のビルド）起票 → task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
 mode: implementing
 
 ## last_action
@@ -26,11 +26,10 @@ result_files:
 verified:
   tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui（help_window・ui_language・dialog_help_buttons・preset_manager_i18n）失敗 0
   tests_mac: not_run（task_13b で）
-  visual_windows: task_13a は未実施
+  visual_windows: task_13a OK（14 行・v3 以降）
 
 ## next_action
-- **【ユーザーの確認待ち】task_13a の Windows 目視**: 開発実行（`.......venvScriptspython.exe main.py`）→ ヘルプ → ライセンスの窓に、今までと同じ 14 行（keyboard 〜 Tk）が出ること・見出しとバージョン情報が「GNU General Public License v3 以降」になっていること（v0.23）。OK なら task_13a 完了。
-- 次 = task_13 を起票（`packaging/`・`.spec`〔pynput は module_collection_mode で .py・hiddenimports・アイコンの差し替え口〕・`requirements-build.txt`〔PyInstaller の版を固定・.venv へ入れる〕・手順書と同梱の README〔本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外〕・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行〔GPL v2 + 例外・Apache-2.0〕・見本 5 本の datas・Windows のビルドと実機確認〔保存先・見本のコピー・再起動・pynput の差し替え〕）。暫定 57 §6.2・§6.3。
+- 次 = task_13 を起票（アイコンを差し替えるときの ASSETS_LICENSE.md の方針は decisions 参照・`packaging/`・`.spec`〔pynput は module_collection_mode で .py・hiddenimports・アイコンの差し替え口〕・`requirements-build.txt`〔PyInstaller の版を固定・.venv へ入れる〕・手順書と同梱の README〔本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外〕・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行〔GPL v2 + 例外・Apache-2.0〕・見本 5 本の datas・Windows のビルドと実機確認〔保存先・見本のコピー・再起動・pynput の差し替え〕）。暫定 57 §6.2・§6.3。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
 
 ## blockers
