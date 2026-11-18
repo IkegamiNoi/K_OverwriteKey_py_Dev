@@ -12,25 +12,25 @@ last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）起票済み（reviewer 修正して採用）。次 = PyInstaller を .venv へ入れる許可（ユーザー）→ 実装 → task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
+focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。残り = Windows の実機確認（ユーザー）→ task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-18T01:20:00
+ts: 2026-11-18T12:50:00
 who: main
 summary: |
-  task_12 完了（再起動の目視 OK）→ task_13 の起票前の調査で §6.2 の未決 4 点をユーザーが決定（表に OS 列・アイコンは既定・見本 5 本・README）→ 暫定 57 §6.3（v0.22）→ Codex 敵対的レビュー high 2 件（pynput の差し替えは onedir だけでは不可・依存のソース）をユーザー判断で反映 → 再レビュー approve → 確定。task_13a を起票（reviewer 修正して採用）→ codex-implementer 2 回（本体 → テスト）→ verifier pass → reviewer 完了可 → コミット。
+  task_13a 完了（目視 OK）・表のライセンス名を英語に統一・アイコンの別ライセンスは方針のみ（decisions）。task_13 を起票（reviewer 修正して採用）→ ユーザー許可で PyInstaller 6.22.3 を .venv へ・sdist 2 つを PyPI から直接取得（pip download は Python 3.14 で止まった・SHA256 照合済み）→ codex-implementer → verifier pass（ビルド・中身・sources が無いと止まる・pynput の差し替えが有効）→ reviewer 修正して採用（版の取得を cwd 非依存に・手順書の取得方法・upx を無効・前方一致を厳しく）をメインが反映→再ビルド OK → コミット。
 result_files:
-  - keyseq/presentation/help/third_party.py・third_party.json・contracts.py・windows/macos backend.py（platform_key）・ja/en.json・tests/test_third_party.py・test_os_backend_contracts.py・tests_ui/test_help_window.py
-  - instructions/history/57_mac_support.md（v0.22）・task_13a 定義・phase.md・decisions.md・codebase_map.md・mac_test_baseline.md
+  - packaging/（windows/keyseq.spec・requirements-build.txt・README.md・README_dist.txt）・.gitignore・third_party.json・pyinstaller.txt・tests/test_third_party.py
+  - instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md・decisions.md
 verified:
-  tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui（help_window・ui_language・dialog_help_buttons・preset_manager_i18n）失敗 0
+  tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui test_help_window 失敗 0 / ビルド成功
   tests_mac: not_run（task_13b で）
-  visual_windows: task_13a OK（14 行・v3 以降）
+  visual_windows: task_13 は未実施（ユーザー）
 
 ## next_action
-- 次 = task_13 を実装（定義 `instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md`。最初に PyInstaller の導入とソースのアーカイブの取得をユーザーに許可してもらう。アイコンを差し替えるときの ASSETS_LICENSE.md の方針は decisions 参照・`packaging/`・`.spec`〔pynput は module_collection_mode で .py・hiddenimports・アイコンの差し替え口〕・`requirements-build.txt`〔PyInstaller の版を固定・.venv へ入れる〕・手順書と同梱の README〔本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外〕・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行〔GPL v2 + 例外・Apache-2.0〕・見本 5 本の datas・Windows のビルドと実機確認〔保存先・見本のコピー・再起動・pynput の差し替え〕）。暫定 57 §6.2・§6.3。
-- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
+- **【ユーザーの確認待ち】task_13 の実機確認（Windows・ビルド済みの `dist/keyseq/keyseq.exe`）**: ①初回起動で exe の隣に `config/` ができ `config/user/keylayout` に見本 5 本 ②設定を保存→再起動で読み込まれる ③言語の切り替えの再起動で exe が 1 つだけ起き直る ④ヘルプ→ライセンスの窓に 15 行（最後が PyInstaller）・ja / en で切り替わる ⑤置換・シーケンス（キーとマウス）が開発実行と同じに動く。OK なら task_13 完了。dist/ は worktree の直下（`C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.claude\worktrees\continue-c6c37b\dist\keyseq\keyseq.exe`）。作り直すときは `packaging/README.md` の手順。exe の名前 `keyseq`・タグ `v0.1.0`（版を上げるかはユーザー判断）・タグと push はユーザー。
+- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

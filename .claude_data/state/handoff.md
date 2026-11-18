@@ -27,7 +27,7 @@
 **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定。task_13a（第三者ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13 起票済み（2026-11-18・reviewer 修正して採用）。次 = PyInstaller の導入の許可（ユーザー）→ task_13 実装 → task_13b（Mac）。**
 **presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
 Windows の worktree = `claude/continue-c6c37b`（未 push）。Mac の worktree = `claude/modifier-key-registration-issue-faa33a`。push と main へのマージはユーザー（PR は作らない）。
-直近の実測（Windows・task_13a 後・2026-11-18）: compile clean / tests 2203・失敗 0・skip 7 / smoke pass。
+直近の実測（Windows・task_13 後・2026-11-18）: compile clean / tests 2203・失敗 0・skip 7 / smoke pass / PyInstaller 6.22.3 のビルド成功。
 Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（task_11d 後 2131 件・失敗 1〔test_third_party〕→ task_13a で Python / Tcl / Tk の照合は skip に）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -57,8 +57,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次 = **task_13 を実装**（定義 = `instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md`。最初に PyInstaller の導入とソースのアーカイブ 2 つの取得をユーザーに許可してもらう）: `packaging/`・`.spec`（pynput は `module_collection_mode` で `.py`・hiddenimports・アイコンの差し替え口）・`requirements-build.txt`（PyInstaller の版を固定・`.venv` へ入れる）・手順書と同梱の README（本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外）・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行（GPL v2 + 例外・Apache-2.0）・見本 5 本の datas・Windows のビルドと実機確認（保存先・見本のコピー・再起動・pynput の差し替え）。
-- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
+- **【ユーザーの確認待ち】task_13 の実機確認（Windows・ビルド済みの `dist/keyseq/keyseq.exe`）**: ①初回起動で exe の隣に `config/` ができ `config/user/keylayout` に見本 5 本 ②設定を保存→再起動で読み込まれる ③言語の切り替えの再起動で exe が 1 つだけ起き直る ④ヘルプ→ライセンスの窓に 15 行（最後が PyInstaller）・ja / en で切り替わる ⑤置換・シーケンス（キーとマウス）が開発実行と同じに動く。OK なら task_13 完了。dist/ は worktree の直下（`C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.claude\worktrees\continue-c6c37b\dist\keyseq\keyseq.exe`）。作り直すときは `packaging/README.md` の手順。exe の名前 `keyseq`・タグ `v0.1.0`（版を上げるかはユーザー判断）・タグと push はユーザー。
+- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では失敗する → メインで。Codex は 1 回で全部終わらないことが多い（本体 → テストの 2 回に分けると通る）。
 
 ## 運用インフラ

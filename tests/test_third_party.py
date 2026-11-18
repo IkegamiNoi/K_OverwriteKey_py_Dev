@@ -22,9 +22,9 @@ class ThirdPartyTest(unittest.TestCase):
         windows_names = [
             "keyboard", "pyautogui", "pynput", "pyscreeze", "pymsgbox",
             "pytweening", "mouseinfo", "pygetwindow", "pyrect", "pyperclip",
-            "six", "Python", "Tcl", "Tk",
+            "six", "Python", "Tcl", "Tk", "PyInstaller",
         ]
-        # task_13b adds Mac-specific rows; update this interim ten-row expectation then.
+        # task_13b adds Mac-specific rows; update this interim eleven-row expectation then.
         mac_names = [name for name in windows_names if name not in {"keyboard", "Python", "Tcl", "Tk"}]
         for platform_key, expected in (("win32", windows_names), ("darwin", mac_names)):
             with self.subTest(platform=platform_key):

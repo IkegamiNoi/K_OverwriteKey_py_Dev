@@ -12,5 +12,6 @@
   {"name": "six", "version": "1.17.0", "license": "MIT License", "file": "six.txt"},
   {"name": "Python", "version": "3.14.6", "license": "PSF License", "file": "python.txt", "platforms": ["win32"]},
   {"name": "Tcl", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tcl.txt", "platforms": ["win32"]},
-  {"name": "Tk", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tk.txt", "platforms": ["win32"]}
+  {"name": "Tk", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tk.txt", "platforms": ["win32"]},
+  {"name": "PyInstaller", "version": "6.22.3", "license": "GNU GPL v2 or later (with bootloader exception) / Apache-2.0", "file": "pyinstaller.txt"}
 ]
