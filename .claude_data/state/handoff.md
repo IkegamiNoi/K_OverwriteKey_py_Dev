@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定。task_13a（第三者ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。次 = task_13 起票 → task_13b（Mac）。**
+**phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定。task_13a（第三者ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13 起票済み（2026-11-18・reviewer 修正して採用）。次 = PyInstaller の導入の許可（ユーザー）→ task_13 実装 → task_13b（Mac）。**
 **presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
 Windows の worktree = `claude/continue-c6c37b`（未 push）。Mac の worktree = `claude/modifier-key-registration-issue-faa33a`。push と main へのマージはユーザー（PR は作らない）。
 直近の実測（Windows・task_13a 後・2026-11-18）: compile clean / tests 2203・失敗 0・skip 7 / smoke pass。
@@ -57,7 +57,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次 = **task_13 を起票**（暫定 57 §6.2・§6.3）: `packaging/`・`.spec`（pynput は `module_collection_mode` で `.py`・hiddenimports・アイコンの差し替え口）・`requirements-build.txt`（PyInstaller の版を固定・`.venv` へ入れる）・手順書と同梱の README（本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外）・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行（GPL v2 + 例外・Apache-2.0）・見本 5 本の datas・Windows のビルドと実機確認（保存先・見本のコピー・再起動・pynput の差し替え）。
+- 次 = **task_13 を実装**（定義 = `instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md`。最初に PyInstaller の導入とソースのアーカイブ 2 つの取得をユーザーに許可してもらう）: `packaging/`・`.spec`（pynput は `module_collection_mode` で `.py`・hiddenimports・アイコンの差し替え口）・`requirements-build.txt`（PyInstaller の版を固定・`.venv` へ入れる）・手順書と同梱の README（本体のソース = https://github.com/IkegamiNoi/K_OverwriteKey_py_Dev とタグ・PyInstaller の例外）・mouseinfo / pynput のソースのアーカイブの同梱・表に PyInstaller の行（GPL v2 + 例外・Apache-2.0）・見本 5 本の datas・Windows のビルドと実機確認（保存先・見本のコピー・再起動・pynput の差し替え）。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a の確認）。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では失敗する → メインで。Codex は 1 回で全部終わらないことが多い（本体 → テストの 2 回に分けると通る）。
 
