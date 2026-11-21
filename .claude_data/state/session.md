@@ -4,32 +4,32 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-18T01:20:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62
+last_updated: 2026-11-21T00:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 63
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。残り = Windows の実機確認（ユーザー）→ task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜61 は検討段階。**
+presence: present
+focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。Windows 実機確認 OK（2026-11-21）で task_13 完了。次 = ろ キーの `\` の件の調査 → task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜62 は検討段階。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-18T12:50:00
+ts: 2026-11-21T00:00:00
 who: main
 summary: |
-  task_13a 完了（目視 OK）・表のライセンス名を英語に統一・アイコンの別ライセンスは方針のみ（decisions）。task_13 を起票（reviewer 修正して採用）→ ユーザー許可で PyInstaller 6.22.3 を .venv へ・sdist 2 つを PyPI から直接取得（pip download は Python 3.14 で止まった・SHA256 照合済み）→ codex-implementer → verifier pass（ビルド・中身・sources が無いと止まる・pynput の差し替えが有効）→ reviewer 修正して採用（版の取得を cwd 非依存に・手順書の取得方法・upx を無効・前方一致を厳しく）をメインが反映→再ビルド OK → コミット。
+  task_13 の Windows 実機確認（exe）をユーザーが実施し OK（①〜⑤・マウスのシーケンス〔ダブル・右クリック・ドラッグ〕・自作の置換・ヘルプ本文 ja / en・アイコン）→ task_13 完了。idea_62（修飾キー付きの置換元）を起票。ろ キーの `\` を置換先にすると Shift で `|` になる件（exe 固有ではない）を調査へ。
 result_files:
   - packaging/（windows/keyseq.spec・requirements-build.txt・README.md・README_dist.txt）・.gitignore・third_party.json・pyinstaller.txt・tests/test_third_party.py
   - instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md・decisions.md
 verified:
   tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui test_help_window 失敗 0 / ビルド成功
   tests_mac: not_run（task_13b で）
-  visual_windows: task_13 は未実施（ユーザー）
+  visual_windows: task_13 OK（2026-11-21・exe）
 
 ## next_action
-- **【ユーザーの確認待ち】task_13 の実機確認（Windows・ビルド済みの `dist/keyseq/keyseq.exe`）**: ①初回起動で exe の隣に `config/` ができ `config/user/keylayout` に見本 5 本 ②設定を保存→再起動で読み込まれる ③言語の切り替えの再起動で exe が 1 つだけ起き直る ④ヘルプ→ライセンスの窓に 15 行（最後が PyInstaller）・ja / en で切り替わる ⑤置換・シーケンス（キーとマウス）が開発実行と同じに動く。OK なら task_13 完了。dist/ は worktree の直下（`C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.claude\worktrees\continue-c6c37b\dist\keyseq\keyseq.exe`）。作り直すときは `packaging/README.md` の手順。exe の名前 `keyseq`・タグ `v0.1.0`（版を上げるかはユーザー判断）・タグと push はユーザー。
+- **ろ キーの `\` の件の調査**: JIS で ろ キーの `\` を置換先に置き Shift と押すと `_` ではなく `|` になる（ユーザー報告 2026-11-21）。疑い = `keyseq/presentation/tk_keys.py:73` の文字からの名前の引き直し（未実測）。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
 
 ## blockers
