@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-21T00:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 63
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 のコミットまで）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。Windows 実機確認 OK（2026-11-21）で task_13 完了。ろ キーの `\` の件は解決（キーボードUIのレイアウトが JIS でなかった・key_input.md の受容どおり）。次 = task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜62 は検討段階。**
+focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。Windows 実機確認 OK（2026-11-21）で task_13 完了。ろ キーの `\` の件は解決（キーボードUIのレイアウトが JIS でなかった・key_input.md の受容どおり）。次 = task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜63 は検討段階。**
 mode: implementing
 
 ## last_action
@@ -29,7 +29,7 @@ verified:
   visual_windows: task_13 OK（2026-11-21・exe）
 
 ## next_action
-- **ろ キーの `\` の件は解決（2026-11-22）**: キーボードUIのレイアウトが US だったため ろ キーが `backslash` で記録され ¥ キー（125）で送られた（key_input.md の受容どおり・不具合ではない。JIS では Tk・フックとも `ro` を実測）。日本語フォントでは `\` が ¥ に見え `ro` と `yen` を見分けられない点は表示の課題（未起票）。
+- **ろ キーの `\` の件は解決（2026-11-22）**: キーボードUIのレイアウトが US だったため ろ キーが `backslash` で記録され ¥ キー（125）で送られた（key_input.md の受容どおり・不具合ではない。JIS では Tk・フックとも `ro` を実測）。日本語フォントでは `\` が ¥ に見え `ro` と `yen` を見分けられない点は表示の課題（→ idea_63）。
 - その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
 
 ## blockers
