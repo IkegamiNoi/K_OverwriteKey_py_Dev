@@ -24,11 +24,10 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定。task_13a（第三者ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13 起票済み（2026-11-18・reviewer 修正して採用）。次 = PyInstaller の導入の許可（ユーザー）→ task_13 実装 → task_13b（Mac）。**
+**phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で 2 件の不具合: ①メニューからのモーダルが戻らない（Mac 共通の既存の不具合）→ 暫定 57 v0.25 + task_11g を起票（Codex 敵対的レビューの指摘 2 件がユーザー判断待ち）②保存パネルが置き換えの確認の Cancel の後に固まる（`.app` でだけ・未調査）。実機確認 4 OK・5 未実施。**
 **presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
-Windows の worktree = `claude/continue-c6c37b`（未 push）。Mac の worktree = `claude/modifier-key-registration-issue-faa33a`。push と main へのマージはユーザー（PR は作らない）。
-直近の実測（Windows・task_13 後・2026-11-18）: compile clean / tests 2203・失敗 0・skip 7 / smoke pass / PyInstaller 6.22.3 のビルド成功。
-Mac のテストの基準線 = `instructions/phase/75_mac_support/mac_test_baseline.md`（task_11d 後 2131 件・失敗 1〔test_third_party〕→ task_13a で Python / Tcl / Tk の照合は skip に）。
+Mac の worktree = `claude/task-13b-72ac5c`（task_13b / 11g の作業ファイルは未コミット・state のみコミット）。Windows の worktree = `claude/continue-c6c37b`。push と main へのマージはユーザー（PR は作らない）。
+直近の実測（Mac・task_13b・2026-11-22）: compile clean / tests 2141・エラー 1（test_app_data_roots → OS 別に分割後のモジュール 24 件 OK・全体の再実行は未）/ smoke OK / tests_ui test_help_window OK / PyInstaller 6.22.3 のビルド成功（Tk 9.1 同梱可）。tests_windows = not_run。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -57,9 +56,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーの確認待ち】task_13 の実機確認（Windows・ビルド済みの `dist/keyseq/keyseq.exe`）**: ①初回起動で exe の隣に `config/` ができ `config/user/keylayout` に見本 5 本 ②設定を保存→再起動で読み込まれる ③言語の切り替えの再起動で exe が 1 つだけ起き直る ④ヘルプ→ライセンスの窓に 15 行（最後が PyInstaller）・ja / en で切り替わる ⑤置換・シーケンス（キーとマウス）が開発実行と同じに動く。OK なら task_13 完了。dist/ は worktree の直下（`C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.claude\worktrees\continue-c6c37b\dist\keyseq\keyseq.exe`）。作り直すときは `packaging/README.md` の手順。exe の名前 `keyseq`・タグ `v0.1.0`（版を上げるかはユーザー判断）・タグと push はユーザー。
-- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
-- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に対象を LF に揃える（`sed -i 's/\r$//'`・git が正規化）。`git mv` は Codex では失敗する → メインで。Codex は 1 回で全部終わらないことが多い（本体 → テストの 2 回に分けると通る）。
+- **【ユーザー判断待ち】暫定 57 v0.25（§5.4「メニューの処理」・`57_mac_support.md:313`）の Codex 敵対的レビュー（needs-attention）の 2 件**。決まったら §5.4 と `tasks/task_11g_menu_command_deferral.md` を改訂 → codex-adversarial-reviewer で再レビュー → codex-implementer。
+  - **確認 1（終了と予約の競合）**: 予約したメニューの処理が残ったまま × で閉じると、破棄後に予約が走る・選んだ言語が保存されない恐れ。**推奨** = `on_close` が destroy する直前に予約をすべて `after_cancel`（`menu_command` が予約の ID を app に預ける）・終了をキャンセルしたら予約はそのまま走らせる。代案 = 実行時に `winfo_exists()` を見て捨てるだけ（言語の保存漏れは残る）。
+  - **確認 2（チェック項目の遅延・`layout_controller.py:301-304`・`app.py:785-794`）**: 物理キー名のチェックボタンを遅らせると、先に予約された「新規作成」が変数を戻し、別の構成セットへ反映し得る。**推奨** = 遅らせる対象を「モーダルを開き得る項目」に絞る（add_command 全部と言語のラジオボタン。物理キー名のチェックボタンとフォントの大きさのラジオボタンは即時）。言語のラジオの印は予約中も新しい値・書き込み失敗時は今どおり戻す（`app.py:592-594`）と §5.4 に書く。
+  - 確認 3（tests_ui の漏れ）は task_11g に反映済み（判断不要）。
+- task_11g の完了後: task_13b の実機確認をやり直す（1 初回起動〔先に `~/Library/Application Support/keyseq` を別名に〕・2 保存と再読込・3 言語の再起動〔`open -n` の要否〕・5 置換・シーケンス・キー取得）。`dist/keyseq.app` は作り直す（`../../../.venv/bin/python -m PyInstaller --noconfirm packaging/macos/keyseq.spec`）。
+- 保存パネルの件（`.app` でだけ・別名保存で既存名 → 置き換えの確認で Cancel → パネルの Save / Cancel が効かない）を調べる（task_13b の範囲）。hang の記録は `/Library/Logs/DiagnosticReports/keyseq_*.hang`。止まった開発実行の Python スタックは faulthandler の SIGUSR1 で取れた（scratchpad のラッパーは消える）。
+- Mac の tests 全体を verifier で流し直す。
+- 残課題（次の Windows 作業）: test_third_party・test_os_backend_contracts・requirements-build.txt・task_11g の Windows 検証。C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath）と Windows 側の洗い出し → 両 OS 分を 1 本で起票（ユーザー判断 2026-11-22）。
+- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。
 
 ## 運用インフラ
 

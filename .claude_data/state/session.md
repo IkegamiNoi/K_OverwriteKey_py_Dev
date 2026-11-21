@@ -4,33 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-21T00:00:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.21・ユーザー確定済）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
+last_updated: 2026-11-22T04:30:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.25・v0.25 は Codex 敵対的レビュー needs-attention で確定待ち）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/continue-c6c37b`（Windows の worktree・task_12 のコミットまで）。push はユーザー
+last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコミットまで。task_13b / 11g の作業ファイルは未コミット）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: present
-focus: **phase 75 段階 ④。task_12 完了（2026-11-18）。暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示）確定・task_13a（ライセンスの表の OS 列）を実装・Windows 検証 pass・reviewer 完了可・コミット済み。task_13a は Windows 目視 OK で完了。task_13（packaging と Windows のビルド）実装済み（PyInstaller 6.22.3・ビルド成功・verifier pass・reviewer 修正して採用→反映）。Windows 実機確認 OK（2026-11-21）で task_13 完了。ろ キーの `\` の件は解決（キーボードUIのレイアウトが JIS でなかった・key_input.md の受容どおり）。次 = task_13b（Mac）。保留 = 2 枚目のモニタの目視・中クリック。idea_59〜63 は検討段階。**
-mode: implementing
+presence: away（戻る予定 未定）
+focus: **phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で 2 件の不具合: ①メニューからのモーダルが戻らない（Mac 共通の既存の不具合）→ 暫定 57 v0.25 + task_11g を起票（Codex 敵対的レビューの指摘 2 件がユーザー判断待ち）②保存パネルが置き換えの確認の Cancel の後に固まる（`.app` でだけ・未調査）。実機確認 4 OK・5 未実施。**
+mode: blocked
 
 ## last_action
-ts: 2026-11-21T00:00:00
+ts: 2026-11-22T04:30:00
 who: main
 summary: |
-  task_13 の Windows 実機確認（exe）をユーザーが実施し OK（①〜⑤・マウスのシーケンス〔ダブル・右クリック・ドラッグ〕・自作の置換・ヘルプ本文 ja / en・アイコン）→ task_13 完了。idea_62（修飾キー付きの置換元）を起票。ろ キーの `\` を置換先にすると Shift で `|` になる件（exe 固有ではない）を調査へ。
+  実施: task_13b を起票（reviewer 修正して採用）→ ユーザー許可で PyInstaller 6.22.3 と sdist を Mac の .venv / packaging/sources へ → codex-implementer で実装 + メインの補い → verifier（tests 2141・test_third_party 7 pass・smoke OK・ビルド成功〔Tk 9.1 同梱可〕・codesign OK・pynput 差し替え OK）→ reviewer 修正して採用（README の pynput のパス）→ 反映・再ビルド。task_12 で書かれた test_app_data_roots（Mac でエラー）を OS 別に分割（ユーザー承認）。
+  ユーザー判断: 識別子 io.github.ikegaminoi.keyseq・未公証の開き方を README に（暫定 57 v0.24）・C ライブラリ（OpenSSL 等）は Mac の一覧を記録し Windows 作業時に両 OS 分を 1 本で起票・メニューの処理を after(0) で遅らせる案で起票。
+  実機確認: 4 OK。3（再起動）はメニューの処理の中の wait_window が戻らず止まる（開発実行でも起きる・faulthandler で特定・after(0) で直ることを probe で確認）→ 暫定 57 v0.25（§5.4「メニューの処理」）+ task_11g 起票（reviewer 修正して採用→反映）。保存パネルの件は .app でだけ起き、未調査。
+  Codex 敵対的レビュー（v0.25）: needs-attention・中 3（終了と予約の競合／チェック項目の遅延で別の構成セットに作用／tests_ui の漏れ〔反映済み〕）。
 result_files:
-  - packaging/（windows/keyseq.spec・requirements-build.txt・README.md・README_dist.txt）・.gitignore・third_party.json・pyinstaller.txt・tests/test_third_party.py
-  - instructions/phase/75_mac_support/tasks/task_13_packaging_windows_build.md・decisions.md
+  - packaging/requirements-build.txt・packaging/README.md・packaging/macos/（keyseq.spec・README_dist.txt）
+  - keyseq/presentation/help/content/third_party/（third_party.json・pyobjc.txt・rubicon_objc.txt・python_macos.txt）・tests/test_third_party.py・tests/test_os_backend_contracts.py
+  - instructions/history/57_mac_support.md（v0.24・v0.25）・instructions/phase/75_mac_support/（phase.md・tasks/task_13b_packaging_macos_build.md・tasks/task_11g_menu_command_deferral.md）・.claude_data/state/decisions.md
 verified:
-  tests_windows: compile clean / tests 2203・失敗 0・skip 7 / smoke OK / tests_ui test_help_window 失敗 0 / ビルド成功
-  tests_mac: not_run（task_13b で）
-  visual_windows: task_13 OK（2026-11-21・exe）
+  tests_mac: compile clean / tests 2141・エラー 1（test_app_data_roots → 分割後のモジュール 24 件 OK・全体の再実行は未）/ smoke OK / tests_ui test_help_window OK / ビルド成功
+  tests_windows: not_run（表・テスト・requirements の変更は次の Windows 作業で）
+  visual_mac: task_13b 4 OK・3 NG（→ task_11g）・保存パネル NG（.app のみ）・1・2・5 未報告
 
 ## next_action
-- **ろ キーの `\` の件は解決（2026-11-22）**: キーボードUIのレイアウトが US だったため ろ キーが `backslash` で記録され ¥ キー（125）で送られた（key_input.md の受容どおり・不具合ではない。JIS では Tk・フックとも `ro` を実測）。日本語フォントでは `\` が ¥ に見え `ro` と `yen` を見分けられない点は表示の課題（→ idea_63）。
-- その後 task_13b（Mac のビルド・Mac の行〔pyobjc・Python / Tcl / Tk〕・`open -n`・Mac での task_12 / 13a / 13 の確認・Mac の `.spec`）。
+- **【ユーザー判断待ち】暫定 57 v0.25 の Codex 敵対的レビューの 2 件**（全文 = 下の「確認事項」）。決まったら §5.4 の行と task_11g を改訂 → codex-adversarial-reviewer で再レビュー → task_11g を codex-implementer へ。
+  - **確認事項 1（終了と予約の競合・`57_mac_support.md:313`）**: 予約したメニューの処理が残ったまま × で閉じると、予約が破棄後に走る・選んだ言語が保存されない恐れ。推奨 = 終了が確定したら（`on_close` が destroy する直前）予約をすべて `after_cancel` する。終了をキャンセルしたら予約はそのまま走らせる。`menu_command` が予約の ID を app に預ける。代案 = 予約の実行時に `winfo_exists()` を見て捨てるだけ（簡単だが言語の保存漏れは残る）。
+  - **確認事項 2（チェック項目の遅延・`layout_controller.py:301-304`・`app.py:785-794`）**: 物理キー名のチェックボタンを遅らせると、先に予約された「新規作成」が変数を戻し、別の構成セットへ反映し得る。推奨 = 遅らせる対象を「モーダルを開き得る項目」に絞る（add_command 全部と言語のラジオボタン。物理キー名のチェックボタンとフォントの大きさのラジオボタンは即時のまま＝ダイアログを開かない）。言語のラジオの印は予約中も新しい値を示し、書き込み失敗時は今どおり戻す（`app.py:592-594`）と §5.4 に書く。
+  - 確認事項 3（tests_ui の漏れ）は reviewer の指摘と同じで task_11g に反映済み（判断不要）。
+- task_11g の完了後: task_13b の実機確認をやり直す（1 初回起動〔先に `~/Library/Application Support/keyseq` を別名に〕・2 保存と再読込・3 言語の再起動〔`open -n` の要否〕・5 置換・シーケンス・キー取得）。
+- 保存パネルの件（`.app` でだけ・別名保存で既存名 → 置き換えの確認で Cancel → パネルの Save / Cancel が効かない）を調べる（task_13b の範囲）。
+- Mac の tests 全体を verifier で流し直す（test_app_data_roots の分割の後）。
+- 残課題（次の Windows 作業）: test_third_party・test_os_backend_contracts・requirements-build.txt・task_11g の Windows 検証。C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath）と Windows 側の洗い出し → 両 OS 分を 1 本で起票。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
