@@ -5,11 +5,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from keyseq.shared.i18n import tr
+from keyseq.application.counter_values import counter_start, counter_value
 
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_CALL, OP_COUNTER_INC, OP_COUNTER_RESET,
     MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
-    analyze_loops, control_target, enclosing_loop_starts, system_op,
+    analyze_loops, control_target, counter_amount, enclosing_loop_starts, system_op,
 )
 
 MAX_PROCESSED_SYSTEM_ACTIONS = 10000
@@ -31,7 +32,7 @@ class StepResume:
     wrapped: bool
     processed: int
     counter_deltas: tuple[tuple[str, int], ...] = ()
-    deferred_counters: tuple[tuple[str, str], ...] = ()
+    deferred_counters: tuple[tuple[str, str, int | None], ...] = ()
 
 
 def continue_resume(resume: StepResume, settled: SettleOutcome) -> StepResume:
@@ -52,7 +53,11 @@ def format_system_error_notification(
     elif normalized_op == "wait":
         value = tr("application.sequence_steps.milliseconds", value=action.get("ms", tr("application.sequence_steps.none")))
     elif normalized_op in ("counter_inc", "counter_reset"):
-        value = tr("application.sequence_steps.counter", counter=action.get("counter", tr("application.sequence_steps.none")))
+        counter = action.get("counter", tr("application.sequence_steps.none"))
+        if normalized_op == OP_COUNTER_INC and "amount" in action:
+            value = tr("application.sequence_steps.counter_with_amount", counter=counter, amount=action["amount"])
+        else:
+            value = tr("application.sequence_steps.counter", counter=counter)
     elif normalized_op == "call":
         target = action.get("target")
         target = target.strip() if isinstance(target, str) else ""
@@ -68,12 +73,12 @@ def format_system_error_notification(
 
 
 def apply_deferred_counters(
-    deferred: Sequence[tuple[str, str]], counters: dict[str, int],
+    deferred: Sequence[tuple[str, str, int | None]], counters: dict[str, int],
 ) -> tuple[tuple[str, int], ...]:
     """Apply queued counter operations and return their reversible deltas."""
     deltas: list[tuple[str, int]] = []
-    for op, name in deferred:
-        error = _counter({"counter": name}, op, counters, deltas)
+    for op, name, amount in deferred:
+        error = _counter({"counter": name, "amount": amount}, op, counters, deltas)
         if error:
             continue
     return tuple(deltas)
@@ -107,7 +112,7 @@ class SettleOutcome:
     frames: list[LoopFrame]
     counter_deltas: tuple[tuple[str, int], ...]
     wrapped: bool = False
-    deferred_counters: tuple[tuple[str, str], ...] = ()
+    deferred_counters: tuple[tuple[str, str, int | None], ...] = ()
     stopped: bool = False
     processed: int = 0
     wait_ms: int | None = None
@@ -162,14 +167,19 @@ def _counter(action: Mapping[str, Any], op: str, counters: dict[str, int],
     name = value.strip() if isinstance(value, str) else ""
     if not name:
         return tr("application.sequence_steps.counter_name_empty")
-    current = counters.get(name, 0)
+    current = counter_value(counters, name)
     if op == OP_COUNTER_INC:
-        counters[name] = current + 1
-        counter_deltas.append((name, 1))
+        amount = counter_amount(action)
+        if amount is None:
+            return tr("application.sequence_steps.counter_amount_invalid")
+        counters[name] = current + amount
+        if amount:
+            counter_deltas.append((name, amount))
     else:
-        counters[name] = 0
-        if current:
-            counter_deltas.append((name, -current))
+        start = counter_start(counters, name)
+        counters[name] = start
+        if start != current:
+            counter_deltas.append((name, start - current))
     return None
 
 
@@ -194,7 +204,7 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             counters: dict[str, int], *, wrap_once: bool,
             resume: StepResume | None = None,
-            deferred_counters: Sequence[tuple[str, str]] = (),
+            deferred_counters: Sequence[tuple[str, str, int | None]] = (),
             on_control: Callable[[str, str | None], None] | None = None,
             stop_ends_run: bool = False,
             in_call: bool = False) -> StepOutcome:
@@ -211,8 +221,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
     wrapped = resume.wrapped if resume else False
     counter_deltas = list(resume.counter_deltas) if resume else []
     if resume is None:
-        for op, name in deferred_counters:
-            _counter({"counter": name}, op, counters, counter_deltas)
+        counter_deltas.extend(apply_deferred_counters(deferred_counters, counters))
     while True:
         if position == len(actions):
             position, current = 0, []
@@ -310,11 +319,11 @@ def settle_after_normal(actions: Sequence[Any], position: int,
                         in_call: bool = False, wait_mode: str = "stop",
                         stop_before_stop: bool = False,
                         wrapped: bool = False,
-                        deferred_counters: Sequence[tuple[str, str]] = ()) -> SettleOutcome:
+                        deferred_counters: Sequence[tuple[str, str, int | None]] = ()) -> SettleOutcome:
     """Prepare the next step without executing controls or reporting errors."""
     current = list(frames)
     deltas: list[tuple[str, int]] = []
-    deferred: list[tuple[str, str]] = list(deferred_counters)
+    deferred: list[tuple[str, str, int | None]] = list(deferred_counters)
     structure = analyze_loops(actions)
     while True:
         if position == len(actions):
@@ -370,7 +379,10 @@ def settle_after_normal(actions: Sequence[Any], position: int,
             name = value.strip() if isinstance(value, str) else ""
             if not name:
                 break
-            deferred.append((op, name))
+            amount = counter_amount(action) if op == OP_COUNTER_INC else None
+            if op == OP_COUNTER_INC and amount is None:
+                break
+            deferred.append((op, name, amount))
             position += 1
             processed += 1
             continue

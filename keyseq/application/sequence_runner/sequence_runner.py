@@ -274,14 +274,15 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 self._single_finishing_steps.pop(_current)
 
     def _apply_deferred_counters_and_publish(
-        self, deferred: Sequence[tuple[str, str]],
+        self, deferred: Sequence[tuple[str, str, int | None]],
     ) -> tuple[tuple[str, int], ...]:
         deltas = apply_deferred_counters(deferred, self.state.counters)
         self._publish_call_view()
         return deltas
 
     def _save_progress(self, key: str, position: int, frames: list[LoopFrame],
-                       deferred: list[tuple[str, str]] | tuple[tuple[str, str], ...] = ()) -> None:
+                       deferred: list[tuple[str, str, int | None]]
+                       | tuple[tuple[str, str, int | None], ...] = ()) -> None:
         with self.state.lock:
             self._set_index(key, position)
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = list(frames)
@@ -407,6 +408,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             target = self._control(key, op, target_key) or target
         try:
             starting_position = self._get_index(key) if position is None else position
+            with self.state.lock:
+                counter_names_before = set(self.state.counters)
             outcome = advance(actions, self._get_index(key) if position is None else position,
                               self._get_frames(key), self.state.counters,
                               wrap_once=True, resume=resume,
@@ -446,7 +449,10 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 initial_position = (
                     resume.initial_position if resume is not None else starting_position
                 )
-                self._start_single_call(key, actions, outcome, snapshot, initial_position)
+                self._start_single_call(
+                    key, actions, outcome, snapshot, initial_position,
+                    counter_names_before=counter_names_before,
+                )
                 waiting = True
                 return
             if self._send_action(action, key) is False:

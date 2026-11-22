@@ -1,9 +1,10 @@
 import unittest
 
 from keyseq.application.app_state import AppState
+from keyseq.application.counter_values import CounterValues
 from keyseq.application.sequence_steps import (
     LoopFrame, StepResume, advance, after_normal_action,
-    format_system_error_notification, settle_after_normal,
+    apply_deferred_counters, format_system_error_notification, settle_after_normal,
 )
 
 
@@ -20,6 +21,88 @@ NORMAL = {"type": "text", "value": "x"}
 
 
 class SequenceStepsTest(unittest.TestCase):
+    def test_counter_amounts_use_unused_start_and_record_nonzero_deltas(self):
+        for amount in (3, -2, 0):
+            with self.subTest(amount=amount):
+                counters = CounterValues()
+                counters.set_starts({"n": 10})
+                outcome = advance([control("counter_inc", counter="n", amount=amount), NORMAL],
+                                  0, [], counters, wrap_once=False)
+                self.assertIsNone(outcome.error)
+                self.assertEqual(counters, {"n": 10 + amount})
+                self.assertEqual(outcome.counter_deltas, (("n", amount),) if amount else ())
+
+    def test_counter_reset_uses_current_start_and_effective_delta(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 10})
+        unused = advance([control("counter_reset", counter="n"), NORMAL],
+                         0, [], counters, wrap_once=False)
+        self.assertEqual(counters, {"n": 10})
+        self.assertEqual(unused.counter_deltas, ())
+        counters["n"] = 13
+        counters.set_starts({"n": -4})
+        reset = advance([control("counter_reset", counter="n"), NORMAL],
+                        0, [], counters, wrap_once=False)
+        self.assertEqual(counters, {"n": -4})
+        self.assertEqual(reset.counter_deltas, (("n", -17),))
+
+    def test_invalid_counter_amount_stops_without_defer_then_errors(self):
+        for amount in ("abc", None):
+            with self.subTest(amount=amount):
+                actions = [NORMAL, control("counter_inc", counter="n", amount=amount), NORMAL]
+                counters = {}
+                settled = settle_after_normal(actions, 1, [], counters, allow_wrap=False)
+                self.assertEqual(settled.position, 1)
+                self.assertEqual(settled.deferred_counters, ())
+                outcome = advance(actions, settled.position, settled.frames, counters, wrap_once=False)
+                self.assertEqual(outcome.error, (1, "増やす量が正しくありません"))
+                self.assertEqual(outcome.position, 1)
+                self.assertEqual(outcome.counter_deltas, ())
+                self.assertEqual(counters, {})
+
+    def test_deferred_negative_amount_is_captured_and_applied_once_across_wait(self):
+        actions = [NORMAL, control("counter_inc", counter="n", amount=-2),
+                   control("wait", ms=1), NORMAL]
+        counters = CounterValues()
+        counters.set_starts({"n": 10})
+        settled = settle_after_normal(actions, 1, [], counters, allow_wrap=False)
+        self.assertEqual(settled.deferred_counters, (("counter_inc", "n", -2),))
+        actions[1]["amount"] = 99
+        waiting = advance(actions, settled.position, [], counters, wrap_once=False,
+                          deferred_counters=settled.deferred_counters, in_call=True)
+        self.assertEqual(counters, {"n": 8})
+        resumed = advance(actions, waiting.resume_position, [], counters, wrap_once=False,
+                          resume=waiting.resume, deferred_counters=settled.deferred_counters,
+                          in_call=True)
+        self.assertEqual(counters, {"n": 8})
+        self.assertEqual(resumed.counter_deltas, (("n", -2),))
+
+    def test_deferred_reset_uses_start_at_application_time(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 5})
+        actions = [NORMAL, control("counter_reset", counter="n"), NORMAL]
+        settled = settle_after_normal(actions, 1, [], counters, allow_wrap=False)
+        self.assertEqual(settled.deferred_counters, (("counter_reset", "n", None),))
+        counters.set_starts({"n": 8})
+        self.assertEqual(apply_deferred_counters(settled.deferred_counters, counters), ())
+        self.assertEqual(counters, {"n": 8})
+
+    def test_counter_error_notification_includes_explicit_amount_only_for_increment(self):
+        try:
+            for language, detail in (("ja", "counter_inc カウンター=n 増やす量=abc"),
+                                     ("en", "counter_inc Counter: n, Amount: abc")):
+                with self.subTest(language=language):
+                    fix_language(language)
+                    notified, _ = format_system_error_notification(
+                        control("counter_inc", counter="n", amount="abc"), "error")
+                    self.assertEqual(notified["value"], detail)
+        finally:
+            fix_language("ja")
+        missing, _ = format_system_error_notification(control("counter_inc", counter="n"), "error")
+        reset, _ = format_system_error_notification(control("counter_reset", counter="n", amount=3), "error")
+        self.assertEqual(missing["value"], "counter_inc カウンター=n")
+        self.assertEqual(reset["value"], "counter_reset カウンター=n")
+
     def test_call_error_notification_shows_trimmed_target_or_none(self):
         notified, _message = format_system_error_notification(
             control("call", target=" z9 "), "error",
@@ -131,7 +214,7 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual(counters, {"n": 4})
         self.assertEqual(settled.counter_deltas, ())
         self.assertEqual(settled.deferred_counters,
-                         (("counter_inc", "n"), ("counter_reset", "n")))
+                         (("counter_inc", "n", 1), ("counter_reset", "n", None)))
         advanced = advance(actions, settled.position, settled.frames, counters,
                            wrap_once=False, deferred_counters=settled.deferred_counters)
         self.assertEqual(advanced.counter_deltas, (("n", 1), ("n", -5)))
@@ -178,7 +261,7 @@ class SequenceStepsTest(unittest.TestCase):
         counters = {"n": 0}
         waiting = advance(
             actions, 1, [], counters, wrap_once=False,
-            deferred_counters=(("counter_inc", "n"),), in_call=True,
+            deferred_counters=(("counter_inc", "n", 1),), in_call=True,
         )
         stopped = advance(
             actions, waiting.resume_position, [], counters,
@@ -197,7 +280,7 @@ class SequenceStepsTest(unittest.TestCase):
         )
         self.assertTrue(settled.stopped)
         self.assertEqual(settled.position, 3)
-        self.assertEqual(settled.deferred_counters, (("counter_inc", "n"),))
+        self.assertEqual(settled.deferred_counters, (("counter_inc", "n", 1),))
 
         at_end = settle_after_normal(
             [NORMAL, control("stop")], 1, [], {},
@@ -287,13 +370,13 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual((wrapped.position, wrapped.frames, wrapped.wrapped), (1, [], True))
         self.assertEqual(wrapped.counter_deltas, ())
         self.assertEqual(wrapped.deferred_counters,
-                         (("counter_reset", "n"), ("counter_inc", "n")))
+                         (("counter_reset", "n", None), ("counter_inc", "n", 1)))
         self.assertEqual(counters, {"n": 2})
         counters = {"n": 2}
         stopped = settle_after_normal(actions, 2, [], counters, allow_wrap=False)
         self.assertEqual((stopped.position, stopped.frames, stopped.wrapped), (0, [], False))
         self.assertEqual(stopped.counter_deltas, ())
-        self.assertEqual(stopped.deferred_counters, (("counter_reset", "n"),))
+        self.assertEqual(stopped.deferred_counters, (("counter_reset", "n", None),))
         self.assertEqual(counters, {"n": 2})
 
     def test_settle_wrap_limit_and_start_position_rule(self):
@@ -305,7 +388,7 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual(counters, {})
         self.assertEqual(settled.counter_deltas, ())
         self.assertEqual(settled.deferred_counters,
-                         (("counter_inc", "n"), ("counter_inc", "n")))
+                         (("counter_inc", "n", 1), ("counter_inc", "n", 1)))
         endless = [control("loop_start", infinite=True), control("loop_end")]
         limited = settle_after_normal(endless, 0, [], {}, allow_wrap=True)
         self.assertEqual((limited.position, limited.frames), (1, [LoopFrame(0, 10000)]))
@@ -317,7 +400,7 @@ class SequenceStepsTest(unittest.TestCase):
         )
         self.assertEqual(capped.position, 2)
         self.assertEqual(capped.counter_deltas, ())
-        self.assertEqual(capped.deferred_counters, (("counter_inc", "n"),))
+        self.assertEqual(capped.deferred_counters, (("counter_inc", "n", 1),))
         self.assertEqual(counters, {})
 
     def test_finite_loop_counts(self):
@@ -442,11 +525,11 @@ class SequenceStepsTest(unittest.TestCase):
         actions = [control("wait", ms=1), NORMAL]
         counters = {"n": 1}
         waiting = advance(actions, 0, [], counters, wrap_once=False,
-                          deferred_counters=(("counter_inc", "n"),), in_call=True)
+                          deferred_counters=(("counter_inc", "n", 1),), in_call=True)
         self.assertEqual(counters["n"], 2)
         continued = advance(actions, waiting.resume_position, waiting.frames,
                             counters, wrap_once=False, resume=waiting.resume,
-                            deferred_counters=(("counter_inc", "n"),), in_call=True)
+                            deferred_counters=(("counter_inc", "n", 1),), in_call=True)
         self.assertEqual(counters["n"], 2)
         self.assertEqual(continued.counter_deltas, (("n", 1),))
 
@@ -605,7 +688,7 @@ class SequenceStepsTest(unittest.TestCase):
 
     def test_deferred_counters_follow_trigger_and_set_lifetime(self):
         state = AppState()
-        deferred = [("counter_inc", "n")]
+        deferred = [("counter_inc", "n", 1)]
         state.deferred_counters_for("first")["f1"] = list(deferred)
         state.rekey_trigger("first", "f1", "f9")
         self.assertEqual(state.deferred_counters_for("first"), {"f9": deferred})

@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from keyseq.application.app_state import AppState
+from keyseq.application.sequence_steps import advance
 from keyseq.application.sequence_history import (
     HistoryEntry,
     MAX_HISTORY_ENTRIES,
@@ -18,6 +19,44 @@ from keyseq.application.sequence_history import (
 
 
 class SequenceHistoryTest(unittest.TestCase):
+    def test_deferred_amount_change_records_snapshot_with_captured_amount(self):
+        deferred = [("counter_inc", "n", -2), ("counter_reset", "n", None)]
+        snapshot = StepSnapshot("set", "key", 1, [], deferred)
+        deferred.clear()
+        history = []
+        self.assertTrue(push_history(
+            history, snapshot, 1, [], [],
+            deferred_counters=[("counter_inc", "n", 3), ("counter_reset", "n", None)],
+        ))
+        self.assertEqual(history[0].deferred_counters,
+                         [("counter_inc", "n", -2), ("counter_reset", "n", None)])
+
+    def test_undo_unused_counter_returns_to_start_but_keeps_value_entered(self):
+        state = AppState()
+        state.set_counter_starts({"n": 10})
+        outcome = advance([{"type": "system", "op": "counter_inc", "counter": "n", "amount": -2}],
+                          0, [], state.counters, wrap_once=False)
+        undo_counter_deltas(state.counters, outcome.counter_deltas)
+        self.assertEqual(state.counters, {"n": 10})
+        state.set_counter_starts({"n": 20})
+        self.assertEqual(state.counters.value("n"), 10)
+
+    def test_undo_amount_and_reset_deltas_keeps_name_used(self):
+        for op, amount, expected_delta in (("counter_inc", 3, 3),
+                                           ("counter_inc", -2, -2),
+                                           ("counter_reset", None, -4)):
+            with self.subTest(op=op, amount=amount):
+                state = AppState()
+                state.set_counter_starts({"n": 10})
+                state.counters["n"] = 14
+                outcome = advance([{"type": "system", "op": op, "counter": "n", "amount": amount}],
+                                  0, [], state.counters, wrap_once=False)
+                self.assertEqual(outcome.counter_deltas, (("n", expected_delta),))
+                undo_counter_deltas(state.counters, outcome.counter_deltas)
+                self.assertEqual(state.counters, {"n": 14})
+                state.set_counter_starts({"n": 99})
+                self.assertEqual(state.counters.value("n"), 14)
+
     def test_unchanged_step_is_not_pushed(self):
         history = []
         snapshot = StepSnapshot("set-a", "a", 2, [(0, 1)])

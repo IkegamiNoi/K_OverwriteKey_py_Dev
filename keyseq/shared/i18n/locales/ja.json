@@ -861,6 +861,8 @@
   "application.sequence_steps.control_standalone": "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
   "application.sequence_steps.count": "回数={count}",
   "application.sequence_steps.counter": "カウンター={counter}",
+  "application.sequence_steps.counter_amount_invalid": "増やす量が正しくありません",
+  "application.sequence_steps.counter_with_amount": "カウンター={counter} 増やす量={amount}",
   "application.sequence_steps.counter_name_empty": "カウンター名が空です",
   "application.sequence_steps.infinite": "無限",
   "application.sequence_steps.infinite_loop_call": "呼び出し先に無限ループがあります",

@@ -1,10 +1,12 @@
 ﻿from __future__ import annotations
 
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from keyseq.application.sequence_steps import LoopFrame, StepResume
+from keyseq.application.counter_values import CounterValues
 from keyseq.application.sequence_history import HistoryEntry, StepSnapshot, commit_step
 
 
@@ -30,15 +32,15 @@ class AppState:
     keymap_indices: dict[str, dict[str, int]] = field(default_factory=dict)
     loop_frames: dict[str, list[LoopFrame]] = field(default_factory=dict)
     keymap_loop_frames: dict[str, dict[str, list[LoopFrame]]] = field(default_factory=dict)
-    deferred_counters: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
-    keymap_deferred_counters: dict[str, dict[str, list[tuple[str, str]]]] = field(default_factory=dict)
+    deferred_counters: dict[str, list[tuple[str, str, int | None]]] = field(default_factory=dict)
+    keymap_deferred_counters: dict[str, dict[str, list[tuple[str, str, int | None]]]] = field(default_factory=dict)
     history: dict[str, list[HistoryEntry]] = field(default_factory=dict)
     keymap_history: dict[str, dict[str, list[HistoryEntry]]] = field(default_factory=dict)
     call_refs: set[str] = field(default_factory=set)
     keymap_call_refs: dict[str, set[str]] = field(default_factory=dict)
     press_counter: int = 0
     last_trigger: tuple[str, str] | None = None
-    counters: dict[str, int] = field(default_factory=dict)
+    counters: CounterValues = field(default_factory=CounterValues)
     pending_steps: dict[tuple[str, str], PendingStep] = field(default_factory=dict)
     pending_step_generation: int = 0
     reset_listeners: list[Callable[[], None]] = field(default_factory=list, compare=False, repr=False)
@@ -49,6 +51,10 @@ class AppState:
 
     lock: threading.Lock = field(default_factory=threading.Lock, init=False)
     reentry_guard: set[str] = field(default_factory=set, init=False)
+
+    def set_counter_starts(self, starts: Mapping[str, int]) -> None:
+        with self.lock:
+            self.counters.set_starts(starts)
 
     def reset_indices(self) -> None:
         self.pending_steps.clear()
@@ -89,7 +95,7 @@ class AppState:
             return self.loop_frames
         return self.keymap_loop_frames.setdefault(trigger_set_id, {})
 
-    def deferred_counters_for(self, trigger_set_id: str | None = None) -> dict[str, list[tuple[str, str]]]:
+    def deferred_counters_for(self, trigger_set_id: str | None = None) -> dict[str, list[tuple[str, str, int | None]]]:
         if not trigger_set_id:
             return self.deferred_counters
         return self.keymap_deferred_counters.setdefault(trigger_set_id, {})

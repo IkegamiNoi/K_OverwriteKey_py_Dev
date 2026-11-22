@@ -11,7 +11,7 @@ last_commit_location: `claude/task-15-360298`（Mac の worktree・phase 75 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76（カウンター機能の拡張）task_01（保存形式）完了。次 = task_02（実行）。**
+focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）完了。次 = task_03（counter_text）。**
 mode: blocked
 
 ## last_action
@@ -31,7 +31,9 @@ verified:
 ## next_action
 - 暫定 58 v1.0（ユーザー確定 2026-11-22・§6 の 5 件をすべて推奨どおり → §2.8〜12）。phase 76 を起票済（`instructions/phase/76_counter_expansion/phase.md`・current.md 更新・reviewer 整合チェック「修正して採用」反映・コミット 4946a3e9）。
   task_01（保存形式）: タスク定義 `tasks/task_01_counter_save_format.md` を起票（未コミット）→ `codex-implementer` が実装コード完了（sequence_control / config / split_loading / split_payloads / __init__・test_sequence_control・差分は直読み済み）・残りのテストも完了（test_domain_config の差し込み位置のずれはメインが修正）→ verifier: compileall clean・対象 4 モジュール 260 OK・tests 全体は test_save_plan の期待値 3 件のみ失敗 → 期待値に counter_starts を足し test_save_plan 26 OK → reviewer 採用（任意の軽微 4 件は見送り）→ **task_01 完了**。
-- 次 = task_02（実行: AppState の開始値と実効値の 1 関数・amount・リセットを開始値へ・保留の型 (op, name, amount)・無視された押下の巻き戻しで初めて入った名前を消す）を `/task_new` で起票 → `codex-delegating-implementer`（経路が多く判断が要る）へ委任。
+- task_01 はコミット 25c123df。
+- task_02（実行）: タスク定義 `tasks/task_02_counter_execution.md` を起票（未コミット・`CounterValues(dict)` + `counter_value` の 1 関数・保留 3 要素・巻き戻しで押下開始時に無かった名前を消す）→ `codex-delegating-implementer`（Sol medium）で実装完了・差分直読み済み（20 ファイル +310/-69・新規 counter_values.py / test_counter_values.py）→ verifier: compileall clean・対象 4 モジュール 117 OK・test_sequence_runner* 329 OK・tests 全体 2239 失敗 0 skip 7 → reviewer 採用（参考 2 点 = 連続実行・file_line 再開の経路の名前の集合はその step / 文脈の差分の範囲と一致しており現状で可）→ **task_02 完了**。
+- 次 = task_03（`counter_text` 種別: ActionExecutor の 1 分岐・種別の検証と文言・通知・暫定 58 §3.4）を起票 → `codex-implementer` へ委任。
 - 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
 - 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 

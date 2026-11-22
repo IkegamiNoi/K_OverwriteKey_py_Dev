@@ -201,6 +201,8 @@ class RunToEndMixin:
         snapshot = self._run_to_end_snapshot or snapshot_for(self.state, self._get_trigger_set_id(), key)
         previous_resume = self._run_to_end_resume
         advance_position = self._get_index(key)
+        with self.state.lock:
+            counter_names_before = set(self.state.counters)
         target = None
         def on_control(op: str, target_key: str | None) -> None:
             nonlocal target
@@ -242,6 +244,7 @@ class RunToEndMixin:
                   and system_op(action) == OP_CALL):
                 self._begin_run_to_end_call(
                     key, actions, index, outcome, snapshot,
+                    counter_names_before=counter_names_before,
                 )
                 self._select_trigger(key)
                 if target is not None:

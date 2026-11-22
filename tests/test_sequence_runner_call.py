@@ -571,6 +571,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual([action["value"] for action in self.performed], ["a", "a", "b"])
 
     def test_callee_starting_with_counter_inc_propagates_at_real_end(self):
+        self.state.set_counter_starts({"n": 6})
         self.trigger("f1", [call("f5"), text("caller next")])
         self.trigger("f5", [system("counter_inc", counter="n"), text("a"), text("b")])
         self.runner.handle_key("f1")
@@ -581,7 +582,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f5"), 1)
         self.assertEqual(self.index("f1"), 1)
         self.assertNotIn("f1", self.state.call_refs_for("set"))
-        self.assertEqual(self.state.counters["n"], 1)
+        self.assertEqual(self.state.counters["n"], 7)
         self.assertEqual([action["value"] for action in self.performed], ["a", "b"])
 
     def test_callee_starting_with_stop_propagates_at_real_end(self):
@@ -2477,6 +2478,36 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual({key: len(self.history(key)) for key in before_history}, before_history)
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual(self.performed, [text("busy")])
+
+    def test_ignored_call_rolls_back_new_counter_keys_for_increment_and_zero_reset(self):
+        for op in ("counter_inc", "counter_reset"):
+            with self.subTest(op=op):
+                self.setUp()
+                self.state.set_counter_starts({"n": 6})
+                self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+                self.trigger("f1", [system(op, counter="n"), call("busy")])
+                self.trigger("f2", [system("counter_inc", counter="n")])
+                self.runner.handle_key("busy")
+                self.hold_pending_wait("busy")
+
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+
+                self.assertNotIn("n", self.state.counters)
+                self.state.set_counter_starts({"n": 10})
+                self.runner.handle_key("f2")
+                self.assertEqual(self.state.counters["n"], 11)
+
+    def test_continuous_batch_call_uses_counter_start_in_callee(self):
+        self.state.set_counter_starts({"n": 3})
+        self.trigger("f1", [call("f5", all=True)], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A")])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual(self.state.counters["n"], 4)
+        self.assertEqual(self.performed, [text("A")])
 
     def test_busy_nested_call_through_unmarked_trigger_does_not_consume_press(self):
         self.trigger("busy", [text("busy"), system("wait", ms=1000)])

@@ -29,6 +29,7 @@ class CallWaitMixin:
     def _start_single_call(
         self, key: str, actions: list[dict[str, Any]], outcome: StepOutcome,
         snapshot: StepSnapshot, initial_position: int,
+        *, counter_names_before: set[str],
     ) -> None:
         trigger_set_id = self._get_trigger_set_id()
         ancestors, ancestor_depth = self._linked_ancestors(key)
@@ -38,6 +39,7 @@ class CallWaitMixin:
             step=is_step_call(actions[outcome.normal_index]),
             ancestors=ancestors, ancestor_depth=ancestor_depth,
         )
+        ctx.counter_names_before = counter_names_before
         ctx.before[key] = snapshot
         ctx.press_processed = outcome.processed
         ctx.record_deltas(key, outcome.counter_deltas)

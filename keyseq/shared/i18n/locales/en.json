@@ -861,6 +861,8 @@
   "application.sequence_steps.control_standalone": "Add “Back” and “Rewind” to the Output Sequence as standalone items.",
   "application.sequence_steps.count": "Count: {count}",
   "application.sequence_steps.counter": "Counter: {counter}",
+  "application.sequence_steps.counter_amount_invalid": "The amount is not valid.",
+  "application.sequence_steps.counter_with_amount": "Counter: {counter}, Amount: {amount}",
   "application.sequence_steps.counter_name_empty": "Counter name is empty.",
   "application.sequence_steps.infinite": "Infinite",
   "application.sequence_steps.infinite_loop_call": "The call target contains an infinite loop.",

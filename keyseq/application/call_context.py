@@ -34,7 +34,7 @@ class CallFrame:
     key: str
     position: int = 0
     frames: list[LoopFrame] = field(default_factory=list)
-    deferred: list[tuple[str, str]] = field(default_factory=list)
+    deferred: list[tuple[str, str, int | None]] = field(default_factory=list)
     resume: StepResume | None = None
     step: bool = False
     sent: bool = False  # Step-return boundary only; stops use the run-level gate.
@@ -52,6 +52,7 @@ class CallContext:
     processed_before_action: int = 0
     first_step: bool = False
     before: dict[str, StepSnapshot] = field(default_factory=dict)
+    counter_names_before: set[str] = field(default_factory=set)
     changed_frames: dict[str, CallFrame] = field(default_factory=dict)
     completed: list[str] = field(default_factory=list)
     deltas_by_key: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
@@ -105,7 +106,7 @@ def start_linked_call(
     """Build a linked call from live trigger states, without copying actions."""
     ctx = CallContext(trigger_set_id, root_key, target_key, first_step=step,
                       state=state, find_trigger=find_trigger, ancestors=ancestors,
-                      ancestor_depth=ancestor_depth)
+                      ancestor_depth=ancestor_depth, counter_names_before=set(state.counters))
     ctx.before[root_key] = snapshot_for(state, trigger_set_id, root_key)
     return ctx
 

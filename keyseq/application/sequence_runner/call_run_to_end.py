@@ -37,6 +37,7 @@ class CallRunToEndMixin:
     def _begin_run_to_end_call(
         self, key: str, actions: list[dict[str, Any]], index: int,
         outcome: StepOutcome, snapshot: StepSnapshot,
+        *, counter_names_before: set[str],
     ) -> None:
         ancestors, depth = self._linked_ancestors(key)
         ctx = start_linked_call(
@@ -44,6 +45,7 @@ class CallRunToEndMixin:
             self.state, step=is_step_call(actions[index]),
             ancestors=ancestors, ancestor_depth=depth,
         )
+        ctx.counter_names_before = counter_names_before
         ctx.before[key] = snapshot
         ctx.press_processed = outcome.processed
         ctx.record_deltas(key, outcome.counter_deltas)

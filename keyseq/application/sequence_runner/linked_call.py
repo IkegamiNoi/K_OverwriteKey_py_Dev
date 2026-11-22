@@ -17,6 +17,8 @@ class LinkedCallMixin:
         deltas = [delta for values in ctx.deltas_by_key.values() for delta in values]
         with self.state.lock:
             undo_counter_deltas(self.state.counters, deltas)
+            for name in set(self.state.counters) - ctx.counter_names_before:
+                del self.state.counters[name]
             for snapshot in ctx.before.values():
                 trigger_set_id, key = snapshot.trigger_set_id, snapshot.key
                 self.state.indices_for(trigger_set_id)[key] = snapshot.position
@@ -140,5 +142,6 @@ class LinkedCallMixin:
         ctx.deltas_by_key.clear()
         ctx.before = {key: snapshot_for(self.state, ctx.trigger_set_id, key)
                       for key in ctx.before}
+        ctx.counter_names_before = set(self.state.counters)
         self._refresh_actions()
         self._update_status()

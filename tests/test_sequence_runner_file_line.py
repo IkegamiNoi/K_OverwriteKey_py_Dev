@@ -1,6 +1,9 @@
 import unittest
+from unittest.mock import Mock
 
+from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.app_state import AppState
+from keyseq.application.counter_values import counter_value
 from keyseq.application.sequence_runner import FILE_LINE_POLL_INTERVAL_MS, SequenceRunner
 
 
@@ -125,10 +128,38 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.scheduler.run_one()
         self.assertNotIn(("", "f1"), self.state.pending_steps)
         self.assertEqual(self.state.indices["f1"], 2)
-        self.assertEqual(self.state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(self.state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.runner.handle_key("f1")
         self.assertEqual(self.state.counters["n"], 1)
         self.assertEqual(self.performed[-1]["value"], "after")
+
+    def test_file_line_resume_rereads_unused_start_through_get_counter(self):
+        self.state.set_counter_starts({"row": 4})
+        executor = ActionExecutor(
+            input_gateway=Mock(), validate_hotkey=Mock(), on_action_error=Mock(),
+            on_runtime_error=Mock(), on_stop_hook=Mock(), on_toggle_mode=Mock(),
+            on_select_keymap=Mock(), on_trigger=Mock(),
+            resolve_file_line_path=lambda path: path,
+            get_counter=lambda name: counter_value(self.state.counters, name),
+            file_line_loader=Mock(),
+        )
+        handles = []
+        def begin(action):
+            handle = executor.begin_file_line(action)
+            self.assertIsNotNone(handle)
+            handles.append(handle)
+            return handle
+        self.runner._begin_file_line = begin
+        self.run_to_end_trigger("f1", [self.file_line()])
+
+        self.runner.handle_key("f1")
+        self.runner.pause_run_to_end()
+        self.state.set_counter_starts({"row": 7})
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
+
+        self.assertEqual([handle.line_number for handle in handles], [4, 7])
+        self.assertNotIn("row", self.state.counters)
 
     def test_poll_error_keeps_file_line_row_and_commits_one_reversible_step(self):
         self.trigger("f1", [{"type": "system", "op": "counter_inc", "counter": "n"},

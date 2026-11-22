@@ -82,6 +82,7 @@ from keyseq.application.file_line_loader import FileLineLoader
 from keyseq.application.file_line_reader import resolve_file_line_path
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
+from keyseq.application.counter_values import counter_value
 from keyseq.application.hotkey_service import HotkeyService
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.hook_coordinator import HookCoordinator
@@ -213,7 +214,7 @@ class App(tk.Tk):
             on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, show_flash=True),
             on_trigger=lambda key, repeat: self.sequence_runner.handle_key(key, repeat),
             resolve_file_line_path=lambda p: resolve_file_line_path(p, self.config_root),
-            get_counter=lambda name: self.state.counters.get(name, 0),
+            get_counter=lambda name: counter_value(self.state.counters, name),
             file_line_loader=self.file_line_loader,
             on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
             can_switch_keymap=lambda keymap_id: self.state.can_switch_keymap(

@@ -282,16 +282,17 @@ class SequenceRunnerStopTests(unittest.TestCase):
         runner, state, _scheduler, performed = self.make_runner(
             [a, self.stop(), self.counter_inc(), b],
         )
+        state.set_counter_starts({"n": 7})
 
         runner.handle_key("f1")
         self.assertEqual(performed, [a])
         self.assertEqual(state.indices["f1"], 3)
         self.assertEqual(state.counters.get("n", 0), 0)
-        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n", 1)])
 
         runner.handle_key("f1")
         self.assertEqual(performed, [a, b])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.counters["n"], 8)
 
     def test_14_post_stop_counter_at_end_is_applied_and_reversible(self):
         a = {"type": "text", "value": "A"}
@@ -325,7 +326,7 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(performed, [a])
         self.assertEqual(state.indices["f1"], 4)
         self.assertEqual(state.counters.get("n", 0), 0)
-        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n", 1)])
         self.assertIsNone(state.run_to_end_key)
 
     def test_pause_during_wait_settles_through_stop_and_ends_run(self):

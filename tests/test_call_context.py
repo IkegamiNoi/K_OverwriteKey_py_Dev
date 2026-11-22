@@ -168,6 +168,18 @@ class CallContextTest(unittest.TestCase):
         resumed = call_step(waiting, wait_counters)
         self.assertEqual((resumed.action["value"], resumed.counter_deltas), ("B", ()))
 
+    def test_linked_counter_increment_uses_unset_counter_start(self):
+        state = AppState()
+        state.set_counter_starts({"n": 6})
+        ctx = start_linked_call("set", "root", "f5", {"f5": trigger([
+            control("counter_inc", counter="n"), {"type": "text", "value": "A"},
+        ])}.get, state, step=False)
+
+        result = call_step(ctx, state.counters)
+
+        self.assertEqual(result.counter_deltas, (("n", 1),))
+        self.assertEqual(state.counters["n"], 7)
+
     def test_depth_error_precedes_missing_target_and_includes_attempted_key(self):
         deep_triggers = {}
         for index in range(1, 11):

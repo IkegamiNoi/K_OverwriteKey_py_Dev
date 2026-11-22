@@ -22,7 +22,7 @@ class HistoryEntry:
     position: int
     frames: list[Any]
     counter_deltas: list[CounterDelta]
-    deferred_counters: list[tuple[str, str]] = field(default_factory=list)
+    deferred_counters: list[tuple[str, str, int | None]] = field(default_factory=list)
     press_id: int = field(default=0, compare=False)
     call_ref: bool = field(default=False, compare=False)
 
@@ -40,7 +40,7 @@ class StepSnapshot:
     key: str
     position: int
     frames: list[Any]
-    deferred_counters: list[tuple[str, str]] = field(default_factory=list)
+    deferred_counters: list[tuple[str, str, int | None]] = field(default_factory=list)
     call_ref: bool = False
 
     def __post_init__(self) -> None:
@@ -64,7 +64,7 @@ def push_history(
     position: int,
     frames: Sequence[Any],
     counter_deltas: Iterable[CounterDelta],
-    deferred_counters: Sequence[tuple[str, str]] = (),
+    deferred_counters: Sequence[tuple[str, str, int | None]] = (),
     press_id: int = 0,
     call_ref: bool | None = None,
 ) -> bool:

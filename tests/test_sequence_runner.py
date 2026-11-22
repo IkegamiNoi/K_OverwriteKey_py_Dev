@@ -122,17 +122,18 @@ class SystemActionRunnerTest(unittest.TestCase):
     def test_single_counter_at_head_is_prepared_after_each_action(self):
         actions = [{"type": "system", "op": "counter_inc", "counter": "n"}, A1]
         runner, state, _scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        state.set_counter_starts({"n": 10})
         seen = []
         def perform(action):
             seen.append(state.counters["n"])
             performed.append(action)
         runner._perform_action = perform
-        for expected in (1, 2, 3):
+        for expected in (11, 12, 13):
             runner.handle_key("f1")
             self.assertEqual(seen[-1], expected)
             self.assertEqual(state.counters["n"], expected)
             self.assertEqual(state.indices["f1"], 1)
-            self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+            self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(performed, [A1, A1, A1])
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas,
                          [("n", 1)])
@@ -185,7 +186,7 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(performed, [A1])
         self.assertEqual(state.indices["f1"], 2)
         self.assertEqual(state.counters, {})
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
         runner._notify_error.assert_not_called()
         runner.handle_key("f1")
@@ -216,7 +217,7 @@ class SystemActionRunnerTest(unittest.TestCase):
         runner, state, _scheduler, performed = make_runner([trigger, back])
         runner.handle_key("f1")
         self.assertEqual((state.indices["f1"], state.counters["n"]), (1, 1))
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         runner.handle_key("f2")
         self.assertEqual((state.indices["f1"], state.counters["n"]), (0, 0))
         self.assertEqual(state.deferred_counters["f1"], [])
@@ -236,7 +237,7 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(performed, [A1])
         self.assertEqual(state.indices["f1"], 3)
         self.assertEqual(state.counters, {})
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
         runner.handle_key("f1")
         self.assertEqual(performed[1], A2)
@@ -245,17 +246,18 @@ class SystemActionRunnerTest(unittest.TestCase):
         actions = [A1, {"type": "system", "op": "counter_inc", "counter": "n"},
                    {"type": "system", "op": "wait", "ms": 1}, A2]
         runner, state, scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        state.set_counter_starts({"n": 10})
         runner.handle_key("f1")
         self.assertEqual(state.counters, {})
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])  # 待機中は同じキーを無視
         scheduler.run_pending()
         runner.handle_key("f1")
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.counters["n"], 11)
         self.assertEqual(state.deferred_counters["f1"], [])
         self.assertEqual(performed, [A1, A2])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.counters["n"], 11)
         self.assertEqual(state.history_for("")["f1"][-1].counter_deltas, [("n", 1)])
 
     def test_continuous_steps_through_system_rows(self):
@@ -263,13 +265,14 @@ class SystemActionRunnerTest(unittest.TestCase):
                    {"type": "system", "op": "counter_reset", "counter": "n"}, A2]
         runner, state, scheduler, performed = make_runner(
             [{"key": "f1", "run_to_end": True, "actions": actions}])
+        state.set_counter_starts({"n": 7})
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])
-        self.assertEqual(state.counters["n"], 1)  # v0.5 §4.1: reset は次ステップまで保留
-        self.assertEqual(state.deferred_counters["f1"], [("counter_reset", "n")])
+        self.assertEqual(state.counters["n"], 8)  # reset は次ステップまで保留
+        self.assertEqual(state.deferred_counters["f1"], [("counter_reset", "n", None)])
         scheduler.run_pending()
         self.assertEqual(performed, [A1, A2])
-        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.counters["n"], 7)
         self.assertIsNone(state.run_to_end_key)
         self.assertEqual(state.indices["f1"], 0)
 
@@ -330,7 +333,7 @@ class SystemActionRunnerTest(unittest.TestCase):
         runner, state, _scheduler, _performed = make_runner(
             [{"key": "f1", "actions": actions}])
         runner.handle_key("f1")
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         runner.reset_loop_frames("f1")
         self.assertNotIn("f1", state.deferred_counters)
         runner.handle_key("f1")
@@ -388,7 +391,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 2)  # v0.4 §4.1: loop_end を先行処理
         self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
         self.assertEqual(state.counters["n"], 1)  # v0.5 §4.1: 次の +1 は保留
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(len(state.history_for("")["f1"]), 1)
 
         runner.handle_key("f1")
@@ -402,7 +405,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 2)  # v0.4 §4.1: 先行処理込みの 1 段を戻す
         self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
         self.assertEqual(state.counters["n"], 1)
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.last_trigger, ("", "f1"))
         self.assertEqual(selected, ["f1"])
@@ -579,7 +582,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.counters["n"], 1)  # v0.5 §4.1: A1 直後の +1 は保留
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas,
                          [("n", 1)])
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(state.last_trigger, ("", "f1"))
         scheduler.run_pending()
 
@@ -1287,7 +1290,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.handle_key("f1")
         runner.pause_run_to_end()
         self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(performed, [A1])
         runner.resume_run_to_end()
@@ -1306,7 +1309,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.stop_run_to_end()
         self.assertEqual(state.indices["f1"], 3)
         self.assertEqual(len(state.history_for("")["f1"]), 1)
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
 
     def test_discarding_paused_wait_keeps_settled_position(self):
         trigger = {
@@ -1340,7 +1343,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
                     runner.cancel_pending_waits()
                 self.assertEqual(state.indices["f1"], 4)
                 self.assertEqual(len(state.history_for("")["f1"]), 1)
-                self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+                self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
 
     def test_system_runtime_error_notification_describes_action_and_label(self):
         action = {"type": "system", "op": "loop_start", "count": "abc", "label": "outer"}
@@ -1407,11 +1410,11 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
         runner, state, _scheduler, _performed = make_runner([trigger, back])
         runner.handle_key("f1")
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         runner.cancel_pending_wait("f1")
 
         self.assertEqual(state.counters.get("n", 0), 0)
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n", 1)])
         runner.handle_key("f2")
         self.assertEqual(state.indices["f1"], 0)
         self.assertEqual(state.deferred_counters["f1"], [])
