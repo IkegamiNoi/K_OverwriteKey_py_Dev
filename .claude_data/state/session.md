@@ -29,8 +29,8 @@ verified:
   tests: not_run（検討のみ）
 
 ## next_action
-- 暫定 58 v1.0（ユーザー確定 2026-11-22・§6 の 5 件をすべて推奨どおり → §2.8〜12）。phase 76 を起票済（`instructions/phase/76_counter_expansion/phase.md`・current.md 更新・未コミット）。
-  reviewer の整合チェック中 → 結果を反映 → コミット → task_01（保存形式）のタスク定義を `/task_new` で起票し `codex-implementer` 系へ委任。
+- 暫定 58 v1.0（ユーザー確定 2026-11-22・§6 の 5 件をすべて推奨どおり → §2.8〜12）。phase 76 を起票済（`instructions/phase/76_counter_expansion/phase.md`・current.md 更新・reviewer 整合チェック「修正して採用」反映・コミット 4946a3e9）。
+  次 = ユーザーの指示で task_01（保存形式）のタスク定義を `/task_new` で起票し `codex-implementer` 系へ委任。
 - 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
 - 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
