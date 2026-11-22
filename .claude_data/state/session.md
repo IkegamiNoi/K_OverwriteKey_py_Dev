@@ -11,7 +11,6 @@ last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコ
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
 focus: **phase 75 段階 ④。task_13b（Mac のビルド）完了（2026-11-22・Mac 実機確認 1〜5 OK・reviewer 完了可）・task_11g 完了。次 = Windows 検証（task_11g・13b の残課題）→ task_14（正本反映）。**
 mode: completed
 

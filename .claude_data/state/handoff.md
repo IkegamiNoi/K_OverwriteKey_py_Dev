@@ -24,10 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で 2 件の不具合: ①メニューからのモーダルが戻らない（Mac 共通の既存の不具合）→ 暫定 57 v0.25 + task_11g を起票（Codex 敵対的レビューの指摘 2 件がユーザー判断待ち）②保存パネルが置き換えの確認の Cancel の後に固まる（`.app` でだけ・未調査）。実機確認 4 OK・5 未実施。**
-**presence: away（戻る予定 未定）**。再開したら session.md の presence 行は消してよい。
-Mac の worktree = `claude/task-13b-72ac5c`（task_13b / 11g の作業ファイルは未コミット・state のみコミット）。Windows の worktree = `claude/continue-c6c37b`。push と main へのマージはユーザー（PR は作らない）。
-直近の実測（Mac・task_13b・2026-11-22）: compile clean / tests 2141・エラー 1（test_app_data_roots → OS 別に分割後のモジュール 24 件 OK・全体の再実行は未）/ smoke OK / tests_ui test_help_window OK / PyInstaller 6.22.3 のビルド成功（Tk 9.1 同梱可）。tests_windows = not_run。
+**phase 75 段階 ④。task_13b（Mac のビルド）完了（2026-11-22・Mac 実機確認 1〜5 OK・reviewer 完了可）・task_11g（メニューの処理の遅延・暫定 57 v0.25）完了。次 = Windows 検証（task_11g・13b の残課題）→ task_14（正本反映）。**
+Mac の worktree = `claude/task-13b-72ac5c`（task_13b まですべてコミット済み・未 push）。Windows の worktree = `claude/continue-c6c37b`。push と main へのマージ・Windows の worktree への取り込みはユーザー（PR は作らない）。
+直近の実測（Mac・task_13b 完了時・2026-11-22・`../../../.venv/bin/python`）: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK / PyInstaller 6.22.3 のビルドと codesign OK（Tk 9.1 同梱可）。tests_windows = not_run。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -56,15 +55,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー判断待ち】暫定 57 v0.25（§5.4「メニューの処理」・`57_mac_support.md:313`）の Codex 敵対的レビュー（needs-attention）の 2 件**。決まったら §5.4 と `tasks/task_11g_menu_command_deferral.md` を改訂 → codex-adversarial-reviewer で再レビュー → codex-implementer。
-  - **確認 1（終了と予約の競合）**: 予約したメニューの処理が残ったまま × で閉じると、破棄後に予約が走る・選んだ言語が保存されない恐れ。**推奨** = `on_close` が destroy する直前に予約をすべて `after_cancel`（`menu_command` が予約の ID を app に預ける）・終了をキャンセルしたら予約はそのまま走らせる。代案 = 実行時に `winfo_exists()` を見て捨てるだけ（言語の保存漏れは残る）。
-  - **確認 2（チェック項目の遅延・`layout_controller.py:301-304`・`app.py:785-794`）**: 物理キー名のチェックボタンを遅らせると、先に予約された「新規作成」が変数を戻し、別の構成セットへ反映し得る。**推奨** = 遅らせる対象を「モーダルを開き得る項目」に絞る（add_command 全部と言語のラジオボタン。物理キー名のチェックボタンとフォントの大きさのラジオボタンは即時）。言語のラジオの印は予約中も新しい値・書き込み失敗時は今どおり戻す（`app.py:592-594`）と §5.4 に書く。
-  - 確認 3（tests_ui の漏れ）は task_11g に反映済み（判断不要）。
-- task_11g の完了後: task_13b の実機確認をやり直す（1 初回起動〔先に `~/Library/Application Support/keyseq` を別名に〕・2 保存と再読込・3 言語の再起動〔`open -n` の要否〕・5 置換・シーケンス・キー取得）。`dist/keyseq.app` は作り直す（`../../../.venv/bin/python -m PyInstaller --noconfirm packaging/macos/keyseq.spec`）。
-- 保存パネルの件（`.app` でだけ・別名保存で既存名 → 置き換えの確認で Cancel → パネルの Save / Cancel が効かない）を調べる（task_13b の範囲）。hang の記録は `/Library/Logs/DiagnosticReports/keyseq_*.hang`。止まった開発実行の Python スタックは faulthandler の SIGUSR1 で取れた（scratchpad のラッパーは消える）。
-- Mac の tests 全体を verifier で流し直す。
-- 残課題（次の Windows 作業）: test_third_party・test_os_backend_contracts・requirements-build.txt・task_11g の Windows 検証。C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath）と Windows 側の洗い出し → 両 OS 分を 1 本で起票（ユーザー判断 2026-11-22）。
-- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。
+- **Windows 検証（Windows の worktree で）**: test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui の test_help_window / test_ui_language / test_keymap_set_history_flow / test_quarantine_manage_flow / test_reference_cleanup_flow / test_orphan_sweep_flow / test_pane_window_width_persistence / test_app_ime_shutdown）・Windows の `.spec` に Mac と同じ修正（`dist/sources` を毎回空に・ファイル名全体で照合）・テンキーのサンプル（A / G / T → `num add` / `num multiply` / `num divide`）の実機・C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath。Windows 側を洗い出し）→ 両 OS 分を 1 本で起票。
+- その後 task_14（正本反映 = 暫定 57 v0.25 の昇格・凍結・`decisions_archive/75_mac_support.md`・current.md の完了記載・運用文書・`/refactor_check`）を起票。
+- 保留中: 2 枚目のモニタの目視・中クリック。idea_45（キー名の入力用 / 出力用の整理を追記済み）・idea_59〜64 は検討段階。
+- **Mac の再ビルドの後は** `tccutil reset Accessibility io.github.ikegaminoi.keyseq` で古い許可を消してから許可し直す（オンのままでも効かない）。
+- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
 
 ## 運用インフラ
 
