@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T13:00:00
+last_updated: 2026-11-22T15:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.25・v0.25 は Codex 敵対的レビュー needs-attention で確定待ち）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコミットまで。task_13b / 11g の作業ファイルは未コミット）。push はユーザー
@@ -12,8 +12,8 @@ last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコ
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で見つかった「メニューからのモーダルが戻らない」は task_11g（暫定 57 v0.25）で解決・完了。残り = task_13b の実機確認のやり直し（1・2・3・5）と、保存パネルが `.app` で固まる件の調査。**
-mode: implementing
+focus: **phase 75 段階 ④。task_13b（Mac のビルド）完了（2026-11-22・Mac 実機確認 1〜5 OK・reviewer 完了可）・task_11g 完了。次 = Windows 検証（task_11g・13b の残課題）→ task_14（正本反映）。**
+mode: completed
 
 ## last_action
 ts: 2026-11-22T04:30:00
@@ -33,11 +33,9 @@ verified:
   visual_mac: task_13b 4 OK・3 NG（→ task_11g）・保存パネル NG（.app のみ）・1・2・5 未報告
 
 ## next_action
-- **task_11g 完了（2026-11-22・Mac 目視 1〜7 OK・コミット済み）**。idea_64（Mac の保存パネルを広げた形で）を起票。次 = **task_13b の実機確認のやり直し**: `.app` は task_11g を入れて作り直し済み（2026-11-22・ビルド成功・codesign OK）→ **実機確認 1〜4 OK**（再許可は `tccutil reset Accessibility io.github.ikegaminoi.keyseq` で消して許可し直すと動いた → 手順書と README_dist を具体化済み・`.app` は未反映）。**5 はテンキーのサンプルの A・R・F（→ `plus`・`9`・`6`・`sample/keymaps/numpad.json`）でエラー・ほか OK → 原因特定**: Mac の backend（`macos/backend.py:196-218`）が `key_symbols.py` の記号キーの名前 34 個（`plus`・`asterisk`・`slash`・`minus` 等・`yen`・`ro` 以外）を拒否する（開発実行でも起きる既存の不具合・暫定 57 §8 Q7 案 A との乖離）。ユーザー提案（2026-11-22）= 記号キーのキー名は**文字を正**にする（互換は気にしない・良いコードを優先）。実測 = レイアウトの JSON は文字・Tk の記録は名前（`tk_keys.py:73,76-105`）・サンプルは名前（`config.py:108-110`）・Windows は keyboard ライブラリが両方受け付ける。ユーザー了承で暫定 57 §5.3.5（v0.26 案・未確定）を下書き済み（文字を正・例外 = `plus`〔ホットキーの区切り `hotkey.py:17`〕と JIS の `yen` / `ro`・記録は文字で返す〔idea_45 も解消〕・表示の表は例外だけに・Windows の Shift の要る文字の送信は Windows で実測・**論点 = 単語の名前の入力は案 1〔読み替えも拒否もしない・推奨〕/ 案 2〔両 OS で拒否〕**）。Codex 敵対的レビュー = needs-attention（high 2: `,` も壊れる〔`action_executor.py:249` の区切り・`key_hold.py:86-87` が拒否〕・Shift 付きの文字は入力側の物理キー名〔`input_router.py:186-200`〕と一致しない／medium 3: 出力の Shift の契約は置換先だけ・テンキーのサンプルは OS で別の物理キー・旧名の扱い。メインが裏付け済み）。本質 = キー名に入力用〔物理キー〕と出力用〔出す文字〕が混ざっている。**【ユーザー判断待ち】推奨 = 分ける: ①今はサンプルのテンキーを `num add` / `num multiply` / `num divide` に直すだけ（§5.3.5 の下書きは取り下げ）②キー名の入力用 / 出力用の整理は idea にして idea_45 と統合（互換不要の方針も記す）**。その後、保存パネルが `.app` で固まる件の調査。
-- task_11g の完了後: task_13b の実機確認をやり直す（1 初回起動〔先に `~/Library/Application Support/keyseq` を別名に〕・2 保存と再読込・3 言語の再起動〔`open -n` の要否〕・5 置換・シーケンス・キー取得）。
-- 保存パネルの件（`.app` でだけ・別名保存で既存名 → 置き換えの確認で Cancel → パネルの Save / Cancel が効かない）を調べる（task_13b の範囲）。
-- Mac の tests 全体を verifier で流し直す（test_app_data_roots の分割の後）。
-- 残課題（次の Windows 作業）: test_third_party・test_os_backend_contracts・requirements-build.txt・task_11g の Windows 検証。C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath）と Windows 側の洗い出し → 両 OS 分を 1 本で起票。
+- **Windows 検証（Windows の worktree で・task_11g / task_13b の残課題）**: Windows 検証の残課題 = test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui）・Windows の `.spec` の `dist/sources` の空にし方とアーカイブの照合（Mac と同じ修正）・テンキーのサンプル（A / G / T）の実機・C ライブラリ（OpenSSL 等）の洗い出しと両 OS 分の起票。Windows の worktree へこのブランチ（`claude/task-13b-72ac5c`）を取り込むのはユーザーの判断（push / merge はユーザー）。
+- その後 task_14（正本反映 = 暫定 57 の昇格・凍結・`decisions_archive/75_mac_support.md`・current.md の完了記載・`/refactor_check`）を起票。
+- 保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45（キー名の入力用 / 出力用の整理を追記）・idea_59〜64 は検討段階。
 
 ## blockers
 - **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

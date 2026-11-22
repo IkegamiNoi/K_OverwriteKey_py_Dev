@@ -1,13 +1,19 @@
 -r ../requirements.txt
 pyinstaller==6.22.3
 keyboard==0.13.5; sys_platform == "win32"
-pyautogui==0.9.54; sys_platform == "win32"
-pynput==1.8.2; sys_platform == "win32"
-pyscreeze==1.0.1; sys_platform == "win32"
-pymsgbox==2.0.1; sys_platform == "win32"
-pytweening==1.2.0; sys_platform == "win32"
-mouseinfo==0.1.3; sys_platform == "win32"
-pygetwindow==0.0.9; sys_platform == "win32"
-pyrect==0.2.0; sys_platform == "win32"
-pyperclip==1.11.0; sys_platform == "win32"
-six==1.17.0; sys_platform == "win32"
+pyautogui==0.9.54
+pynput==1.8.2
+pyscreeze==1.0.1
+pymsgbox==2.0.1
+pytweening==1.2.0
+mouseinfo==0.1.3
+pygetwindow==0.0.9
+pyrect==0.2.0
+pyperclip==1.11.0
+six==1.17.0
+pyobjc-core==13.0; sys_platform == "darwin"
+pyobjc-framework-Quartz==13.0; sys_platform == "darwin"
+pyobjc-framework-Cocoa==13.0; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices==13.0; sys_platform == "darwin"
+pyobjc-framework-CoreText==13.0; sys_platform == "darwin"
+rubicon-objc==0.5.7; sys_platform == "darwin"

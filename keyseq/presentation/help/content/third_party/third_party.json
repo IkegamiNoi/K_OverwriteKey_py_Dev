@@ -13,5 +13,10 @@
   {"name": "Python", "version": "3.14.6", "license": "PSF License", "file": "python.txt", "platforms": ["win32"]},
   {"name": "Tcl", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tcl.txt", "platforms": ["win32"]},
   {"name": "Tk", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tk.txt", "platforms": ["win32"]},
-  {"name": "PyInstaller", "version": "6.22.3", "license": "GNU GPL v2 or later (with bootloader exception) / Apache-2.0", "file": "pyinstaller.txt"}
+  {"name": "PyInstaller", "version": "6.22.3", "license": "GNU GPL v2 or later (with bootloader exception) / Apache-2.0", "file": "pyinstaller.txt"},
+  {"name": "pyobjc", "version": "13.0", "license": "MIT License", "file": "pyobjc.txt", "platforms": ["darwin"]},
+  {"name": "rubicon-objc", "version": "0.5.7", "license": "BSD 3-Clause License", "file": "rubicon_objc.txt", "platforms": ["darwin"]},
+  {"name": "Python", "version": "3.13.18", "license": "PSF License", "file": "python_macos.txt", "platforms": ["darwin"]},
+  {"name": "Tcl", "version": "9.1.0", "license": "Tcl/Tk License", "file": "tcl.txt", "platforms": ["darwin"]},
+  {"name": "Tk", "version": "9.1.0", "license": "Tcl/Tk License", "file": "tk.txt", "platforms": ["darwin"]}
 ]

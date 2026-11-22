@@ -93,7 +93,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 - task_12: `app_data_root` への統一と同梱物のパス、再起動（§6.1・§6.2）。再起動の実装（現在 `windows/app_relaunch.py` のみ）の OS 共通の置き場を決める（M4）
 - task_13a: 第三者ライセンスの表に OS の列（暫定 57 §6.3・v0.22）。各行の `platforms`・実行中の OS の行だけを表示・照合（OS は os_backend から受け取る）・Windows の行（keyboard・Python / Tcl / Tk）に印。Mac の行は task_13b、PyInstaller の行は task_13（ユーザー判断 2026-11-18）
 - task_13: `packaging/`（`.spec`・`requirements-build.txt`・手順書・同梱の README）と **Windows** のビルド、ビルド後の実機確認（保存先・見本のコピー・再起動・pynput の差し替え・保存した設定の読み込み）。PyInstaller の行と依存のソースの同梱（§6.3）。`test_third_party` の同梱の第三者ライセンスの表（Windows のビルドの Python の版）の扱い（`mac_test_baseline.md`）
-- task_13b: macOS のビルド（Mac で実施）・Mac の行（pyobjc・Python / Tcl / Tk）を表に足す・`.app` の再起動（`open -n` の要否）・pynput の差し替えの実測・Mac の task_12 の確認（§6.3）。起票済み（2026-11-22・`tasks/task_13b_packaging_macos_build.md`）
+- task_13b: macOS のビルド（Mac で実施）・Mac の行（pyobjc・Python / Tcl / Tk）を表に足す・`.app` の再起動（`open -n` の要否）・pynput の差し替えの実測・Mac の task_12 の確認（§6.3）。**完了（2026-11-22・Mac）**: `.app` の再起動は `open -n` 不要（今の再起動で 1 つだけ起き直る）・pynput の差し替えは再署名の有無どちらでも効く・再ビルド後は `tccutil reset` で再許可・サンプルのテンキーを `num add` / `num multiply` / `num divide` に（キー名の整理は idea_45）。Windows 検証は残課題
 
 **最終**
 

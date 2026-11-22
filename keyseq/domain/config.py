@@ -105,9 +105,9 @@ def build_sample_config(
         {
             "id": "keymap_3", "label": tr("sample.keymap.numpad"),
             "mappings": {
-                "z": "0", "x": "1", "c": "2", "v": "3", "a": "plus", "q": "-",
+                "z": "0", "x": "1", "c": "2", "v": "3", "a": "num add", "q": "-",
                 "s": "4", "d": "5", "f": "6", "w": "7", "e": "8", "r": "9",
-                "b": "enter", "g": "asterisk", "t": "slash",
+                "b": "enter", "g": "num multiply", "t": "num divide",
             },
             "triggers": [_sample_trigger(
                 "h", "numpad_guide", [tr("sample.guide.numpad")], action_type="text",

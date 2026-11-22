@@ -24,8 +24,11 @@ class ThirdPartyTest(unittest.TestCase):
             "pytweening", "mouseinfo", "pygetwindow", "pyrect", "pyperclip",
             "six", "Python", "Tcl", "Tk", "PyInstaller",
         ]
-        # task_13b adds Mac-specific rows; update this interim eleven-row expectation then.
-        mac_names = [name for name in windows_names if name not in {"keyboard", "Python", "Tcl", "Tk"}]
+        mac_names = [
+            "pyautogui", "pynput", "pyscreeze", "pymsgbox", "pytweening",
+            "mouseinfo", "pygetwindow", "pyrect", "pyperclip", "six",
+            "PyInstaller", "pyobjc", "rubicon-objc", "Python", "Tcl", "Tk",
+        ]
         for platform_key, expected in (("win32", windows_names), ("darwin", mac_names)):
             with self.subTest(platform=platform_key):
                 notices, error = load_third_party(platform=platform_key)
@@ -43,7 +46,8 @@ class ThirdPartyTest(unittest.TestCase):
                 continue
             with self.subTest(name=notice.entry.name):
                 try:
-                    actual = importlib.metadata.version(notice.entry.name)
+                    distribution_name = {"pyobjc": "pyobjc-core"}.get(notice.entry.name, notice.entry.name)
+                    actual = importlib.metadata.version(distribution_name)
                 except importlib.metadata.PackageNotFoundError:
                     self.skipTest(f"{notice.entry.name} is not installed")
                 self.assertEqual(notice.entry.version, actual)

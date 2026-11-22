@@ -320,15 +320,20 @@ class OsBackendContractTests(unittest.TestCase):
         identity.assert_called_once_with("keyseq.app")
         relaunch.assert_called_once_with("C:/work")
 
-    def test_app_data_roots(self) -> None:
+    def test_windows_app_data_roots(self) -> None:
+        if sys.platform != "win32": self.skipTest("Windows implementation")
         from keyseq.infrastructure.os_backend.windows.backend import WindowsAppIdentity
-        from keyseq.infrastructure.os_backend.macos.backend import MacAppIdentity
         dev_root = Path("/dev/root")
-        for identity_type in (WindowsAppIdentity, MacAppIdentity):
-            with patch("sys.frozen", False, create=True):
-                self.assertEqual(identity_type().app_data_root(dev_root), dev_root)
+        with patch("sys.frozen", False, create=True):
+            self.assertEqual(WindowsAppIdentity().app_data_root(dev_root), dev_root)
         with patch("sys.frozen", True, create=True), patch("sys.executable", "C:/app/keyseq.exe"):
             self.assertEqual(WindowsAppIdentity().app_data_root(dev_root), Path("C:/app"))
+
+    def test_macos_app_data_roots(self) -> None:
+        from keyseq.infrastructure.os_backend.macos.backend import MacAppIdentity
+        dev_root = Path("/dev/root")
+        with patch("sys.frozen", False, create=True):
+            self.assertEqual(MacAppIdentity().app_data_root(dev_root), dev_root)
         with patch("sys.frozen", True, create=True), patch("pathlib.Path.home", return_value=Path("/Users/test")):
             self.assertEqual(MacAppIdentity().app_data_root(dev_root), Path("/Users/test/Library/Application Support/keyseq"))
 

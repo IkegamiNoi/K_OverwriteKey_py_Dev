@@ -44,9 +44,9 @@ class SampleConfigTest(unittest.TestCase):
             "s": "k", "d": "j", "f": "h", "z": "m", "x": "n", "c": "b",
         })
         self.assertEqual(numpad["mappings"], {
-            "z": "0", "x": "1", "c": "2", "v": "3", "a": "plus", "q": "-",
+            "z": "0", "x": "1", "c": "2", "v": "3", "a": "num add", "q": "-",
             "s": "4", "d": "5", "f": "6", "w": "7", "e": "8", "r": "9",
-            "b": "enter", "g": "asterisk", "t": "slash",
+            "b": "enter", "g": "num multiply", "t": "num divide",
         })
         self.assertEqual(data["hotkey_presets"], build_base_config()["hotkey_presets"])
 

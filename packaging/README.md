@@ -1,4 +1,6 @@
-# Windows 配布ビルド
+# 配布ビルド
+
+## Windows
 
 リポジトリ直下で次の順に実行します。
 
@@ -11,3 +13,16 @@
 5. 配布する版のタグ `v<版>` を作成し、push します。
 
 依存の版を上げる場合は `requirements-build.txt`、`third_party.json`、`sources/` の版を揃えてください。任意の Windows アイコンは `packaging/windows/keyseq.ico` に配置します。
+
+## macOS
+
+Homebrew の Python 3.13 と `python-tk@3.13` を使います。
+
+1. `.venv` にビルド依存を入れます: `python -m pip install -r packaging/requirements-build.txt`
+2. `packaging/sources/` に mouseinfo 0.1.3 と pynput 1.8.2 のソースアーカイブを取得します: `pip download --no-binary :all: --no-deps mouseinfo==0.1.3 pynput==1.8.2 -d packaging/sources`（2026-11-22 の取得では Python 3.13 でそのまま通りました）。 macOS の `.spec` は、ファイル名全体が `<名前>-<版>.tar.gz` か `.zip` と一致するもの（大文字小文字は問わない）だけを同梱し、無ければビルドを止めます（`.sha256` などは数えません）。
+3. リポジトリ直下で `python -m PyInstaller packaging/macos/keyseq.spec` を実行します。
+4. 配布するものは `dist/keyseq.app`・`dist/README.txt`・`dist/sources/` です。`dist/keyseq/` は中間生成物なので配布しません。zip は毎回空のフォルダに 3 点を揃えてから作ります（前のビルドのファイルを混ぜないため）。例: `rm -rf dist/keyseq-macos && mkdir dist/keyseq-macos && ditto dist/keyseq.app dist/keyseq-macos/keyseq.app && cp dist/README.txt dist/keyseq-macos/ && ditto dist/sources dist/keyseq-macos/sources && ditto -c -k --keepParent dist/keyseq-macos keyseq-macos.zip`。作った zip は空のフォルダに展開し、3 点が揃っていることと、`codesign --verify --deep --strict keyseq-macos/keyseq.app` が通ることを確かめてください。
+
+再ビルドすると署名が変わり、アクセシビリティの一覧の keyseq がオンのままでも効かなくなります（「開始」で権限の案内が出続ける・2026-11-22 に実測）。keyseq を終了し、`tccutil reset Accessibility io.github.ikegaminoi.keyseq`（または一覧で「−」）で消してから、起動し直して許可し直してください。要る許可はアクセシビリティだけです。任意のアイコンは `packaging/macos/keyseq.icns` に置きます。
+
+依存の版を上げたら `requirements-build.txt`、`third_party.json`、`sources/`、Windows と macOS の 2 つの `.spec` の `SOURCE_PACKAGES` を揃えてください。bundle identifier `io.github.ikegaminoi.keyseq` は変更しないでください。権限は識別子と署名に結びつくため、変更すると再許可が必要になります。
