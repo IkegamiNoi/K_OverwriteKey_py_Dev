@@ -3,10 +3,11 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import filedialog, ttk
 from keyseq.presentation import message_box as messagebox
-from typing import Any, Callable
+from typing import Any, Callable, Mapping
 
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.sequence_control import (
+    ACTION_TYPE_COUNTER_TEXT,
     ACTION_TYPE_FILE_LINE,
     ACTION_TYPE_SYSTEM,
     DEFAULT_ENCODING,
@@ -47,15 +48,18 @@ ENCODINGS = {"UTF-8": ENCODING_UTF_8, "Shift_JIS": ENCODING_SHIFT_JIS}
 
 
 class ActionControlFields:
-    """Build and validate controls for system and file_line actions."""
+    """Build and validate controls for system, file_line and counter_text actions."""
 
     def __init__(self, parent: tk.Misc, *, counter_names: list[str], config_root: str,
                  config_service: Any, mode: str | None,
+                 counter_starts: Mapping[str, int] | None = None,
                  call_candidates: list[tuple[str, str]] | None = None,
                  call_check: Callable[[str], str | None] | None = None,
                  control_target_check: Callable[[str], str | None] | None = None) -> None:
         self.parent = parent
         self.counter_names = list(counter_names)
+        self.counter_starts = dict(counter_starts or {})
+        self.counter_start_result: tuple[str, int] | None = None
         self.config_root = config_root
         self.config_service = config_service
         self.mode = mode
@@ -73,10 +77,18 @@ class ActionControlFields:
             operation_labels.remove(self._system_labels_by_op[OP_LOOP_START])
         self.system_frame = ttk.LabelFrame(parent, text=tr("action_dialog.system.title"), padding=8)
         self.file_frame = ttk.LabelFrame(parent, text=tr("action_dialog.file_line.title"), padding=8)
+        self.counter_text_frame = ttk.LabelFrame(parent, text=tr("action.type.counter_text"), padding=8)
         self.system_frame.grid_columnconfigure(1, weight=1)
         self.file_frame.grid_columnconfigure(1, weight=1)
         self._build_system_fields(operation_labels)
         self._build_file_fields()
+        self.counter_text_var = tk.StringVar(value="")
+        ttk.Label(self.counter_text_frame, text=tr("action_dialog.counter_name")).grid(row=0, column=0, sticky="w")
+        self.counter_text_combo = ttk.Combobox(
+            self.counter_text_frame, textvariable=self.counter_text_var,
+            values=self.counter_names, state="normal", width=24,
+        )
+        self.counter_text_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.sync_system()
 
     def _build_system_fields(self, operation_labels: list[str]) -> None:
@@ -111,6 +123,18 @@ class ActionControlFields:
         self.system_counter_label = ttk.Label(self.system_frame, text=tr("action_dialog.counter_name"))
         self.system_counter_label.grid(row=2, column=0, sticky="w", pady=(6, 0))
         self.system_counter_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+
+        self.amount_var = tk.StringVar(value="1")
+        self.start_var = tk.StringVar(value="0")
+        self.amount_label = ttk.Label(self.system_frame, text=tr("action_dialog.counter_amount"))
+        self.amount_label.grid(row=3, column=0, sticky="w", pady=(6, 0))
+        self.amount_entry = ttk.Entry(self.system_frame, textvariable=self.amount_var, width=12)
+        self.amount_entry.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        self.start_label = ttk.Label(self.system_frame, text=tr("action_dialog.counter_start"))
+        self.start_label.grid(row=4, column=0, sticky="w", pady=(6, 0))
+        self.start_entry = ttk.Entry(self.system_frame, textvariable=self.start_var, width=12)
+        self.start_entry.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        self.system_counter_var.trace_add("write", self._sync_counter_start)
 
         self.wait_ms_var = tk.StringVar(value="1")
         self.wait_label = ttk.Label(self.system_frame, text=tr("action_dialog.system.milliseconds"))
@@ -197,6 +221,8 @@ class ActionControlFields:
         counter_op = op in (OP_COUNTER_INC, OP_COUNTER_RESET)
         self._show(self.system_counter_label, counter_op)
         self._show(self.system_counter_combo, counter_op)
+        for widget in (self.amount_label, self.amount_entry, self.start_label, self.start_entry):
+            self._show(widget, op == OP_COUNTER_INC)
         self._show(self.wait_label, op == OP_WAIT)
         self._show(self.wait_entry, op == OP_WAIT)
         control_target_op = op in (OP_BACK, OP_REWIND)
@@ -212,6 +238,9 @@ class ActionControlFields:
         )
         self._show(self.call_note_label, op == OP_CALL)
         self._show(self.call_all_check, op == OP_CALL)
+
+    def _sync_counter_start(self, *_args) -> None:
+        self.start_var.set(str(self.counter_starts.get(self.system_counter_var.get().strip(), 0)))
 
     def _remember_loop_count(self, *_args) -> None:
         try:
@@ -236,6 +265,7 @@ class ActionControlFields:
             self.loop_count_var.set(str(action.get("count", 1)))
             self.loop_infinite_var.set(bool(action.get("infinite", False)))
             self.system_counter_var.set(str(action.get("counter", "")))
+            self.amount_var.set(str(action.get("amount", 1)))
             self.wait_ms_var.set(str(action.get("ms", 1)))
             self.call_all_var.set(bool(action.get("all")))
             self.control_target_var.set(op in (OP_BACK, OP_REWIND) and "target" in action)
@@ -243,6 +273,8 @@ class ActionControlFields:
             if op in (OP_CALL, OP_BACK, OP_REWIND) and "target" in action:
                 target = normalize_key_name(str(action.get("target", "")))
                 self._select_call_target(target)
+        elif action_type == ACTION_TYPE_COUNTER_TEXT:
+            self.counter_text_var.set(str(action.get("counter", "")))
         elif action_type == ACTION_TYPE_FILE_LINE:
             self.file_path_var.set(str(action.get("path", "")))
             self.file_counter_var.set(str(action.get("counter", "")))
@@ -255,10 +287,17 @@ class ActionControlFields:
             ))
 
     def build_result(self, action_type: str, label: str) -> dict[str, Any] | None:
+        self.counter_start_result = None
         if action_type == ACTION_TYPE_SYSTEM:
             return self._build_system_result(label)
         if action_type == ACTION_TYPE_FILE_LINE:
             return self._build_file_result(label)
+        if action_type == ACTION_TYPE_COUNTER_TEXT:
+            counter = self.counter_text_var.get().strip()
+            if not counter:
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.counter_required"))
+                return None
+            return {"type": ACTION_TYPE_COUNTER_TEXT, "counter": counter, "label": label}
         return None
 
     def _build_system_result(self, label: str) -> dict[str, Any] | None:
@@ -281,6 +320,19 @@ class ActionControlFields:
                 messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.counter_required"))
                 return None
             result.update({"counter": counter, "label": label})
+            if op == OP_COUNTER_INC:
+                try:
+                    amount = int(self.amount_var.get().strip())
+                except (TypeError, ValueError):
+                    messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.amount_integer"))
+                    return None
+                try:
+                    start = int(self.start_var.get().strip())
+                except (TypeError, ValueError):
+                    messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.start_integer"))
+                    return None
+                result["amount"] = amount
+                self.counter_start_result = (counter, start)
         elif op == OP_WAIT:
             try:
                 milliseconds = int(self.wait_ms_var.get().strip())

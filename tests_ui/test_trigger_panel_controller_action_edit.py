@@ -11,14 +11,16 @@ fix_language("ja")
 
 
 class _Dialog:
-    def __init__(self, app, *, result=None, append_to_end=True, **kwargs):
+    def __init__(self, app, *, result=None, append_to_end=True, counter_start_result=None, **kwargs):
         self.app = app
         self.result = result
         self.append_to_end = append_to_end
+        self.counter_start_result = counter_start_result
         self.kwargs = kwargs
 
     def wait_window(self):
         self.app._dialog_result = self.result
+        self.app._dialog_counter_start = self.counter_start_result
 
 
 class _ActionListbox:
@@ -63,6 +65,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
             }]},
             state=SimpleNamespace(
                 counters={"running": 3},
+                set_counter_starts=Mock(),
                 loop_iterations_for=lambda _trigger_set_id, _key: {},
             ),
             _active_trigger_set_id=lambda: "main",
@@ -72,6 +75,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
             config_root="C:/config",
             sequence_runner=SimpleNamespace(reset_loop_frames=Mock()),
             mark_sequence_dirty=Mock(),
+            dirty_tracker=SimpleNamespace(set_dirty=Mock()),
             _set_flash_message=Mock(),
         )
         self.controller = TriggerPanelController(self.app)
@@ -84,8 +88,9 @@ class TriggerPanelActionEditTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def install_dialog(self, *, result=None, append_to_end=True):
-        dialog = _Dialog(self.app, result=result, append_to_end=append_to_end)
+    def install_dialog(self, *, result=None, append_to_end=True, counter_start_result=None):
+        dialog = _Dialog(self.app, result=result, append_to_end=append_to_end,
+                         counter_start_result=counter_start_result)
         patcher = patch.object(action_edit_module, "ActionDialog", return_value=dialog)
         factory = patcher.start()
         self.addCleanup(patcher.stop)
@@ -350,6 +355,116 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"], before)
         self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_add_counter_commits_start_after_insertion_and_refreshes(self):
+        self.set_selection(None)
+        self.app.data["counter_starts"] = {"other": 9}
+        result = {"type": "system", "op": "counter_inc", "counter": "beta", "amount": -2}
+        factory, _dialog = self.install_dialog(result=result, counter_start_result=("beta", -4))
+        self.app.dirty_tracker.set_dirty.side_effect = lambda _dirty: self.assertEqual(
+            self.trigger["actions"][-1], result,
+        )
+        self.controller.refresh_actions.side_effect = lambda: self.assertEqual(
+            self.app.data["counter_starts"], {"other": 9, "beta": -4},
+        )
+
+        self.controller.add_action()
+
+        self.assertEqual(factory.call_args.kwargs["counter_starts"], {"other": 9})
+        self.assertEqual(self.app.data["counter_starts"], {"other": 9, "beta": -4})
+        self.app.state.set_counter_starts.assert_called_once_with({"other": 9, "beta": -4})
+        self.app.dirty_tracker.set_dirty.assert_called_once_with(True)
+        self.app.mark_sequence_dirty.assert_called_once_with(self.trigger)
+        self.controller.refresh_actions.assert_called_once_with()
+
+    def test_edit_counter_commits_start_after_replacement_and_keeps_selection(self):
+        self.set_selection(0)
+        self.app.data["counter_starts"] = {"alpha": 2}
+        result = {"type": "system", "op": "counter_inc", "counter": "beta", "amount": 0}
+        factory, _dialog = self.install_dialog(result=result, counter_start_result=("beta", 6))
+        self.app.state.set_counter_starts.side_effect = lambda _starts: self.assertIs(
+            self.trigger["actions"][0], result,
+        )
+
+        self.controller.edit_action()
+
+        self.assertEqual(factory.call_args.kwargs["counter_starts"], {"alpha": 2})
+        self.assertEqual(self.app.data["counter_starts"], {"alpha": 2, "beta": 6})
+        self.app.state.set_counter_starts.assert_called_once_with({"alpha": 2, "beta": 6})
+        self.app.dirty_tracker.set_dirty.assert_called_once_with(True)
+        self.controller.refresh_actions.assert_called_once_with(select=(0, 0))
+
+    def test_rejected_counter_add_and_edit_leave_starts_unchanged(self):
+        self.set_selection(0)
+        original = {"type": "system", "op": "back"}
+        self.trigger["actions"] = [original]
+        self.app.data["counter_starts"] = {"alpha": 2}
+        self.install_dialog(
+            result={"type": "system", "op": "counter_inc", "counter": "alpha", "amount": 1},
+            counter_start_result=("alpha", 7),
+        )
+        with patch.object(action_edit_module, "standalone_violation", return_value=True):
+            self.controller.add_action()
+            self.controller.edit_action()
+
+        self.assertEqual(self.trigger["actions"], [original])
+        self.assertEqual(self.app.data["counter_starts"], {"alpha": 2})
+        self.app.state.set_counter_starts.assert_not_called()
+        self.app.dirty_tracker.set_dirty.assert_not_called()
+        self.app.mark_sequence_dirty.assert_not_called()
+        self.controller.refresh_actions.assert_not_called()
+
+    def test_cancelled_counter_add_and_edit_leave_starts_unchanged(self):
+        self.set_selection(0)
+        before = list(self.trigger["actions"])
+        self.app.data["counter_starts"] = {"alpha": 2}
+        self.install_dialog(result=None, counter_start_result=("alpha", 7))
+
+        self.controller.add_action()
+        self.controller.edit_action()
+
+        self.assertEqual(self.trigger["actions"], before)
+        self.assertEqual(self.app.data["counter_starts"], {"alpha": 2})
+        self.app.state.set_counter_starts.assert_not_called()
+        self.app.dirty_tracker.set_dirty.assert_not_called()
+        self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_unchanged_and_implicit_zero_starts_do_not_dirty_profile(self):
+        self.set_selection(0)
+        self.app.data["counter_starts"] = {"alpha": -2}
+        for name, start in (("alpha", -2), ("new", 0)):
+            for operation in (self.controller.add_action, self.controller.edit_action):
+                with self.subTest(name=name, operation=operation.__name__):
+                    self.install_dialog(
+                        result={"type": "system", "op": "counter_inc", "counter": name, "amount": 1},
+                        counter_start_result=(name, start),
+                    )
+                    operation()
+                    self.assertEqual(self.app.data["counter_starts"], {"alpha": -2})
+                    self.app.state.set_counter_starts.assert_not_called()
+                    self.app.dirty_tracker.set_dirty.assert_not_called()
+        self.assertEqual(self.app.mark_sequence_dirty.call_count, 4)
+
+    def test_zero_start_removes_only_that_name_on_add_and_edit(self):
+        self.set_selection(0)
+        for operation in (self.controller.add_action, self.controller.edit_action):
+            with self.subTest(operation=operation.__name__):
+                self.app.data["counter_starts"] = {"alpha": 3, "other": -1}
+                self.app.state.set_counter_starts.reset_mock()
+                self.app.dirty_tracker.set_dirty.reset_mock()
+                self.install_dialog(
+                    result={"type": "system", "op": "counter_inc", "counter": "alpha", "amount": 1},
+                    counter_start_result=("alpha", 0),
+                )
+                operation()
+                self.assertEqual(self.app.data["counter_starts"], {"other": -1})
+                self.app.state.set_counter_starts.assert_called_once_with({"other": -1})
+                self.app.dirty_tracker.set_dirty.assert_called_once_with(True)
+
+    def test_counter_names_include_profile_starts_and_counter_text_rows(self):
+        self.app.data["counter_starts"] = {"start_only": -4, "running": 8}
+        self.trigger["actions"].append({"type": "counter_text", "counter": "text_only"})
+        self.assertEqual(self.controller._counter_names(), ["running", "start_only", "text_only"])
 
 
 if __name__ == "__main__":

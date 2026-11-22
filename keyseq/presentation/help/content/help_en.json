@@ -178,6 +178,7 @@
               "mouse_click: Clicks or drags.",
               "mouse_scroll: Scrolls the mouse wheel.",
               "file_line: Enters one line from a text file. A counter determines the line number.",
+              "counter_text: Types the counter value as it is.",
               "key_hold: Holds down or releases a key or mouse button. For example, hold shift while using arrow keys to select a range.",
               "system: Changes how the Output Sequence advances without sending keys: loops, counters, Wait, Stop, Back, Rewind, and Call."
             ]}]
@@ -188,7 +189,7 @@
               {"type": "p", "text": "Actions of type system change how the Output Sequence advances, such as repeating, waiting, or stopping, instead of sending keys. Choose from these operations."},
               {"type": "list", "items": [
                 "Loop: Repeats the rows between the start and end a specified number of times, or indefinitely. Loops can be nested up to 9 levels deep.",
-                "Increment counter by 1 / Reset counter to 0: Changes a named number used as the line number for file_line. Counters are kept until the app exits.",
+                "Counter / Reset counter: Changes a named number. The amount can be negative or zero; the start value is saved in the Profile and restored by reset. Used for file_line line numbers or counter_text input; current values are kept until the app exits.",
                 "Wait: Inserts a delay of the specified milliseconds between the previous and next rows.",
                 "Stop: Ends a continuous run at that point. It is skipped if nothing has been sent yet in that continuous run. It is also skipped in single-step runs.",
                 "Back / Rewind: Returns the target Trigger to its state before the previous run, or to the beginning.",

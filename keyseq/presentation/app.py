@@ -792,6 +792,7 @@ class App(tk.Tk):
         self.ui_vars.toggle_key_var.set(str(self.data.get(HOOK_TOGGLE_KEY, "")))
         self.ui_vars.hook_keys_individual_var.set(bool(self.data.get("hook_keys_individual", False)))
         self.ui_vars.select_before_run_var.set(self.data.get("select_before_run") is True)
+        self.state.set_counter_starts(self.data.get("counter_starts", {}))
         self.ui_vars.keyboard_show_physical_key_labels_var.set(
             bool(self.data.get("keyboard_show_physical_key_labels", False))
         )

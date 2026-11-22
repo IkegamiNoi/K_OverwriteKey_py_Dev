@@ -76,6 +76,7 @@ class ActionEditFlow:
             title=tr("common.add_title"),
             mode="add",
             counter_names=self._trigger_panel._counter_names(),
+            counter_starts=self._app.data.get("counter_starts", {}),
             config_root=getattr(self._app, "config_root", ""),
             call_candidates=call_candidates,
             call_check=call_check,
@@ -113,6 +114,7 @@ class ActionEditFlow:
                 position, insert_at, len(items)
             )
             self._app.sequence_runner.reset_loop_frames(key)
+        self._apply_counter_start_result()
         self._trigger_panel.refresh_actions()
         self._app.mark_sequence_dirty(trig)
         self._app._dialog_result = None
@@ -223,6 +225,7 @@ class ActionEditFlow:
             initial=initial,
             mode=mode,
             counter_names=self._trigger_panel._counter_names(),
+            counter_starts=self._app.data.get("counter_starts", {}),
             config_root=getattr(self._app, "config_root", ""),
             call_candidates=call_candidates,
             call_check=call_check,
@@ -242,9 +245,27 @@ class ActionEditFlow:
                 self._app.sequence_runner.reset_loop_frames(
                     normalize_key_name(trig.get("key", ""))
                 )
+            self._apply_counter_start_result()
             self._trigger_panel.refresh_actions(select=(idx, idx))
             self._app.mark_sequence_dirty(trig)
             self._app._dialog_result = None
+
+    def _apply_counter_start_result(self) -> None:
+        result = getattr(self._app, "_dialog_counter_start", None)
+        if result is None:
+            return
+        name, start = result
+        starts = self._app.data.get("counter_starts", {})
+        if starts.get(name, 0) == start:
+            return
+        starts = dict(starts)
+        if start == 0:
+            starts.pop(name, None)
+        else:
+            starts[name] = start
+        self._app.data["counter_starts"] = starts
+        self._app.state.set_counter_starts(starts)
+        self._app.dirty_tracker.set_dirty(True)
 
     def delete_action(self):
         trig = self._trigger_panel.selected_trigger()
@@ -354,6 +375,7 @@ class ActionEditFlow:
 
     def _counter_names(self) -> list[str]:
         names = set()
+        names.update(self._app.data.get("counter_starts", {}))
         counters = getattr(getattr(self._app, "state", None), "counters", {})
         if isinstance(counters, dict):
             names.update(name for name in counters if isinstance(name, str) and name)

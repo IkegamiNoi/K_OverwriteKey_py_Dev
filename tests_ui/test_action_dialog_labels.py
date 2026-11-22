@@ -72,7 +72,7 @@ class ActionDialogLabelsTest(unittest.TestCase):
         self.assertEqual(dialog.value_var.get(), "ctrl+alt+shift+windows+esc")
 
     def test_type_choices_and_initial_actions_show_labels(self) -> None:
-        codes = ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line")
+        codes = ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line", "counter_text")
         for lang in ("ja", "en"):
             with self.subTest(lang=lang), self.language(lang):
                 expected = [tr_in(lang, f"action.type.{code}") for code in codes]
@@ -87,7 +87,7 @@ class ActionDialogLabelsTest(unittest.TestCase):
 
     def test_selecting_type_saves_internal_code(self) -> None:
         for lang in ("ja", "en"):
-            for code in ("hotkey", "text", "mouse_scroll", "key_hold", "system", "file_line"):
+            for code in ("hotkey", "text", "mouse_scroll", "key_hold", "system", "file_line", "counter_text"):
                 with self.subTest(lang=lang, code=code), self.language(lang):
                     dialog = self.make_dialog()
                     dialog.type_var.set(tr_in(lang, f"action.type.{code}"))
@@ -98,7 +98,7 @@ class ActionDialogLabelsTest(unittest.TestCase):
                     with patch.object(dialog.control_fields, "build_result", return_value={"type": code}) as build:
                         dialog.on_ok()
                     self.assertEqual(self.root._dialog_result["type"], code)
-                    if code in ("system", "file_line"):
+                    if code in ("system", "file_line", "counter_text"):
                         build.assert_called_once_with(code, "")
 
     def test_unknown_type_is_displayed_and_saved_unchanged(self) -> None:

@@ -40,10 +40,11 @@ class ActionDialogControlTest(unittest.TestCase):
 
     def make_dialog(self, mode: str = "add", initial: dict | None = None, *,
                     call_candidates: list[tuple[str, str]] | None = None,
-                    call_check=None, control_target_check=None) -> ActionDialog:
+                    call_check=None, control_target_check=None, counter_starts=None) -> ActionDialog:
         dialog = ActionDialog(
             self.app, title="アクション", initial=initial, mode=mode,
             counter_names=["alpha", "beta"], config_root=self.app.config_root,
+            counter_starts=counter_starts,
             call_candidates=call_candidates, call_check=call_check,
             control_target_check=control_target_check,
         )
@@ -58,6 +59,7 @@ class ActionDialogControlTest(unittest.TestCase):
             ("mouse_click", False, False),
             ("system", False, False),
             ("file_line", False, False),
+            ("counter_text", False, False),
         )
         value_widgets = (dialog.value_label, dialog.value_entry)
         hotkey_widgets = (
@@ -215,16 +217,19 @@ class ActionDialogControlTest(unittest.TestCase):
         self.showerror.assert_not_called()
 
     def test_system_counter_operations(self) -> None:
-        for display, op in (("カウンター +1", "counter_inc"), ("カウンターを0に", "counter_reset")):
+        for display, op in (("カウンター", "counter_inc"), ("カウンターリセット", "counter_reset")):
             dialog = self.make_dialog()
             dialog.type_var.set("system")
             dialog.control_fields.system_op_var.set(display)
             dialog.control_fields.system_counter_var.set("alpha")
             dialog.action_label_var.set("counter")
             dialog.on_ok()
-            self.assertEqual(self.app._dialog_result, {
+            expected = {
                 "type": "system", "op": op, "counter": "alpha", "label": "counter",
-            })
+            }
+            if op == "counter_inc":
+                expected["amount"] = 1
+            self.assertEqual(self.app._dialog_result, expected)
 
     def test_system_wait_back_and_rewind(self) -> None:
         for display, op, fields in (
@@ -584,7 +589,7 @@ class ActionDialogControlTest(unittest.TestCase):
             ("system", "ループ", "0", "", ""),
             ("system", "ループ", "invalid", "", ""),
             ("system", "待機", "1.5", "", ""),
-            ("system", "カウンター +1", "", "", ""),
+            ("system", "カウンター", "", "", ""),
             ("file_line", "", "", "", "named"),
             ("file_line", "", "", "lines.txt", ""),
         )
@@ -641,6 +646,149 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertEqual(self.app._dialog_result, {
             "type": "system", "op": "loop_start", "count": 5, "infinite": False, "label": "L",
         })
+
+    def test_counter_amount_and_start_are_shown_only_for_counter_inc(self) -> None:
+        dialog = self.make_dialog()
+        dialog.type_var.set("system")
+        dialog._sync_capture_ui()
+        fields = dialog.control_fields
+        self.assertEqual(fields.amount_var.get(), "1")
+        self.assertEqual(fields.start_var.get(), "0")
+        for operation in fields.system_op_combo.cget("values"):
+            with self.subTest(operation=operation):
+                fields.system_op_var.set(operation)
+                fields.sync_system()
+                self.app.update()
+                for widget in (fields.amount_label, fields.amount_entry, fields.start_label, fields.start_entry):
+                    self.assertEqual(bool(widget.winfo_ismapped()), operation == "カウンター")
+
+    def test_counter_name_changes_reload_start_for_selection_and_typing(self) -> None:
+        starts = {"alpha": 8, "beta": -3}
+        dialog = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "counter_inc", "counter": "alpha"},
+            counter_starts=starts,
+        )
+        fields = dialog.control_fields
+        self.assertEqual(fields.start_var.get(), "8")
+        fields.start_var.set("99")
+        fields.system_counter_combo.current(1)
+        self.assertEqual(fields.start_var.get(), "-3")
+        fields.system_counter_combo.delete(0, "end")
+        self.assertEqual(fields.start_var.get(), "0")
+        fields.system_counter_combo.insert(0, "alpha")
+        self.assertEqual(fields.start_var.get(), "8")
+        fields.system_counter_var.set("unknown")
+        self.assertEqual(fields.start_var.get(), "0")
+        self.assertEqual(starts, {"alpha": 8, "beta": -3})
+
+    def test_counter_load_keeps_invalid_amount_and_rejects_ok(self) -> None:
+        dialog = self.make_dialog(mode="edit", initial={
+            "type": "system", "op": "counter_inc", "counter": "alpha", "amount": "broken",
+        })
+        self.assertEqual(dialog.control_fields.amount_var.get(), "broken")
+        dialog.on_ok()
+        self.assertTrue(dialog.winfo_exists())
+        self.assertIsNone(self.app._dialog_result)
+        self.assertIsNone(dialog.control_fields.counter_start_result)
+        self.assertEqual(self.showerror.call_args.args[1], "増やす量は整数で入力してください。")
+
+    def test_counter_invalid_start_rejects_ok(self) -> None:
+        dialog = self.make_dialog(mode="edit", initial={
+            "type": "system", "op": "counter_inc", "counter": "alpha", "amount": -2,
+        })
+        fields = dialog.control_fields
+        self.assertEqual(fields.amount_var.get(), "-2")
+        fields.start_var.set("1.5")
+        dialog.on_ok()
+        self.assertTrue(dialog.winfo_exists())
+        self.assertIsNone(self.app._dialog_result)
+        self.assertIsNone(fields.counter_start_result)
+        self.assertEqual(self.showerror.call_args.args[1], "開始値は整数で入力してください。")
+
+    def test_counter_zero_and_negative_values_return_amount_and_separate_start(self) -> None:
+        for amount, start in ((0, -4), (-2, 0)):
+            with self.subTest(amount=amount, start=start):
+                dialog = self.make_dialog(counter_starts={"alpha": 7})
+                dialog.type_var.set("system")
+                fields = dialog.control_fields
+                fields.system_counter_var.set("alpha")
+                fields.start_var.set("99")
+                fields.system_counter_var.set(" beta ")
+                fields.amount_var.set(f" {amount} ")
+                fields.start_var.set(f" {start} ")
+                dialog.action_label_var.set("counter")
+                dialog.on_ok()
+                self.assertEqual(self.app._dialog_result, {
+                    "type": "system", "op": "counter_inc", "counter": "beta",
+                    "amount": amount, "label": "counter",
+                })
+                self.assertEqual(fields.counter_start_result, ("beta", start))
+                self.assertEqual(self.app._dialog_counter_start, ("beta", start))
+
+    def test_other_action_types_and_cancel_do_not_return_counter_start(self) -> None:
+        for action_type, operation in (("system", "カウンターリセット"), ("text", None)):
+            with self.subTest(action_type=action_type):
+                dialog = self.make_dialog()
+                fields = dialog.control_fields
+                fields.system_counter_var.set("alpha")
+                fields.start_var.set("15")
+                fields.build_result("system", "")
+                self.assertEqual(fields.counter_start_result, ("alpha", 15))
+                dialog.type_var.set(action_type)
+                if operation:
+                    fields.system_op_var.set(operation)
+                dialog.value_var.set("text")
+                dialog.on_ok()
+                self.assertIsNone(fields.counter_start_result)
+                self.assertIsNone(self.app._dialog_counter_start)
+        self.app._dialog_counter_start = ("old", 99)
+        cancelled = self.make_dialog()
+        cancelled.control_fields.start_var.set("42")
+        cancelled.destroy()
+        self.assertIsNone(self.app._dialog_counter_start)
+
+    def test_counter_text_choice_visibility_validation_and_result(self) -> None:
+        dialog = self.make_dialog()
+        self.assertIn("カウンターの値を入力", dialog.type_combo.cget("values"))
+        dialog.type_var.set("counter_text")
+        dialog._sync_capture_ui()
+        fields = dialog.control_fields
+        self.app.update()
+        self.assertTrue(fields.counter_text_combo.winfo_ismapped())
+        self.assertEqual(fields.counter_text_combo.cget("values"), fields.file_counter_combo.cget("values"))
+        self.assertFalse(fields.system_frame.winfo_ismapped())
+        self.assertFalse(fields.file_frame.winfo_ismapped())
+        self.assertIs(dialog._initial_focus_widget(), dialog.type_combo)
+        dialog.on_ok()
+        self.assertTrue(dialog.winfo_exists())
+        self.assertEqual(self.showerror.call_args.args[1], "カウンター名を入力してください。")
+        fields.counter_text_var.set(" beta ")
+        dialog.action_label_var.set("value")
+        dialog.on_ok()
+        self.assertEqual(self.app._dialog_result, {"type": "counter_text", "counter": "beta", "label": "value"})
+        self.assertIsNone(self.app._dialog_counter_start)
+        remap = self.make_dialog(mode=None)
+        self.assertNotIn("カウンターの値を入力", remap.type_combo.cget("values"))
+
+    def test_counter_text_load_and_focus_after_control_frame_switch(self) -> None:
+        dialog = self.make_dialog(mode="edit", initial={"type": "counter_text", "counter": "alpha"})
+        fields = dialog.control_fields
+        self.assertEqual(fields.counter_text_var.get(), "alpha")
+        for source, widget, target in (
+            ("counter_text", fields.counter_text_combo, "system"),
+            ("system", fields.system_counter_combo, "file_line"),
+            ("file_line", fields.file_counter_combo, "counter_text"),
+        ):
+            with self.subTest(source=source, target=target):
+                dialog.type_var.set(source)
+                dialog._sync_capture_ui()
+                self.app.update()
+                widget.focus_set()
+                self.app.update()
+                self.assertIs(self.app.focus_get(), widget)
+                dialog.type_var.set(target)
+                dialog._sync_capture_ui()
+                self.assertIs(self.app.focus_get(), dialog.type_combo)
 
 
 if __name__ == "__main__":

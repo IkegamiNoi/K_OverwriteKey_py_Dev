@@ -11,7 +11,7 @@ last_commit_location: `claude/task-15-360298`（Mac の worktree・phase 75 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）・task_03（counter_text）・task_04（表示）完了。次 = task_05（編集 UI）。**
+focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）・task_03（counter_text）・task_04（表示）・task_05（編集 UI）完了。次 = task_06（統合確認）。**
 mode: blocked
 
 ## last_action
@@ -37,7 +37,8 @@ verified:
 - task_03（counter_text）: タスク定義 `tasks/task_03_counter_text_action.md` を起票（未コミット）→ `codex-implementer` で実装完了・差分直読み済み（executor の counter_text 分岐・定数・種別不正の文言・新規 test_action_executor_counter_text）→ verifier: tests 2247 中 1 失敗（空名の通知にラベルが入らない・実装の抜け）→ Codex が修正（エラー 3 か所にラベル・_labeled の文言キーを ja / en に追加・テストは不変）→ 再実測 tests 2247 失敗 0 skip 7 → reviewer 採用 → **task_03 完了**。参考の指摘（executor の counter_text 分岐の `_labeled` 動的キー・`execute` 内 28 行を `_execute_counter_text` へ切り出す余地）は task_07 の `/refactor_check` で扱う候補。
 - task_03 はコミット 54895e55。
 - task_04（表示）: タスク定義 `tasks/task_04_counter_display.md` を起票（未コミット・`counter_display_values` / `counter_starts_of` で実効値と開始値の写しを domain の書式へ渡す・描き直しの契機は task_05 へ移した〔phase.md も追従〕）→ `codex-implementer` が実装コード完了（差分直読み済み・書式 / 写し / 呼び出し箇所）・残りのテストも完了（test_counter_values / test_call_view / test_sequence_control / tests_ui/test_action_list_rendering・差分直読み済み）→ verifier: compileall clean・対象 4 モジュール 132 OK・tests 全体 2250 失敗 0 skip 7・tests_ui.test_action_list_rendering 15 OK → reviewer 採用（軽微 2 件 = import の並び・counter_text の書式の重複は見送り・task_07 の /refactor_check で扱う候補）→ **task_04 完了**。
-- 次 = task_05（編集 UI: ダイアログの増やす量・開始値・名前の変更での入れ替え・counter_text の種類の候補・コントローラでの開始値の確定と未保存・候補の名前・構成セットを置き換える全経路での set_counter_starts と描き直し・名称の文言とヘルプ・暫定 58 §5.1・§5.2）を起票 → 量が多いので `codex-delegating-implementer` へ委任。
+- task_04 はコミット 7af28e7a。
+- task_05（編集 UI）: タスク定義 `tasks/task_05_counter_edit_ui.md` を起票（未コミット・ダイアログは開始値を結果で返すだけ・action_edit が成立後に data["counter_starts"] / state.set_counter_starts / dirty_tracker.set_dirty(True)・同期は App._sync_control_vars_from_data に 1 か所）→ `codex-delegating-implementer`（Sol medium・サブエージェント未使用）で実装完了・差分直読み済み（13 ファイル +465/-26）→ verifier: compileall clean・tests 2254 失敗 0 skip 7・tests_ui の action_dialog_control 44 / action_dialog_labels 8 / trigger_panel_controller_action_edit 22 OK・smoke OK → reviewer でレビュー中→ reviewer → /task_commit → task_06（統合確認・実機目視はユーザー）。
 - 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
 - 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 

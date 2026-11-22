@@ -3,7 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 from keyseq.presentation import message_box as messagebox
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Mapping
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.domain.key_hold import is_modifier_key, parse_key_hold
@@ -28,11 +28,13 @@ if TYPE_CHECKING:
 class ActionDialog(tk.Toplevel):
     def __init__(self, parent: App, title: str, initial: dict | None = None, *, mode: str | None = None,
                  counter_names: list[str] | None = None, config_root: str = "",
+                 counter_starts: Mapping[str, int] | None = None,
                  call_candidates: list[tuple[str, str]] | None = None,
                  call_check: Callable[[str], str | None] | None = None,
                  control_target_check: Callable[[str], str | None] | None = None):
         super().__init__(parent)
         self.parent = parent
+        self.parent._dialog_counter_start = None
         self.mode = mode
         self._initial_action = dict(initial or {})
         self._unknown_type: str | None = None
@@ -57,10 +59,10 @@ class ActionDialog(tk.Toplevel):
         ttk.Label(frm, text=tr("action_dialog.type.label")).grid(row=0, column=0, sticky="w")
         self._type_labels = {
             code: tr(f"action.type.{code}")
-            for code in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line")
+            for code in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line", "counter_text")
         }
         self._type_codes = {label: code for code, label in self._type_labels.items()}
-        type_codes = ["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line"])
+        type_codes = ["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line", "counter_text"])
         self.type_var = tk.StringVar(value=self._type_labels["hotkey"])
         self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=[self._type_labels[code] for code in type_codes], state="readonly", width=18)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
@@ -158,13 +160,16 @@ class ActionDialog(tk.Toplevel):
         self.control_fields = ActionControlFields(
             frm, counter_names=counter_names or [], config_root=config_root,
             config_service=parent.config_service, mode=mode,
+            counter_starts=counter_starts,
             call_candidates=call_candidates, call_check=call_check,
             control_target_check=control_target_check,
         )
         self.control_fields.system_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.control_fields.file_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.control_fields.counter_text_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.control_fields.system_frame.grid_remove()
         self.control_fields.file_frame.grid_remove()
+        self.control_fields.counter_text_frame.grid_remove()
         if mode == "add":
             self.append_to_end_var = tk.BooleanVar(value=True)
             self.append_to_end_check = ttk.Checkbutton(
@@ -220,13 +225,15 @@ class ActionDialog(tk.Toplevel):
         self._sync_capture_ui()
 
     def on_ok(self):
+        self.control_fields.counter_start_result = None
         t = self._action_type()
         v = self.value_var.get()
         label = (self.action_label_var.get() or "").strip()
-        if t in ("system", "file_line"):
+        if t in ("system", "file_line", "counter_text"):
             result = self.control_fields.build_result(t, label)
             if result is None: return
             self.parent._dialog_result = result
+            self.parent._dialog_counter_start = self.control_fields.counter_start_result
             if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
             self.destroy()
             return
@@ -514,7 +521,8 @@ class ActionDialog(tk.Toplevel):
         if hasattr(self, "control_fields"):
             self.control_fields.system_frame.grid() if t == "system" else self.control_fields.system_frame.grid_remove()
             self.control_fields.file_frame.grid() if t == "file_line" else self.control_fields.file_frame.grid_remove()
-            if t in ("system", "file_line"): self.mouse_frame.grid_remove()
+            self.control_fields.counter_text_frame.grid() if t == "counter_text" else self.control_fields.counter_text_frame.grid_remove()
+            if t in ("system", "file_line", "counter_text"): self.mouse_frame.grid_remove()
             else: self.control_fields.sync_system()
         hidden_focus = self._focus_is_hidden_for_type(t)
         self._sync_type_visibility(t)
@@ -574,6 +582,13 @@ class ActionDialog(tk.Toplevel):
             # tkinter 管理外のウィジェット（ポップダウン等）は判定対象外
             return False
         hidden_widgets = []
+        for code, frame in (
+            ("system", self.control_fields.system_frame),
+            ("file_line", self.control_fields.file_frame),
+            ("counter_text", self.control_fields.counter_text_frame),
+        ):
+            if action_type != code:
+                hidden_widgets.extend(frame.winfo_children())
         if action_type not in ("hotkey", "text"):
             hidden_widgets.extend((self.value_label, self.value_entry))
         if action_type != "hotkey":
