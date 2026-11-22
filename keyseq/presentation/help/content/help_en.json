@@ -497,7 +497,7 @@
           },
           {
             "id": "key_input.left_right", "title": "Left and right modifier keys",
-            "body": [{"type": "p", "text": "Left and right Shift, Ctrl, and Alt are separate keys. They are named shift / ctrl / alt for the left keys and right shift / right ctrl / right alt for the right keys."}]
+            "body": [{"type": "p", "text": "Left and right Shift, Ctrl, and Alt are separate keys. They are named shift / ctrl / alt for the left keys and right shift / right ctrl / right alt for the right keys. On Mac, Option and Command are also separate per side: option / left command for the left keys and right option / right command for the right keys."}]
           },
           {
             "id": "key_input.priority", "title": "When one key has multiple roles",

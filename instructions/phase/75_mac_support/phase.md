@@ -98,7 +98,8 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 
 **最終**
 
-- task_14: 正本反映（暫定 57 の昇格・凍結、`decisions_archive/75_mac_support.md`、`current.md` の完了記載、運用文書、`/refactor_check`）。起票済み（`tasks/task_14_spec_promotion.md`・2026-11-22・reviewer 修正して採用→反映）
+- task_14: 正本反映（暫定 57 の昇格・凍結、`decisions_archive/75_mac_support.md`、`current.md` の完了記載、運用文書、`/refactor_check`）。**完了（2026-11-22）**: 暫定 57 v0.25 を凍結・正本へ昇格・decisions_archive/75・deep-reviewer 修正要→反映・Codex 敵対的 needs-attention → idea_66（ユーザー判断）・refactor_check 推奨 = 提案書 28 → task_15
+- task_15: 提案書 28 のリファクタ（`macos/backend.py` を 1 クラス 1 ファイルへ・`modal.install_minimize_grab_custody` の入れ子の関数を外へ・挙動不変）。起票済み（`tasks/task_15_refactor.md`・ユーザー判断 2026-11-22）。Windows で実装・検証 → Mac の確認で phase 75 を閉じる
 
 ## 完了条件（暫定 57 §9 との対応）
 
