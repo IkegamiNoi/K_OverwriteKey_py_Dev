@@ -16,6 +16,7 @@ from keyseq.domain.config import (
     resolve_hook_keys_individual,
     safe_deepcopy,
 )
+from keyseq.domain import sequence_control
 from . import save_path_resolution
 
 
@@ -466,6 +467,9 @@ def build_keymap_set_payload(service,
             runtime.get("select_before_run", False)
             if isinstance(runtime.get("select_before_run", False), bool)
             else False
+        ),
+        "counter_starts": sequence_control.normalize_counter_starts(
+            runtime.get("counter_starts")
         ),
         "active_keymap_path": active_keymap_path,
         "keymaps": keymap_entries,

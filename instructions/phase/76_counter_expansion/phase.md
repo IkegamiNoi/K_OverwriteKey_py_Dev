@@ -45,7 +45,7 @@
 
 ## タスク
 
-1. task_01: 保存形式 — `counter_starts` の正規化（§3.3 の順序）と構成セットの読込・保存・単一 JSON の Import / Export、`amount` の判定関数（domain）
+1. task_01: **完了（2026-11-22・codex-implementer・reviewer 採用）** 保存形式 — `counter_starts` の正規化（§3.3 の順序）と構成セットの読込・保存・単一 JSON の Import / Export、`amount` の判定関数（domain）
 2. task_02: 実行 — `AppState` の開始値と実効値の 1 関数・`amount` の反映・リセットを開始値へ・保留の型 `(op, name, amount)` を全経路で・無視された押下の巻き戻しで初めて入った名前を消す（§4）
 3. task_03: 新しい種類 `counter_text` — 実行（`ActionExecutor`）・種別の検証と文言・通知（§3.4）
 4. task_04: 表示 — 一覧の書式（§5.3）・実効値と開始値を受ける書式の関数・呼び出し先の表示枠の写し・開始値の変更と構成セットの置き換えでの描き直し

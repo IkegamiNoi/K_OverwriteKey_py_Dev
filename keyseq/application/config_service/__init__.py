@@ -592,6 +592,7 @@ class ConfigService:
     ) -> dict[str, Any]:
         """runtime を新規化・置換した直後に、config.json の全体デフォルトを注入する。"""
         runtime.setdefault("select_before_run", False)
+        runtime.setdefault("counter_starts", {})
         self.apply_global_hook_key_defaults(runtime, config_root=config_root)
         hotkey_presets = hotkey_presets_files.load_global_hotkey_presets(self, config_root=config_root)
         if hotkey_presets is not None:

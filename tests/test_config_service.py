@@ -574,18 +574,22 @@ class SelectBeforeRunStorageTest(unittest.TestCase):
                 with self.subTest(value=value):
                     runtime = self.service.new_default_data()
                     runtime["select_before_run"] = value
+                    runtime["counter_starts"] = {"n": 5} if value else {}
                     _saved, startup = self.service.save_runtime_data(
                         "", runtime, config_root=root, startup_data={}, split_base_dir="",
                     )
                     keymap_set_path = os.path.join(root, startup["keymap_set_path"])
                     payload = self.service.repository.load_json(keymap_set_path)
                     self.assertIs(payload["select_before_run"], value)
+                    self.assertEqual(payload["counter_starts"], runtime["counter_starts"])
                     loaded = self.service.load_runtime_data_from_keymap_set_path(
                         keymap_set_path, config_root=root,
                     )
                     self.assertIs(loaded["select_before_run"], value)
+                    self.assertEqual(loaded["counter_starts"], runtime["counter_starts"])
 
             self.assertFalse(self._load_keymap_set(root, {})["select_before_run"])
+            self.assertEqual(self._load_keymap_set(root, {})["counter_starts"], {})
             for raw_flag in ("yes", 1, None):
                 with self.subTest(raw_flag=raw_flag):
                     self.assertFalse(
@@ -679,6 +683,10 @@ class SelectBeforeRunStorageTest(unittest.TestCase):
             self.service.export_runtime_data(exported, imported)
             reread = self.service.load(exported)
             self.assertTrue(reread["select_before_run"])
+            imported["counter_starts"] = {"n": -3}
+            self.service.export_runtime_data(exported, imported)
+            reread = self.service.load(exported)
+            self.assertEqual(reread["counter_starts"], {"n": -3})
             self.assertTrue(get_active_triggers(reread)[0]["select_before_run"])
 
 
@@ -1010,6 +1018,7 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                 "hotkey_presets_path",
                 "hotkey_presets_individual",
                 "select_before_run",
+                "counter_starts",
                 "active_keymap_path",
                 "keymaps",
                 "hook_stop_key",

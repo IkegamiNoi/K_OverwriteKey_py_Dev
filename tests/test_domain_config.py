@@ -373,8 +373,16 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         self.assertEqual(config["keyboard_layout"], "us_tkl")
         self.assertEqual(config["external_keyboard_layouts"], [])
         self.assertEqual(config["keymaps"], [])
+        self.assertEqual(config["counter_starts"], {})
+        self.assertEqual(build_base_config()["counter_starts"], {})
         self.assertEqual(config["active_keymap_id"], "")
         self.assertEqual(config["keymap_switch_keys"], {})
+
+    def test_single_json_counter_starts_are_normalized(self):
+        config = ensure_config_compatibility({"counter_starts": {
+            "n": 7, " n ": 0, "a": 3, "b": True, "": 1, "c": "2", "N": -2,
+        }})
+        self.assertEqual(config["counter_starts"], {"a": 3, "N": -2})
 
     def test_non_dict_input_treated_as_empty(self):
         config = ensure_config_compatibility(None)

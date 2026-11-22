@@ -20,6 +20,7 @@ from keyseq.domain.config import (
     resolve_hook_keys_individual,
     safe_deepcopy,
 )
+from keyseq.domain import sequence_control
 from . import hotkey_presets_files
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import (
@@ -103,6 +104,10 @@ def _build_runtime_data_from_keymap_set(
 ) -> dict[str, Any]:
     runtime = service.new_base_data()
     runtime.update(keymaps=[], triggers=[], active_keymap_id="")
+    if "counter_starts" in keymap_set:
+        runtime["counter_starts"] = sequence_control.normalize_counter_starts(
+            keymap_set.get("counter_starts")
+        )
 
     for key in (
         *HOOK_KEY_FIELDS,

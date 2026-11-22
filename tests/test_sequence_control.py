@@ -5,6 +5,8 @@ from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
     DEFAULT_ENCODING,
     DEFAULT_OUT_OF_RANGE,
+    counter_amount,
+    normalize_counter_starts,
     MAX_LOOP_DEPTH,
     MAX_CALL_DEPTH,
     OP_CALL,
@@ -27,6 +29,26 @@ fix_language("ja")
 
 def system(op: str, **values: object) -> dict[str, object]:
     return {"type": ACTION_TYPE_SYSTEM, "op": op, **values}
+
+
+class CounterSaveFormatTest(unittest.TestCase):
+    def test_counter_amount_coerces_values_and_rejects_invalid_values(self):
+        for action, expected in (({}, 1), ({"amount": "3"}, 3), ({"amount": 2.5}, 2),
+                                 ({"amount": True}, 1), ({"amount": 0}, 0),
+                                 ({"amount": -4}, -4), ({"amount": "abc"}, None),
+                                 ({"amount": None}, None), ({"amount": []}, None)):
+            with self.subTest(action=action):
+                self.assertEqual(counter_amount(action), expected)
+
+    def test_normalize_counter_starts_filters_and_last_trimmed_name_wins(self):
+        self.assertEqual(normalize_counter_starts({"n": 7, " n ": 0}), {})
+        self.assertEqual(normalize_counter_starts({"a": 3, "b": True, "": 1, "c": "2"}), {"a": 3})
+        self.assertEqual(normalize_counter_starts({"x": -2}), {"x": -2})
+        self.assertEqual(normalize_counter_starts([]), {})
+        self.assertEqual(normalize_counter_starts({"N": 1, "n": 2}), {"N": 1, "n": 2})
+        source = {" x ": 4}
+        normalize_counter_starts(source)
+        self.assertEqual(source, {" x ": 4})
 
 
 class ActionTypeTest(unittest.TestCase):

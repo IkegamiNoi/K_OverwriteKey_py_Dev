@@ -41,6 +41,7 @@ def build_base_config(
         "hook_keys_individual": False,
         "hotkey_presets_individual": False,
         "select_before_run": False,
+        "counter_starts": {},
         "hotkey_presets_path": "",
         "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
         "keyboard_show_physical_key_labels": False,
@@ -290,6 +291,9 @@ def _normalize_general_settings(
     select_before_run = config.get("select_before_run", False)
     config["select_before_run"] = (
         select_before_run if isinstance(select_before_run, bool) else False
+    )
+    config["counter_starts"] = sequence_control.normalize_counter_starts(
+        config.get("counter_starts")
     )
     hotkey_presets_path = config.get("hotkey_presets_path", "")
     config["hotkey_presets_path"] = (

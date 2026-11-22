@@ -31,6 +31,28 @@ OUT_OF_RANGE_EMPTY: str = "empty"
 OUT_OF_RANGE_WRAP: str = "wrap"
 DEFAULT_ENCODING: str = ENCODING_UTF_8
 DEFAULT_OUT_OF_RANGE: str = OUT_OF_RANGE_ERROR
+DEFAULT_COUNTER_AMOUNT: int = 1
+
+
+def counter_amount(action: Mapping[str, Any]) -> int | None:
+    if "amount" not in action:
+        return DEFAULT_COUNTER_AMOUNT
+    try:
+        return int(action["amount"])
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def normalize_counter_starts(value: Any) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    normalized: dict[str, int] = {}
+    for name, start in value.items():
+        if not isinstance(name, str) or not name.strip():
+            continue
+        if isinstance(start, int) and not isinstance(start, bool):
+            normalized[name.strip()] = start
+    return {name: start for name, start in normalized.items() if start != 0}
 
 
 def action_type(action: Mapping[str, Any]) -> str:
