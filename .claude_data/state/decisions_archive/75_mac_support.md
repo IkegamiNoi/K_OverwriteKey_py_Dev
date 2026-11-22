@@ -285,3 +285,4 @@
 - verifier（Windows）: compile clean / tests 2219 件 失敗 0 skip 7 / tests_ui 1300 件 OK / smoke OK / modal.py の最大の関数 77 行。reviewer 採用（本文は元と同一・patch 先は使う側）。参考 = 未使用の `_LOG` 3 つ・`create_backend` の関数内 import（どちらもそのまま）。
 - 残り: Windows 目視（ダイアログを開いたまま最小化して戻す）と Mac の確認 3（Mac の作業時）。
 - Windows 目視（2026-11-22・ユーザー）: プリセット管理 → プリセット追加を開いたまま Win+D → 戻すと、プリセット追加が白いまま（idea_61 と同じ既存の症状・phase 75 前の main でも起きる）。プリセット管理の窓は閉じられ、開き直せば通常どおり動く → 確認 4 は OK（既存の症状のみ）。残り = Mac の確認 3。
+- Mac の確認 3（2026-11-22・Mac・verifier）: compile clean / tests 2157 件 失敗 0 エラー 0 skip 32（mac_test_baseline の基準線と一致）/ tests_ui の test_minimize_grab_custody・test_modal_grab・test_nested_modal_grab 81 件 OK / smoke OK。実機目視（フック開始・置換・メニュー・ダイアログを開いたままの最小化と戻し）OK（ユーザー）→ **task_15 完了・phase 75 完了**。
