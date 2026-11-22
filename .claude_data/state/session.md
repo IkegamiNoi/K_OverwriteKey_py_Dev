@@ -4,37 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T23:00:00
-phase: なし（phase 75 は 2026-11-22 完了）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 29 / idea 67
+last_updated: 2026-11-22T23:40:00
+phase: instructions/phase/76_counter_expansion（2026-11-22 起票）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
 last_commit_location: `claude/task-15-360298`（Mac の worktree・phase 75 の完了コミットまで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズなし。phase 75（macOS 対応）は 2026-11-22 完了（task_15 の Mac の確認 3 = 自動テスト pass・実機目視 OK）。次は新フェーズの起票待ち（ユーザー判断）。**
-mode: completed
+focus: **phase 76（カウンター機能の拡張）起票済・暫定 58 v1.0 ユーザー確定。次 = task_01（保存形式）の起票と実装委任。**
+mode: blocked
 
 ## last_action
-ts: 2026-11-22T22:30:00
-who: main
+ts: 2026-11-22T23:40:00
+who: user
 summary: |
-  実施（Mac の worktree `claude/task-15-360298`）: 次タスク = task_15 の確認 3 と current.md・task_15_refactor.md で確認 → verifier で Mac の確認 3 の自動テストを実行 → 4 項目 pass（基準線 mac_test_baseline.md:37 と一致を実測）。
-  ユーザー判断: 確認 3 の実行を承認・Mac の実機目視 OK → task_15 完了・phase 75 を閉じた（phase.md・current.md・decisions.md の索引・decisions_archive/75 を更新）。
+  実施: カウンターの現状を確認（更新 = system の counter_inc / counter_reset・file_line は読むだけ・`features.md` §4.2.2・`data_schema.md` §5.11.6 / §5.11.7・関連 idea_37）。
+  ユーザー判断（方針・未起票）: ①「カウンター +1」→ 名称「カウンター」・任意の増やす量 ②「カウンターを0に」→「カウンターリセット」 ③新アクション「カウンターの値を入力」（現在値を text の経路で送る）。表示は出力シーケンスの行の `(=値)` で足りる（画面の表示欄は作らない）。
+  ユーザー判断（追加）: 同じ名前のカウンターはどこでも値を共有（現行どおり）・開始値は「カウンター」の行に持たせ、リセットは開始値へ戻す。負の値を許す（file_line は既存の範囲外規則で扱える）。
+  ユーザー判断（追加 2）: 食い違いは拒否せず「現在の開始値を表示して上書きできる」/ ゼロ埋めは不要。
+  メインの提案（未確定）: 開始値は構成セットに名前 → 開始値で 1 か所保存（新キー・後方互換）・ダイアログは現在値を表示し上書きで全行に効く / 範囲 = 構成セット全体（値がアプリ全体で共有のため）/ 未使用の値 = 開始値 / 増やす量 0 は拒否 / op 名は据え置き（キー無し = +1・開始値 0）/ 暫定仕様先行で phase 76。
 result_files:
-  - .claude_data/state/（session.md・decisions.md・decisions_archive/75_mac_support.md）・instructions/phase/（current.md・75_mac_support/phase.md）（コード変更なし）
+  - .claude_data/state/session.md（コード変更なし）
 verified:
-  tests_mac: compile clean / tests 2157 失敗 0 エラー 0 skip 32 / tests_ui 3 モジュール（minimize_grab_custody・modal_grab・nested_modal_grab）81 OK / smoke OK（task_15 後）
-  tests_windows: compile clean / tests 2219 失敗 0 skip 7 / tests_ui 1300 OK / smoke OK（task_15 後）
-  visual_windows: task_15 OK
-  visual_mac: task_15 OK（ユーザー）
+  tests: not_run（検討のみ）
 
 ## next_action
-- 新フェーズの起票（`/phase_start`）はユーザーの指示待ち。候補 = 検討段階の idea（idea_45・59〜66）・保留の提案書 26 / 27。
-- このブランチ `claude/task-15-360298` の push / merge はユーザー。
-- 保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
+- 暫定 58 v1.0（ユーザー確定 2026-11-22・§6 の 5 件をすべて推奨どおり → §2.8〜12）。phase 76 を起票済（`instructions/phase/76_counter_expansion/phase.md`・current.md 更新・未コミット）。
+  reviewer の整合チェック中 → 結果を反映 → コミット → task_01（保存形式）のタスク定義を `/task_new` で起票し `codex-implementer` 系へ委任。
+- 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
+- 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
 ## blockers
-- なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- ユーザーの回答待ち（カウンター拡張のゼロ埋めの要否・起票の可否）。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints

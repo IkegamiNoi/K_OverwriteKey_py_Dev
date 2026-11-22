@@ -7,8 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 75 は 2026-11-22 完了）。次のフェーズは `/phase_start` で起票する。
-  **次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 76](76_counter_expansion/phase.md)**（カウンター機能の拡張・2026-11-22 起票）。カウンターの行の任意の増やす量（`amount`）・カウンター名ごとの開始値（構成セットの `counter_starts`・リセットはそこへ戻す）・新しい種類「カウンターの値を入力」（`counter_text`）。
+  主入力 = [暫定 58](../history/58_counter_expansion.md)（v1.0・ユーザー確定済）・暫定仕様先行モード・起票元 = ユーザー要望・番号対応 = phase 76 / 暫定 58 / decisions 76。
+  **次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
 - 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`・`packaging/`）。残件 = 検討段階の idea（idea_45 キー名の入力用 / 出力用の整理・idea_59〜66。idea_65 = 同梱の C ライブラリのライセンスの行・idea_66 = Mac の入力の失敗経路の弱点 5 件）・2 枚目のモニタの目視と中クリックの確認（保留・ユーザー判断）・JIS キーボードでの記号キーの実測（暫定 57 §9 の 10・文書値のテストで代えた）・右 Option / 右 Control の実測（キーの無い機種）。
 - 直前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
 - その前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
@@ -135,7 +136,8 @@
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  次フェーズは **`76_<topic>`**・decisions も **76** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 76 は 2026-11-22 起票・進行中**（`76_counter_expansion` / 暫定 58〔v1.0・ユーザー確定〕/ decisions 76）。次の phase は `77_<topic>`。
+  次フェーズは **`77_<topic>`**・decisions も **77** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -187,7 +189,8 @@
   55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
   56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
   57 = macOS 対応〔**v0.25・凍結**・phase 75 の主入力〕 /
-  次採番は **`58_<topic>`**。
+  58 = カウンター機能の拡張〔v1.0・ユーザー確定・phase 76 の主入力〕 /
+  次採番は **`59_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
