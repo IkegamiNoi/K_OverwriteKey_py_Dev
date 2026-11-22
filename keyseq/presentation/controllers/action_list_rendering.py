@@ -27,6 +27,7 @@ def build_action_rows(
     *,
     loop_iterations: Mapping[int, int],
     counters: Mapping[str, int],
+    counter_starts: Mapping[str, int] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> list[tuple[str, str | None]]:
     """表示文字列と行ごとのループ背景色を返す。"""
@@ -40,6 +41,7 @@ def build_action_rows(
             action,
             loop_iteration=loop_iterations.get(index),
             counters=counters,
+            counter_starts=counter_starts,
             resolve_call=resolve_call,
         )
         rows.append((item_text, background))
@@ -52,16 +54,18 @@ def format_next_action_summary(
     *,
     loop_iterations: Mapping[int, int],
     counters: Mapping[str, int],
+    counter_starts: Mapping[str, int] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     """省略表示の要約を作る。制御アクションは一覧と同じ値表示にする。"""
     action_kind = (action.get("type") or "").strip().lower()
-    if action_kind in ("system", "file_line", "key_hold", "mouse_scroll"):
+    if action_kind in ("system", "file_line", "counter_text", "key_hold", "mouse_scroll"):
         return format_action_list_item(
             index,
             action,
             loop_iteration=loop_iterations.get(index),
             counters=counters,
+            counter_starts=counter_starts,
             resolve_call=resolve_call,
         )
 

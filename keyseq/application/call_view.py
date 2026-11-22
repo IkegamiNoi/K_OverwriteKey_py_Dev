@@ -9,6 +9,7 @@ from types import MappingProxyType
 
 from keyseq.application.sequence_steps import LoopFrame
 from keyseq.domain.config import normalize_key_name
+from keyseq.application.counter_values import counter_display_values, counter_starts_of
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,7 @@ class CallViewSummary:
     position: int
     loop_frames: tuple[LoopFrame, ...]
     counters: Mapping[str, int]
+    counter_starts: Mapping[str, int]
 
 
 def build_call_view_summary(
@@ -32,5 +34,6 @@ def build_call_view_summary(
         actions=tuple(deepcopy(actions)),
         position=position,
         loop_frames=tuple(deepcopy(frames)),
-        counters=MappingProxyType(dict(counters)),
+        counters=MappingProxyType(counter_display_values(counters)),
+        counter_starts=MappingProxyType(counter_starts_of(counters)),
     )

@@ -6,6 +6,7 @@ from keyseq.application.call_view import CallViewSummary, build_call_view_summar
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_steps import LoopFrame
 from keyseq.application.sequence_runner import SequenceRunner
+from keyseq.application.counter_values import CounterValues
 
 
 class BuildCallViewSummaryTests(unittest.TestCase):
@@ -68,6 +69,19 @@ class BuildCallViewSummaryTests(unittest.TestCase):
         self.assertEqual(summary.counters["n"], 4)
         with self.assertRaises(TypeError):
             summary.counters["n"] = 5
+
+    def test_counter_values_and_starts_are_effective_read_only_snapshots(self):
+        counters = CounterValues()
+        counters.set_starts({"used": 3, "unused": 8})
+        counters["used"] = 5
+        ctx, _actions = self.make_context()
+        summary = self.build(ctx, counters)
+        self.assertEqual(dict(summary.counters), {"used": 5, "unused": 8})
+        self.assertEqual(dict(summary.counter_starts), {"used": 3, "unused": 8})
+        counters["used"] = 9
+        counters.set_starts({"unused": 1})
+        self.assertEqual(dict(summary.counters), {"used": 5, "unused": 8})
+        self.assertEqual(dict(summary.counter_starts), {"used": 3, "unused": 8})
 
     def test_returns_none_without_call_frames(self):
         ctx, _actions = self.make_context()

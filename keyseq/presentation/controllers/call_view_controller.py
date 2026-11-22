@@ -225,6 +225,7 @@ class CallViewController:
             summary.actions,
             loop_iterations={loop.start: loop.iteration for loop in summary.loop_frames},
             counters=summary.counters,
+            counter_starts=summary.counter_starts,
             resolve_call=self.app.trigger_panel._resolve_call_target,
         )
         frame.action_list.delete(0, tk.END)

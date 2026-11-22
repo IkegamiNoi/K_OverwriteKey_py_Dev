@@ -492,18 +492,21 @@ def format_action_list_item(
     *,
     loop_iteration: int | None = None,
     counters: Mapping[str, Any] | None = None,
+    counter_starts: Mapping[str, Any] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     action_type = (action.get("type") or "").strip().lower()
     is_control_action = action_type in (
         sequence_control.ACTION_TYPE_SYSTEM,
         sequence_control.ACTION_TYPE_FILE_LINE,
+        sequence_control.ACTION_TYPE_COUNTER_TEXT,
     )
     is_key_hold_action = action_type == key_hold.ACTION_TYPE_KEY_HOLD
     is_mouse_scroll_action = action_type == mouse_scroll.ACTION_TYPE_MOUSE_SCROLL
     if is_control_action:
         value_display = sequence_control.format_control_value(
-            action, loop_iteration=loop_iteration, counters=counters, resolve_call=resolve_call
+            action, loop_iteration=loop_iteration, counters=counters,
+            counter_starts=counter_starts, resolve_call=resolve_call
         )
     elif is_key_hold_action:
         value_display = key_hold.format_key_hold_value(action)

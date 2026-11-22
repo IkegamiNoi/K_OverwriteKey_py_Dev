@@ -1,10 +1,24 @@
 import unittest
 
 from keyseq.application.app_state import AppState
-from keyseq.application.counter_values import CounterValues, counter_start, counter_value
+from keyseq.application.counter_values import (CounterValues, counter_display_values, counter_start,
+                                              counter_starts_of, counter_value)
 
 
 class CounterValuesTest(unittest.TestCase):
+    def test_counter_display_values_combines_starts_and_values(self):
+        counters = CounterValues()
+        counters.set_starts({"used": 10, "unused": -3})
+        counters["used"] = 2
+        self.assertEqual(counter_display_values(counters), {"used": 2, "unused": -3})
+        self.assertEqual(counter_display_values({"plain": 4}), {"plain": 4})
+
+    def test_counter_starts_of_copies_starts_or_returns_empty_for_dict(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 5})
+        self.assertEqual(counter_starts_of(counters), {"n": 5})
+        self.assertEqual(counter_starts_of({"n": 7}), {})
+
     def test_value_uses_stored_value_then_start_then_zero(self):
         counters = CounterValues()
         counters.set_starts({"used": 10, "unused": -3})

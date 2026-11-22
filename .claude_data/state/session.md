@@ -11,7 +11,7 @@ last_commit_location: `claude/task-15-360298`（Mac の worktree・phase 75 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）・task_03（counter_text）完了。次 = task_04（表示）。**
+focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）・task_03（counter_text）・task_04（表示）完了。次 = task_05（編集 UI）。**
 mode: blocked
 
 ## last_action
@@ -35,7 +35,9 @@ verified:
 - task_02（実行）: タスク定義 `tasks/task_02_counter_execution.md` を起票（未コミット・`CounterValues(dict)` + `counter_value` の 1 関数・保留 3 要素・巻き戻しで押下開始時に無かった名前を消す）→ `codex-delegating-implementer`（Sol medium）で実装完了・差分直読み済み（20 ファイル +310/-69・新規 counter_values.py / test_counter_values.py）→ verifier: compileall clean・対象 4 モジュール 117 OK・test_sequence_runner* 329 OK・tests 全体 2239 失敗 0 skip 7 → reviewer 採用（参考 2 点 = 連続実行・file_line 再開の経路の名前の集合はその step / 文脈の差分の範囲と一致しており現状で可）→ **task_02 完了**。
 - task_02 はコミット b56a2fc1。
 - task_03（counter_text）: タスク定義 `tasks/task_03_counter_text_action.md` を起票（未コミット）→ `codex-implementer` で実装完了・差分直読み済み（executor の counter_text 分岐・定数・種別不正の文言・新規 test_action_executor_counter_text）→ verifier: tests 2247 中 1 失敗（空名の通知にラベルが入らない・実装の抜け）→ Codex が修正（エラー 3 か所にラベル・_labeled の文言キーを ja / en に追加・テストは不変）→ 再実測 tests 2247 失敗 0 skip 7 → reviewer 採用 → **task_03 完了**。参考の指摘（executor の counter_text 分岐の `_labeled` 動的キー・`execute` 内 28 行を `_execute_counter_text` へ切り出す余地）は task_07 の `/refactor_check` で扱う候補。
-- 次 = task_04（表示: 一覧の書式 §5.3・実効値と開始値を受ける書式の関数・呼び出し先の表示枠の写し・描き直し）を起票 → `codex-implementer` 系へ委任。
+- task_03 はコミット 54895e55。
+- task_04（表示）: タスク定義 `tasks/task_04_counter_display.md` を起票（未コミット・`counter_display_values` / `counter_starts_of` で実効値と開始値の写しを domain の書式へ渡す・描き直しの契機は task_05 へ移した〔phase.md も追従〕）→ `codex-implementer` が実装コード完了（差分直読み済み・書式 / 写し / 呼び出し箇所）・残りのテストも完了（test_counter_values / test_call_view / test_sequence_control / tests_ui/test_action_list_rendering・差分直読み済み）→ verifier: compileall clean・対象 4 モジュール 132 OK・tests 全体 2250 失敗 0 skip 7・tests_ui.test_action_list_rendering 15 OK → reviewer 採用（軽微 2 件 = import の並び・counter_text の書式の重複は見送り・task_07 の /refactor_check で扱う候補）→ **task_04 完了**。
+- 次 = task_05（編集 UI: ダイアログの増やす量・開始値・名前の変更での入れ替え・counter_text の種類の候補・コントローラでの開始値の確定と未保存・候補の名前・構成セットを置き換える全経路での set_counter_starts と描き直し・名称の文言とヘルプ・暫定 58 §5.1・§5.2）を起票 → 量が多いので `codex-delegating-implementer` へ委任。
 - 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
 - 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 

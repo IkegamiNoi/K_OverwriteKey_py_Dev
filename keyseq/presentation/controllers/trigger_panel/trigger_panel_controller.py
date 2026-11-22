@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from keyseq.application.counter_values import counter_display_values, counter_starts_of
 
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.trigger_duplicates import is_effective_trigger, shadowed_duplicate_indices
@@ -295,7 +296,8 @@ class TriggerPanelController:
         rows = build_action_rows(
             actions,
             loop_iterations=loop_iterations,
-            counters=counters,
+            counters=counter_display_values(counters),
+            counter_starts=counter_starts_of(counters),
             resolve_call=self._resolve_call_target,
         )
         if effective and key not in self._app._indices:
@@ -501,7 +503,8 @@ class TriggerPanelController:
             idx,
             a,
             loop_iterations=loop_iterations,
-            counters=self._app.state.counters,
+            counters=counter_display_values(self._app.state.counters),
+            counter_starts=counter_starts_of(self._app.state.counters),
             resolve_call=self._resolve_call_target,
         )
 

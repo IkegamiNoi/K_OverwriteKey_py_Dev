@@ -183,13 +183,18 @@ def format_control_value(
     *,
     loop_iteration: int | None = None,
     counters: Mapping[str, Any] | None = None,
+    counter_starts: Mapping[str, Any] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     kind = action_type(action)
     if kind == ACTION_TYPE_SYSTEM:
-        return _format_system_value(action, loop_iteration, counters, resolve_call)
+        return _format_system_value(action, loop_iteration, counters, counter_starts, resolve_call)
     if kind == ACTION_TYPE_FILE_LINE:
         return _format_file_line_value(action, counters)
+    if kind == ACTION_TYPE_COUNTER_TEXT:
+        name = str(action.get("counter", ""))
+        value = counters.get(name, 0) if counters is not None else 0
+        return f"[counter_text] {name} (={value})"
     return ""
 
 
@@ -197,6 +202,7 @@ def _format_system_value(
     action: Mapping[str, Any],
     loop_iteration: int | None,
     counters: Mapping[str, Any] | None,
+    counter_starts: Mapping[str, Any] | None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None,
 ) -> str:
     op = system_op(action)
@@ -208,9 +214,13 @@ def _format_system_value(
     if op == OP_LOOP_END:
         return "[loop_end]"
     if op == OP_COUNTER_INC:
-        return _format_counter_value("[count+1]", action, counters)
+        amount = counter_amount(action)
+        display = f"[count{amount:+d}]" if amount is not None else "[count?]"
+        return _format_counter_value(display, action, counters)
     if op == OP_COUNTER_RESET:
-        return _format_counter_value("[count=0]", action, counters)
+        name = str(action.get("counter", ""))
+        start = counter_starts.get(name, 0) if counter_starts is not None else 0
+        return _format_counter_value(f"[count={start}]", action, counters)
     if op == OP_WAIT:
         return f"[wait] {action.get('ms', '')}ms"
     if op == OP_BACK:

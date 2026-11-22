@@ -53,6 +53,22 @@ class _Listbox:
 
 
 class ActionListRenderingTest(unittest.TestCase):
+    def test_counter_starts_and_counter_text_match_list_and_summary_formats(self):
+        actions = [
+            {"type": "system", "op": "counter_inc", "counter": "n"},
+            {"type": "system", "op": "counter_reset", "counter": "n"},
+            {"type": "counter_text", "counter": "n"},
+        ]
+        rows = build_action_rows(
+            actions, loop_iterations={}, counters={"n": 5}, counter_starts={"n": 10}
+        )
+        self.assertEqual(rows[0][0], "01. [count+1] n (=5)")
+        self.assertEqual(rows[1][0], "02. [count=10] n (=5)")
+        summary = format_next_action_summary(
+            2, actions[2], loop_iterations={}, counters={"n": 5}, counter_starts={"n": 10}
+        )
+        self.assertEqual(summary, rows[2][0])
+
     def test_build_action_rows_formats_runtime_loop_and_counter_values(self):
         actions = [
             {"type": "system", "op": "loop_start", "count": 3},

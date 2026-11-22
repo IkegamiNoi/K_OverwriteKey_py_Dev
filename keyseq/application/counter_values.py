@@ -23,3 +23,11 @@ def counter_value(counters: Mapping[str, int], name: str) -> int:
 
 def counter_start(counters: Mapping[str, int], name: str) -> int:
     return counters.starts.get(name, 0) if isinstance(counters, CounterValues) else 0
+
+
+def counter_display_values(counters: Mapping[str, int]) -> dict[str, int]:
+    return {**counters.starts, **counters} if isinstance(counters, CounterValues) else dict(counters)
+
+
+def counter_starts_of(counters: Mapping[str, int]) -> dict[str, int]:
+    return dict(counters.starts) if isinstance(counters, CounterValues) else {}

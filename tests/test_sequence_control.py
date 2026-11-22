@@ -208,6 +208,12 @@ class FormatControlValueTest(unittest.TestCase):
             format_control_value(system("counter_reset", counter="n"), counters={"n": 5}),
             "[count=0] n (=5)",
         )
+        self.assertEqual(format_control_value(system("counter_inc", counter="n", amount=3)), "[count+3] n (=0)")
+        self.assertEqual(format_control_value(system("counter_inc", counter="n", amount=-2)), "[count-2] n (=0)")
+        self.assertEqual(format_control_value(system("counter_inc", counter="n", amount=0)), "[count+0] n (=0)")
+        self.assertEqual(format_control_value(system("counter_inc", counter="n", amount="abc")), "[count?] n (=0)")
+        self.assertEqual(format_control_value(system("counter_reset", counter="n"), counter_starts={"n": 10}), "[count=10] n (=0)")
+        self.assertEqual(format_control_value({"type": "counter_text", "counter": "n"}, counters={"n": 5}), "[counter_text] n (=5)")
         self.assertEqual(format_control_value(system("wait", ms=500)), "[wait] 500ms")
         self.assertEqual(format_control_value(system("back")), "[back]")
         self.assertEqual(format_control_value(system("rewind")), "[rewind]")
