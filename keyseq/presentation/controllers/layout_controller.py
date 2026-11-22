@@ -298,9 +298,13 @@ class LayoutController:
             messagebox.showerror(tr("keyboard.layout.save_failed_title"), str(e))
             return False
 
-    def toggle_keyboard_show_physical_key_labels(self):
+    def apply_keyboard_show_physical_key_labels(self):
         self._app.data["keyboard_show_physical_key_labels"] = bool(self._app.ui_vars.keyboard_show_physical_key_labels_var.get())
         self.refresh_keyboard_window()
+        self._app.dirty_tracker.set_dirty(True)
+
+    def toggle_keyboard_show_physical_key_labels(self):
+        self.apply_keyboard_show_physical_key_labels()
         self.persist_keyboard_layout_selection()
 
     def set_keyboard_layout_selection(self, layout_id: str, *, persist: bool = False):

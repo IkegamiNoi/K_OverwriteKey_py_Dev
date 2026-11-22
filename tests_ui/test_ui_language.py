@@ -148,6 +148,7 @@ class UiLanguageTest(unittest.TestCase):
 
         with patch.object(self.app, "set_ui_language") as set_ui_language:
             language_menu.invoke(english_index)
+            self.app.update()
 
         set_ui_language.assert_called_once_with("en")
 

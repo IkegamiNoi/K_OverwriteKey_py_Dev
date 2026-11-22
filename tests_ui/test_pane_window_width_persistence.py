@@ -194,6 +194,8 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
             dict(self.app._startup_settings), self.app._full_geometry,
         )
         self.addCleanup(self._restore)
+        # destroy を patch した終了は共有の App を残すので、終了中の印を各テストの後で戻す。
+        self.addCleanup(setattr, self.app, "_closing", False)
         # 保存予約は各テストが直接実行する。実時間の 500ms で先に走ると呼び出し回数が揺れるため遅らせる。
         delay = patch.object(controller_module, "WINDOW_SIZE_SAVE_DELAY_MS", 3_600_000)
         delay.start()

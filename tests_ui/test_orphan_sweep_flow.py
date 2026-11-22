@@ -254,6 +254,7 @@ class OrphanSweepFlowTest(unittest.TestCase):
             for index in range(submenu.index("end") + 1):
                 if submenu.type(index) == "command" and submenu.entrycget(index, "label") == label:
                     submenu.invoke(index)
+                    self.app.update()
                     return True
         return False
 

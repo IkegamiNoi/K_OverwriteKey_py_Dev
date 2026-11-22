@@ -111,6 +111,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
             position = next(n for n, (_, label) in enumerate(labels) if label == "読込（構成セット）…")
             self.assertEqual(labels[position + 1][1], "履歴から読み込む…")
             menu.invoke(labels[position + 1][0])
+            self.app.update()
             open_dialog.assert_called_once_with()
         with patch.object(history_io, "KeymapSetHistoryDialog") as constructor:
             self.controller.open_history_dialog()

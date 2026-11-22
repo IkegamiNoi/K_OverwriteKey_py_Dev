@@ -332,6 +332,7 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
                     continue
                 if submenu.entrycget(index, "label") == label:
                     submenu.invoke(index)
+                    self.app.update()
                     return True
         return False
 

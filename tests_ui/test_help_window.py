@@ -145,10 +145,10 @@ class HelpWindowTest(unittest.TestCase):
         self.assertEqual(self._menu_labels(self._help_menu()), expected)
         menu = self._help_menu()
         menu.invoke(0)
-        self.app.update_idletasks()
+        self.app.update()
         self.assertIsNotNone(self.app.help.window)
         menu.invoke(1)
-        self.app.update_idletasks()
+        self.app.update()
         self.assertEqual(
             self.app.help.window.notebook.tab(
                 self.app.help.window.notebook.select(), "text",
@@ -164,9 +164,11 @@ class HelpWindowTest(unittest.TestCase):
         menu = self._help_menu()
         with patch.object(version_dialog, "open_version_dialog") as version_spy:
             menu.invoke(4)
+            self.app.update()
             version_spy.assert_called_once_with(self.app)
         with patch.object(self.app.license, "open") as license_spy:
             menu.invoke(5)
+            self.app.update()
             license_spy.assert_called_once_with()
 
     def test_version_dialog_content_and_modal_hook_pause(self) -> None:
@@ -269,6 +271,8 @@ class HelpWindowTest(unittest.TestCase):
         variable.set(True)
         window = self.app.license.open()
         self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
+        # destroy を patch した終了は App を残すので、終了中の印も戻す（共有の App）。
+        self.addCleanup(setattr, self.app, "_closing", False)
         try:
             self.assertTrue(bool(window.attributes("-topmost")))
             variable.set(False)
@@ -614,6 +618,7 @@ class HelpWindowTest(unittest.TestCase):
 
     def test_app_close_closes_help_without_resuming_hook(self) -> None:
         self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
+        self.addCleanup(setattr, self.app, "_closing", False)
         window = self._open()
         window.filter_entry.event_generate("<FocusIn>")
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)

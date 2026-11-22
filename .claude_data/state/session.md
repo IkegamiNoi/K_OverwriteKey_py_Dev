@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T04:30:00
+last_updated: 2026-11-22T10:30:00
 phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.25・v0.25 は Codex 敵対的レビュー needs-attention で確定待ち）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
 last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコミットまで。task_13b / 11g の作業ファイルは未コミット）。push はユーザー
@@ -12,8 +12,8 @@ last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコ
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で 2 件の不具合: ①メニューからのモーダルが戻らない（Mac 共通の既存の不具合）→ 暫定 57 v0.25 + task_11g を起票（Codex 敵対的レビューの指摘 2 件がユーザー判断待ち）②保存パネルが置き換えの確認の Cancel の後に固まる（`.app` でだけ・未調査）。実機確認 4 OK・5 未実施。**
-mode: blocked
+focus: **phase 75 段階 ④。task_13b（Mac のビルド）実装・検証 pass・reviewer 修正して採用→反映・`.app` ビルド済み。実機確認で見つかった「メニューからのモーダルが戻らない」は task_11g（暫定 57 v0.25）で解決・完了。残り = task_13b の実機確認のやり直し（1・2・3・5）と、保存パネルが `.app` で固まる件の調査。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-22T04:30:00
@@ -33,10 +33,7 @@ verified:
   visual_mac: task_13b 4 OK・3 NG（→ task_11g）・保存パネル NG（.app のみ）・1・2・5 未報告
 
 ## next_action
-- **【ユーザー判断待ち】暫定 57 v0.25 の Codex 敵対的レビューの 2 件**（全文 = 下の「確認事項」）。決まったら §5.4 の行と task_11g を改訂 → codex-adversarial-reviewer で再レビュー → task_11g を codex-implementer へ。
-  - **確認事項 1（終了と予約の競合・`57_mac_support.md:313`）**: 予約したメニューの処理が残ったまま × で閉じると、予約が破棄後に走る・選んだ言語が保存されない恐れ。推奨 = 終了が確定したら（`on_close` が destroy する直前）予約をすべて `after_cancel` する。終了をキャンセルしたら予約はそのまま走らせる。`menu_command` が予約の ID を app に預ける。代案 = 予約の実行時に `winfo_exists()` を見て捨てるだけ（簡単だが言語の保存漏れは残る）。
-  - **確認事項 2（チェック項目の遅延・`layout_controller.py:301-304`・`app.py:785-794`）**: 物理キー名のチェックボタンを遅らせると、先に予約された「新規作成」が変数を戻し、別の構成セットへ反映し得る。推奨 = 遅らせる対象を「モーダルを開き得る項目」に絞る（add_command 全部と言語のラジオボタン。物理キー名のチェックボタンとフォントの大きさのラジオボタンは即時のまま＝ダイアログを開かない）。言語のラジオの印は予約中も新しい値を示し、書き込み失敗時は今どおり戻す（`app.py:592-594`）と §5.4 に書く。
-  - 確認事項 3（tests_ui の漏れ）は reviewer の指摘と同じで task_11g に反映済み（判断不要）。
+- **task_11g 完了（2026-11-22・Mac 目視 1〜7 OK・コミット済み）**。idea_64（Mac の保存パネルを広げた形で）を起票。次 = **task_13b の実機確認のやり直し**: `.app` を作り直す（`../../../.venv/bin/python -m PyInstaller --noconfirm packaging/macos/keyseq.spec`）→ ユーザーが 1〜5 を確認（1 の前に `~/Library/Application Support/keyseq` を別名に・3 で `open -n` の要否を判定）→ 保存パネルが `.app` で固まる件の調査。
 - task_11g の完了後: task_13b の実機確認をやり直す（1 初回起動〔先に `~/Library/Application Support/keyseq` を別名に〕・2 保存と再読込・3 言語の再起動〔`open -n` の要否〕・5 置換・シーケンス・キー取得）。
 - 保存パネルの件（`.app` でだけ・別名保存で既存名 → 置き換えの確認で Cancel → パネルの Save / Cancel が効かない）を調べる（task_13b の範囲）。
 - Mac の tests 全体を verifier で流し直す（test_app_data_roots の分割の後）。

@@ -57,6 +57,7 @@ from keyseq.presentation.ui_vars import UiVars
 from keyseq.presentation.views.compact_view.compact_view import CompactView
 from keyseq.presentation.views.full_view.full_view import FullView
 from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcuts
+from keyseq.presentation.views.menu_command_queue import MenuCommandQueue
 from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
@@ -166,6 +167,7 @@ class App(tk.Tk):
         )
         self._retained_hook_keys: dict[str, str] | None = None
         self.restart_requested = False
+        self._closing = False
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.status_icon = StatusIcon(self, status_icon_dir())
@@ -500,6 +502,7 @@ class App(tk.Tk):
 
         self.full_view.pack(fill="both", expand=True)
         # compact_view は最初は非表示
+        self.menu_commands = MenuCommandQueue(self)
         build_menu_bar(self)
         bind_menu_shortcuts(self)
         build_status_area(self, self)
@@ -909,11 +912,19 @@ class App(tk.Tk):
 
     # ---------------- Close ----------------
     def on_close(self):
-        if not self.keymap_set_io.confirm_save_if_dirty(tr("common.exit")):
+        if self._closing:
             return
-        self.pane_layout.cancel_window_width_save()
-        self.compact_window.cancel_save()
-        self.hook.begin_shutdown()
+        self._closing = True
+        try:
+            if not self.keymap_set_io.confirm_save_if_dirty(tr("common.exit")):
+                self._closing = False
+                return
+            self.pane_layout.cancel_window_width_save()
+            self.compact_window.cancel_save()
+            self.hook.begin_shutdown()
+        except Exception:
+            self._closing = False
+            raise
         try:
             self.hook_dispatcher.close()
         except Exception:
@@ -959,6 +970,7 @@ class App(tk.Tk):
                         if screen_grid is not None:
                             screen_grid.shutdown()
                     finally:
+                        self.menu_commands.cancel_all()
                         self.destroy()
 
 

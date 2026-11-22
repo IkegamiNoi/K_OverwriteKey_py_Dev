@@ -869,3 +869,25 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 同じ日（ユーザー判断）: 表（`third_party.json`）のライセンス名を英語の固有名に統一（`BSD 3 条項ライセンス` → `BSD 3-Clause License`・`GNU GPL v3 以降` → `GNU GPL v3 or later`）。表は言語で切り替わらず英語設定でも日本語が出ていたため。訳し分けはしない。正本 `features.md:1056` の一覧は task_14 で揃える（tests の test_third_party・test_help_window pass）。
 - 同じ日: task_13 を起票（reviewer 修正して採用 = `.gitignore` の `*.spec` を `packaging/` だけ解除〔H1〕・ソースの検査を .spec の 1 つの定数に〔M1〕・sdist の取得の代替〔M2〕・datas をファイルの種類で列挙〔M3〕・`DISTPATH`〔M4〕）。起票時の判断（暫定 57 に無い細部）: exe の名前 `keyseq`・タグ `v<__version__>`・同梱の README は日英 1 ファイル・Windows の .spec で macos の backend を excludes・ソースのアーカイブが無ければビルドを止める・表の PyInstaller の行は両 OS。
 - 同じ日: task_13 実装（ユーザー許可で PyInstaller 6.22.3 を `.venv` へ・sdist は pip download が Python 3.14 で止まったため PyPI から直接取得し SHA256 を照合）。reviewer 修正して採用 → メインが反映（版を `keyseq/__init__.py` から正規表現で読み cwd に依存しない・手順書に取得方法とファイル名の形・upx を無効〔再現性〕・ソースの前方一致を `<名前>-<版>.` に）。
+
+### 【task_13b 起票】暫定 57 v0.24（2026-11-22・ユーザー判断）
+
+- task_13b（Mac のビルド）を起票。reviewer 修正して採用（rubicon-objc の行は無条件に書き、収集されなければ 4 か所から外す・表の変更の Windows 検証は残課題として task_14 の起票で拾う・pynput の差し替えの実測は `Contents/MacOS/keyseq` を直接起動して PID で終了・版を揃える 4 点に 2 つの `.spec`・識別子を変えない旨）。
+- 起票時の判断: Mac の `.spec` は Windows と共通化しない（Windows で再ビルドしないと確かめられないため）・README と `sources/` は `.app` の外（署名を壊さない）・`pyobjc` の行の版の照合は `pyobjc-core` に対応づけ・`requirements-build.txt` の両 OS の 10 個の win32 マーカーを外す・Homebrew の dylib はユーザー判断へ・`open -n` は実測で不具合が出たときだけ。
+- ユーザー判断: `.app` の識別子 = `io.github.ikegaminoi.keyseq`（以後変えない）・未公証の `.app` の開き方を配布物の README に書く（§10 の署名・公証の対象外は維持）。→ 暫定 57 v0.24。
+- 準備（ユーザー許可）: Mac の `.venv` へ PyInstaller 6.22.3・`pip download` は Python 3.13 で通った。Tcl / Tk の文書は Homebrew の版と今の `tcl.txt` / `tk.txt` が同文のため共用。
+- 同じ日: task_13b 実装（codex-implementer + メインの補い〔`target_arch` / `argv_emulation` を BUNDLE から EXE へ・手順書に pip download のコマンド・README_dist の pynput のパスを Resources に〕）。verifier（Mac）: compile clean / tests 2141 件（`test_app_data_roots` のエラー 1 → 下）・test_third_party 7 件 pass / smoke OK / tests_ui test_help_window OK / ビルド成功（PyInstaller 6.22.3 で Tk 9.1 を同梱できた）・codesign --verify pass。reviewer 修正して採用（README_dist の pynput のパス）→ 反映・再ビルド OK。
+- 実測: datas と pynput の実体は `Contents/Resources`（`Frameworks` からは symlink）。pynput の差し替えは再署名の有無どちらでも直接起動で効いた（README は再署名を案内したまま）。rubicon-objc は収集される（行は残す）。libffi は同梱されない（`/usr/lib/libffi.dylib`）。
+- ユーザー判断: task_12 で書かれた `test_app_data_roots` が Mac で Windows の backend を import して落ちていた → 本タスクで Windows / Mac の 2 テストに分けた（Windows 側は win32 以外で skip）。Windows での実測は残課題。
+- 表に無い同梱の C ライブラリ（OpenSSL・liblzma・libmpdec・libtommath。Windows の exe にも同種あり）は両 OS 共通の既存の漏れ。推奨 = Mac の一覧を記録し、Windows の作業時に Windows 側も洗い出して両 OS 分を 1 本で起票（ユーザーの返答待ち）。
+
+### 【task_11g 起票】暫定 57 v0.25（2026-11-22・ユーザー判断）
+
+- task_13b の Mac 実機確認で、メニューの処理の中から開いたモーダル（言語の切り替えの確認・`choice_dialog.py:62`）が戻らない不具合（開発実行でも起きる・faulthandler で特定・`after(0)` で遅らせると直ることを probe で確認）→ ユーザー判断「メニューの処理を一拍遅らせる」・Mac だけ。§5.4 に「メニューの処理」の行・task_11g を起票（reviewer 修正して採用 = tests_ui の invoke の漏れ〔test_help_window・test_ui_language〕・patch の with の内側で update・項目数の数え方・終了の目視）。
+- Codex 敵対的レビュー（needs-attention・中 3）→ ユーザー判断「推奨どおり」: ①終了が確定したら（`on_close` の destroy の直前）残った予約をすべて取り消す・終了をキャンセルしたら予約は走らせる ②遅らせるのはモーダルを開き得る項目だけ（add_command 全部と言語のラジオ）・物理キー名のチェックボタンとフォントのラジオは即時 ③tests_ui の漏れは反映済み。
+- Codex 敵対的レビュー 2 回目（needs-attention・high 2 / medium 1。メインが実測で裏付け = チェックボタンの保存が構成フォルダの外で `ask_choice` を開く〔`layout_controller.py:290-294`・`keymap_set_io.py:777-787`〕・待ちの間に後の after が走る〔Tk で `first-start → second → first-end`〕）→ ユーザー判断「推奨どおり」: 物理キー名は表示と反映を即時・保存だけ遅らせる（構成セットが変わっていたら保存しない）・遅らせた処理は App の待ち行列で 1 つずつ・終了の確定で待ち行列を捨てる・`on_close` の再入を防ぐ。README の zip の例は 3 点を揃える形に修正（メイン）。
+- Codex 敵対的レビュー 3 回目（needs-attention・high 1 / medium 3。メインが裏付け = Command+S は待ち行列を通らず保存を直接呼ぶ〔`app.py:628-632`〕・バージョン情報は閉じるのを待たない〔`version_dialog.py:31`〕）→ ユーザー判断「4 件とも本タスクで直す」: ①aqua のショートカット（新規・保存・別名保存・読込・プリセット編集）もメニューと同じ待ち行列を通す ②物理キー名の反映で未保存の印を立てる ③目視 6 を「保存場所の確認を開いたまま新規作成と終了」に差し替え・目視 7 を追加 ④README の zip は毎回空のフォルダで作り、展開した .app の署名を検査する。
+- Codex 敵対的レビュー 4 回目（needs-attention・high 1 / medium 1。メインが裏付け = 画面の保存ボタンは保存を直接呼ぶ〔`file_frame.py:16`〕・モーダルは `grab_set`〔`modal.py:254`〕）→ ユーザー判断: ①経路ごとに待ち行列へ入れるのをやめ、待ち行列は grab（モーダル）がある間は次を始めない形に（ショートカットを待ち行列に通す 3 回目の変更は取り消し）②Mac の `.spec` は毎回 `dist/sources/` を空にして今の版のアーカイブだけを入れる（メインが修正・再ビルド OK）。Windows の `.spec` の同じ修正は次の Windows 作業の残課題。
+- Codex 敵対的レビュー 5 回目（needs-attention・high 2。メインが裏付け = 最小化でダイアログを残したまま grab を外す〔`modal.py:103-136`〕・ソースの照合が前方一致で `.sha256` だけでも通る）→ メインが反映（「ダイアログの間はメニューを待たせる」というユーザー判断の実装の精度の修正）: 待ち行列の判定を `grab_current()` から既存の `modal.is_modal_active()`（ダイアログが閉じるまで + メッセージの窓）に変更・Mac の `.spec` はファイル名全体を `<名前>-<版>.tar.gz|.zip` で照合（`.sha256` だけではビルドが止まることを実測）。Windows の `.spec` の同じ照合は次の Windows 作業の残課題。
+- 同じ日: task_11g 実装（codex-implementer 2 回 + メインの補い〔`_closing` を `__init__` で初期化・`cancel_all` の例外を `tk.TclError` に・テストの偽の after と Mock の使い回しの誤り・共有の App で destroy を patch した on_close の後に `_closing` を戻す tests_ui 3 本〕）。reviewer 修正して採用（テストの不足・確認より前の例外で `_closing` が残る）→ 対応 → 再確認で採用。verifier（Mac）: tests 2157・失敗 0・エラー 0・skip 32 / smoke OK / tests_ui 8 本 pass。Mac 目視と Windows 検証は未実施。
+- 同じ日: task_11g の Mac 目視 1〜7 OK（ユーザー）→ task_11g 完了。目視の際の要望 = 保存パネルを最初から広げた形で出す → idea_64 を起票（ユーザー判断）。

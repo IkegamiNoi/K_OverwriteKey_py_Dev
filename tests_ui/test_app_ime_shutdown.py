@@ -19,6 +19,8 @@ class AppImeShutdownTests(unittest.TestCase):
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
             held_inputs=SimpleNamespace(release_all=trace.release),
             destroy=trace.destroy,
+            _closing=False,
+            menu_commands=Mock(),
         )
         trace.confirm.return_value = True
         trace.release.return_value = []
@@ -41,6 +43,8 @@ class AppImeShutdownTests(unittest.TestCase):
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
             held_inputs=SimpleNamespace(release_all=trace.release),
             destroy=trace.destroy,
+            _closing=False,
+            menu_commands=Mock(),
         )
         trace.confirm.return_value = True
         trace.release.return_value = []

@@ -133,6 +133,7 @@ class QuarantineManageFlowTest(unittest.TestCase):
             for index in range(menu.index("end") + 1):
                 if menu.type(index) == "command" and menu.entrycget(index, "label") == "退避したファイルの管理…":
                     menu.invoke(index)
+                    self.app.update()
                     break
         manage.assert_called_once_with()
 
