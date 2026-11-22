@@ -11,7 +11,7 @@ last_commit_location: `claude/windows-support-continuation-f235f4`（Windows の
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ④。Windows 検証 pass（tests 2219・tests_ui 1300・smoke・版の照合）・task_13c（Windows の .spec の sources）完了・C ライブラリは idea_65。残り = Windows 実機でテンキーのサンプル（A / G / T）の確認（ユーザー）→ task_14（正本反映）。**
+focus: **phase 75 段階 ④。Windows 検証 pass（tests 2219・tests_ui 1300・smoke・版の照合）・task_13c（Windows の .spec の sources）完了・C ライブラリは idea_65。Windows 実機のテンキーのサンプルも OK（ユーザー）。次 = task_14（正本反映）の実施（起票済み・`tasks/task_14_spec_promotion.md`）。**
 next_action_override: 上の focus が next_action より新しい（下の next_action の Windows 検証の項目は実機のテンキー以外すべて済み）
 mode: completed
 

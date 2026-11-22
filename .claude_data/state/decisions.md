@@ -904,4 +904,5 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - Windows 検証（verifier）: compile clean / tests 2219 件・失敗 0・skip 7（test_third_party・test_os_backend_contracts の分割後の test_app_data_roots・test_sample_config・MenuCommandQueue を含む）/ tests_ui 1300 件 OK / smoke OK。`requirements-build.txt` の win32 とマーカー無しの 12 件は `.venv` の版と一致。
 - task_13c（起票・実装 = codex-implementer）: Windows の `.spec` の `collect_distribution()` を Mac と同じに（`<名前>-<版>.tar.gz|.zip` のファイル名全体で照合・`dist/keyseq/sources/` を毎回空にして一致したものだけ copy2）。verifier: 古いファイルと `dummy.sha256` は入らない・`.sha256` だけではビルドが止まる・exe 起動 OK。reviewer 採用。手順書の Windows 節の照合の記述を新しい挙動に合わせた（メイン）。
 - 同梱の C ライブラリ（Windows = OpenSSL〔libcrypto / libssl〕・libffi・zlib・VC++ ランタイム・静的に入る bzip2 / xz / zstd / mpdecimal / expat。Mac = OpenSSL・liblzma・libmpdec・libtommath）は両 OS 分を idea_65 に起票（task_13b の推奨どおり 1 本で）。
-- 残り = Windows の実機確認（テンキーのサンプル A / G / T の置換先 `num add` / `num multiply` / `num divide`・ユーザー）→ task_14。
+- Windows の実機確認（テンキーのサンプル A / G / T の置換先 `num add` / `num multiply` / `num divide`）= OK（2026-11-22・ユーザー）→ Windows 検証の残課題はすべて完了。次 = task_14。
+- task_14（正本反映）を起票（2026-11-22）。reviewer 修正して採用 = 暫定 57 の状態行を「凍結・v0.25」に・current.md の idea 採番も直す・同じ差分に reviewer と deep-reviewer を重ねない（deep-reviewer + Codex 敵対的に一本化）・確認の grep を広げる・features.md の Mac の保存先・サンプルのテンキー・help_ja:932 の確認・phase.md の完了記載（すべて反映）。

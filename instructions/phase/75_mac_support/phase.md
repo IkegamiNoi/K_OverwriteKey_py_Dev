@@ -98,7 +98,7 @@ Windows 機を用意できない間は（Q0）、task_01〜04 の「移動」「
 
 **最終**
 
-- task_14: 正本反映（暫定 57 の昇格・凍結、`decisions_archive/75_mac_support.md`、`current.md` の完了記載、運用文書、`/refactor_check`）
+- task_14: 正本反映（暫定 57 の昇格・凍結、`decisions_archive/75_mac_support.md`、`current.md` の完了記載、運用文書、`/refactor_check`）。起票済み（`tasks/task_14_spec_promotion.md`・2026-11-22・reviewer 修正して採用→反映）
 
 ## 完了条件（暫定 57 §9 との対応）
 
