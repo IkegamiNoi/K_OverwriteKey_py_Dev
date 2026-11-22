@@ -4,63 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T23:40:00
-phase: instructions/phase/76_counter_expansion（2026-11-22 起票）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
+last_updated: 2026-11-22T22:55:00
+phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
-last_commit_location: `claude/task-15-360298`（Mac の worktree・phase 75 の完了コミットまで）。push / merge はユーザー
+last_commit_location: `claude/counter-feature-expansion-a5d3c3`（worktree `counter-feature-expansion-a5d3c3`・task_05 の完了とこの state まで・未 push）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76（カウンター機能の拡張）task_01（保存形式）・task_02（実行）・task_03（counter_text）・task_04（表示）・task_05（編集 UI）完了。次 = task_06（統合確認）。**
-mode: blocked
+focus: **phase 76（カウンター機能の拡張）task_01〜05 完了（実装はすべて済み）。次 = task_06（統合確認・実機目視はユーザー）→ task_07（正本反映）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-22T23:40:00
-who: user
+ts: 2026-11-22T22:55:00
+who: main
 summary: |
-  実施: カウンターの現状を確認（更新 = system の counter_inc / counter_reset・file_line は読むだけ・`features.md` §4.2.2・`data_schema.md` §5.11.6 / §5.11.7・関連 idea_37）。
-  ユーザー判断（方針・未起票）: ①「カウンター +1」→ 名称「カウンター」・任意の増やす量 ②「カウンターを0に」→「カウンターリセット」 ③新アクション「カウンターの値を入力」（現在値を text の経路で送る）。表示は出力シーケンスの行の `(=値)` で足りる（画面の表示欄は作らない）。
-  ユーザー判断（追加）: 同じ名前のカウンターはどこでも値を共有（現行どおり）・開始値は「カウンター」の行に持たせ、リセットは開始値へ戻す。負の値を許す（file_line は既存の範囲外規則で扱える）。
-  ユーザー判断（追加 2）: 食い違いは拒否せず「現在の開始値を表示して上書きできる」/ ゼロ埋めは不要。
-  メインの提案（未確定）: 開始値は構成セットに名前 → 開始値で 1 か所保存（新キー・後方互換）・ダイアログは現在値を表示し上書きで全行に効く / 範囲 = 構成セット全体（値がアプリ全体で共有のため）/ 未使用の値 = 開始値 / 増やす量 0 は拒否 / op 名は据え置き（キー無し = +1・開始値 0）/ 暫定仕様先行で phase 76。
+  実施: task_05（編集 UI）を完了してコミット（9242ae4f）。ユーザーの指示で本日はここまで → session.md を整理し handoff.md を再生成。
+  phase 76 のここまで: task_01 保存形式 25c123df / task_02 実行 b56a2fc1 / task_03 counter_text 54895e55 / task_04 表示 7af28e7a / task_05 編集 UI 9242ae4f（いずれも reviewer 採用）。
+  実装エージェント: task_01・03・04 = codex-implementer（Luna high）/ task_02・05 = codex-delegating-implementer（Sol medium・サブエージェント未使用）。
+  /refactor_check の候補（task_07 で判定）: executor の counter_text 分岐の `_labeled` 動的キーと `execute` 内 28 行の切り出し / counter_text の書式の重複・import の並び。
 result_files:
-  - .claude_data/state/session.md（コード変更なし）
+  - .claude_data/state/session.md・handoff.md
 verified:
-  tests: not_run（検討のみ）
+  compile: clean（task_05 後）
+  tests: pass 2254（失敗 0・skip 7・task_05 後）
+  tests_ui: 部分のみ pass（test_action_dialog_control 44 / test_action_dialog_labels 8 / test_trigger_panel_controller_action_edit 22 / test_action_list_rendering 15）・**全体は未実行**
+  smoke: pass（task_05 後）
+  visual: not_run（task_06 でユーザー）
 
 ## next_action
-- 暫定 58 v1.0（ユーザー確定 2026-11-22・§6 の 5 件をすべて推奨どおり → §2.8〜12）。phase 76 を起票済（`instructions/phase/76_counter_expansion/phase.md`・current.md 更新・reviewer 整合チェック「修正して採用」反映・コミット 4946a3e9）。
-  task_01（保存形式）: タスク定義 `tasks/task_01_counter_save_format.md` を起票（未コミット）→ `codex-implementer` が実装コード完了（sequence_control / config / split_loading / split_payloads / __init__・test_sequence_control・差分は直読み済み）・残りのテストも完了（test_domain_config の差し込み位置のずれはメインが修正）→ verifier: compileall clean・対象 4 モジュール 260 OK・tests 全体は test_save_plan の期待値 3 件のみ失敗 → 期待値に counter_starts を足し test_save_plan 26 OK → reviewer 採用（任意の軽微 4 件は見送り）→ **task_01 完了**。
-- task_01 はコミット 25c123df。
-- task_02（実行）: タスク定義 `tasks/task_02_counter_execution.md` を起票（未コミット・`CounterValues(dict)` + `counter_value` の 1 関数・保留 3 要素・巻き戻しで押下開始時に無かった名前を消す）→ `codex-delegating-implementer`（Sol medium）で実装完了・差分直読み済み（20 ファイル +310/-69・新規 counter_values.py / test_counter_values.py）→ verifier: compileall clean・対象 4 モジュール 117 OK・test_sequence_runner* 329 OK・tests 全体 2239 失敗 0 skip 7 → reviewer 採用（参考 2 点 = 連続実行・file_line 再開の経路の名前の集合はその step / 文脈の差分の範囲と一致しており現状で可）→ **task_02 完了**。
-- task_02 はコミット b56a2fc1。
-- task_03（counter_text）: タスク定義 `tasks/task_03_counter_text_action.md` を起票（未コミット）→ `codex-implementer` で実装完了・差分直読み済み（executor の counter_text 分岐・定数・種別不正の文言・新規 test_action_executor_counter_text）→ verifier: tests 2247 中 1 失敗（空名の通知にラベルが入らない・実装の抜け）→ Codex が修正（エラー 3 か所にラベル・_labeled の文言キーを ja / en に追加・テストは不変）→ 再実測 tests 2247 失敗 0 skip 7 → reviewer 採用 → **task_03 完了**。参考の指摘（executor の counter_text 分岐の `_labeled` 動的キー・`execute` 内 28 行を `_execute_counter_text` へ切り出す余地）は task_07 の `/refactor_check` で扱う候補。
-- task_03 はコミット 54895e55。
-- task_04（表示）: タスク定義 `tasks/task_04_counter_display.md` を起票（未コミット・`counter_display_values` / `counter_starts_of` で実効値と開始値の写しを domain の書式へ渡す・描き直しの契機は task_05 へ移した〔phase.md も追従〕）→ `codex-implementer` が実装コード完了（差分直読み済み・書式 / 写し / 呼び出し箇所）・残りのテストも完了（test_counter_values / test_call_view / test_sequence_control / tests_ui/test_action_list_rendering・差分直読み済み）→ verifier: compileall clean・対象 4 モジュール 132 OK・tests 全体 2250 失敗 0 skip 7・tests_ui.test_action_list_rendering 15 OK → reviewer 採用（軽微 2 件 = import の並び・counter_text の書式の重複は見送り・task_07 の /refactor_check で扱う候補）→ **task_04 完了**。
-- task_04 はコミット 7af28e7a。
-- task_05（編集 UI）: タスク定義 `tasks/task_05_counter_edit_ui.md` を起票（未コミット・ダイアログは開始値を結果で返すだけ・action_edit が成立後に data["counter_starts"] / state.set_counter_starts / dirty_tracker.set_dirty(True)・同期は App._sync_control_vars_from_data に 1 か所）→ `codex-delegating-implementer`（Sol medium・サブエージェント未使用）で実装完了・差分直読み済み（13 ファイル +465/-26）→ verifier: compileall clean・tests 2254 失敗 0 skip 7・tests_ui の action_dialog_control 44 / action_dialog_labels 8 / trigger_panel_controller_action_edit 22 OK・smoke OK → reviewer 採用（参考 3 件は実害なしで見送り）→ **task_05 完了**（コミット 9242ae4f）。
-- 次 = task_06（統合確認: 標準検証 4 種〔tests_ui は通しで 1 本だけ〕・暫定 58 §7 の照合・deep-reviewer + codex-reviewer・実機目視はユーザー〔増やす量 / 開始値の欄・名前の変更・一覧の書式・counter_text の入力・リセット・保存 → 読込・サンプル設定に戻す〕）。
-- 承認後: `/phase_start` で `instructions/phase/76_<topic>/` を起票 → `/spec_draft` で暫定 58 を起票 → `codex-adversarial-reviewer` で敵対的レビュー → ユーザー確定。
-- 前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
+- task_06（統合確認）: `/task_new` で `instructions/phase/76_counter_expansion/tasks/task_06_integration.md` を起票 → verifier で標準検証 4 種（compileall / tests 全体 / **tests_ui 全体を 1 本だけ** / smoke）→ 暫定 58 §7 の受け入れ条件 1〜8 と照合 → `deep-reviewer` + `codex-reviewer`（phase 76 の全差分 = `git diff 4129c67b..HEAD`）→ 実機目視の手順をユーザーへ（増やす量 / 開始値の欄・名前の変更での入れ替え・一覧の `[count+3]` / `[count=10]` / `[counter_text] n (=5)`・counter_text の入力・リセットで開始値へ・保存 → 読込で開始値が保たれる・サンプル設定に戻すで開始値が消える・英語表示）。
+- task_07（正本反映）: 暫定 58 §9 の正本昇格・凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`ui_terms.md`・current.md の完了記載・`/refactor_check`（上の候補を判定）・フェーズ完了前の `deep-reviewer` + `codex-adversarial-reviewer`。
+- ブランチ `claude/counter-feature-expansion-a5d3c3` と前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
 ## blockers
-- ユーザーの回答待ち（カウンター拡張のゼロ埋めの要否・起票の可否）。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **phase 76 の要点**: 実効値（値が入った名前は値・それ以外は開始値・それも無ければ 0）は `keyseq/application/counter_values.py`（`CounterValues(dict)`・`counter_value`・`counter_start`・`counter_display_values`・`counter_starts_of`）に 1 か所。保留は `(op, name, amount)`。開始値は構成セットの `counter_starts`（`domain/sequence_control.normalize_counter_starts`）→ `App._sync_control_vars_from_data` で `AppState.set_counter_starts`。ダイアログは開始値を `_dialog_counter_start` で返し、`action_edit._apply_counter_start_result` が行の追加・置換の成立後に書く。新しい種類 `counter_text` は `ActionExecutor.execute` の 1 分岐。
+- **Codex の傾向（phase 76 で実測）**: テストを書き漏らす（task_01・04 は 2 回目の依頼で追加）・既存テストの途中に新しいテストを差し込む（task_01）・タスク定義の一部（通知のラベル）を落とす（task_03）。依頼文に「既存テストの途中に差し込まない」を書き、差分を直読みしてから verifier へ。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
 - **画面の文言（phase 72 以降）**: 新しい文言は `keyseq/shared/i18n/locales/ja.json` と `en.json` の両方にキーを足し、ソースに日本語を書かない（静的テスト）。`tr` はモジュール定数・import 時に評価しない。`App(` を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`。英語は `ui_terms.md` §2・§3（E1〜E7）に従う。
-- **phase 73**: 報告された不具合のうち、キー名の記号表記は別セッションの提案カードに出してある（本フェーズ外）。tests_ui の窓の大きさのテスト（`test_compact_window.py:298`・`test_pane_window_width_persistence.py:236,275` の `pending`）が負荷で落ちることがある。**tests_ui の App() は worktree の `config/config.json`（ユーザーの手元の設定・gitignore）を読む**ので結果が手元の設定に左右される（task_05 の Welcome を出さない入口で考える）。Codex は python を実行できずテスト修正が手探りになる → 失敗はメインがトレースを読んで原因を絞ってから委任する。
-- **phase 71**: タスクバーのアイコンは AppUserModelID（`main.py`）が無いと出ない。`App()` を直接作る tests_ui / smoke では設定されない。
+- tests_ui の窓の大きさのテスト（`test_compact_window.py:298`・`test_pane_window_width_persistence.py:236,275` の `pending`）が負荷で落ちることがある。**tests_ui の App() は worktree の `config/config.json`（ユーザーの手元の設定・gitignore）を読む**ので結果が手元の設定に左右される。Codex は python を実行できずテスト修正が手探りになる → 失敗はメインがトレースを読んで原因を絞ってから委任する。
 - **`__version__`** はユーザーが直接またはユーザーの指示でだけ変更する（Claude が独断で上げない）。
 - **Codex は Python で既存ファイルを編集しようとして失敗することがある** → 依頼文に「apply_patch で編集・Python を使わない」と書く（phase 71）。
 - **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。Bash の heredoc の前に `cat > file` を単独で書かない（stdin 待ちでハングする）。
 - **Codex は互換の工夫・テストの期待値の推測を足すことがある**。差分を直読みしてから verifier / reviewer へ。Codex は LF を混ぜることがある（コミットは git が正規化）。
-- カーソルグリッドの地図 = `codebase_map.md`「カーソルグリッド（phase 56・57）」。
-- **【罠・phase 57】Windows の Tk で位置の反映の保留中に `wm_attributes("-topmost", True)` を呼ぶと窓が `0,0` へ戻る**（`geometry` の直後に `update_idletasks()`）。Tk の測り直しは after_idle だと配置の計算より先に走ることがある・`<Configure>` で configure し返すと無限ループになり得る。
-- **プロセスは pyautogui の import でシステム DPI 対応**。検証は本番の起動経路で
 - `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・current.md「テスト負債」）。
-- 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜55）の条項を実装の根拠に引かない。
-- **【Codex のプロセス】** companion は作業フォルダごとに `app-server-broker.mjs serve` を常駐させ、`codex app-server` は呼び出し後も残る。worktree を多く使うと codex.exe が溜まる。
+- 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜57）の条項を実装の根拠に引かない（暫定 58 は phase 76 の主入力・未凍結）。
+- **【Codex のプロセス】** companion は作業フォルダごとに `app-server-broker.mjs serve` を常駐させ、`codex app-server` は呼び出し後も残る。worktree を多く使うと codex.exe が溜まる。`codex-delegating-implementer` は 180 秒を超えるとバックグラウンドへ移る → 出力ファイルの更新時刻で進み具合を見る。
 - **【罠・phase 58】ttk.LabelFrame の `labelwidget` に既定の ttk.Label を使うと枠の要求高さが 4px 増える**（`style="TLabelframe.Label"` なら同じ）
