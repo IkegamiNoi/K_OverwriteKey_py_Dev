@@ -57,19 +57,19 @@ class ActionExecutorTypeTests(unittest.TestCase):
         cases = [
             (
                 {"type": "hotky", "label": " 保存 "},
-                "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_holdのいずれか）。種類: hotky / ラベル: 保存",
+                "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold / counter_textのいずれか）。種類: hotky / ラベル: 保存",
             ),
-            ({}, "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_holdのいずれか）。種類: （なし）"),
+            ({}, "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold / counter_textのいずれか）。種類: （なし）"),
             *(
                 (
                     {"type": "hotky", "label": label},
-                    "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_holdのいずれか）。種類: hotky",
+                    "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold / counter_textのいずれか）。種類: hotky",
                 )
                 for label in (1, ["保存"], None, "", "   ")
             ),
             (
                 {"type": " HoTkY ", "label": " 保存 "},
-                "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_holdのいずれか）。種類: HoTkY / ラベル: 保存",
+                "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold / counter_textのいずれか）。種類: HoTkY / ラベル: 保存",
             ),
         ]
         for action, expected in cases:

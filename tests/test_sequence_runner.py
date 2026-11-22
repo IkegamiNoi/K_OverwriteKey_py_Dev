@@ -77,6 +77,14 @@ A2 = {"type": "text", "value": "two"}
 
 
 class SingleStepTest(unittest.TestCase):
+    def test_counter_text_consumes_one_step(self):
+        action = {"type": "counter_text", "counter": "n"}
+        trigger = {"key": "f1", "run_to_end": False, "actions": [action, A2]}
+        runner, state, _scheduler, performed = make_runner([trigger])
+        runner.handle_key("f1")
+        self.assertEqual(performed, [action])
+        self.assertEqual(state.indices["f1"], 1)
+
     def test_actions_cycle_one_per_press(self):
         trigger = {"key": "f1", "run_to_end": False, "actions": [A1, A2]}
         runner, state, _scheduler, performed = make_runner([trigger])

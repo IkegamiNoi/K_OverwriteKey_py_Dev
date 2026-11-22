@@ -10,6 +10,7 @@ from keyseq.shared.i18n import tr
 
 ACTION_TYPE_SYSTEM: str = "system"
 ACTION_TYPE_FILE_LINE: str = "file_line"
+ACTION_TYPE_COUNTER_TEXT: str = "counter_text"
 
 OP_LOOP_START: str = "loop_start"
 OP_LOOP_END: str = "loop_end"

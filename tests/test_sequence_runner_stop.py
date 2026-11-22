@@ -111,6 +111,14 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertIsNone(state.run_to_end_key)
         self.assertEqual(scheduler.queue, [])
 
+    def test_counter_text_counts_as_sent_before_stop(self):
+        action = {"type": "counter_text", "counter": "n"}
+        runner, state, _scheduler, performed = self.make_runner([action, self.stop()], delay=30)
+        runner.handle_key("f1")
+        self.assertEqual(performed, [action])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertIsNone(state.run_to_end_key)
+
     def test_04_initial_stops_are_skipped_until_action_or_end(self):
         a = {"type": "text", "value": "A"}
         b = {"type": "text", "value": "B"}

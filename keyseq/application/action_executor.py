@@ -130,6 +130,34 @@ class ActionExecutor:
                 self._report_held_error(action, owner, tr("application.action_executor.text_send_failed", error=exc))
                 return False
             return True
+        if action_type == "counter_text":
+            raw_counter = action.get("counter")
+            counter_name = raw_counter.strip() if isinstance(raw_counter, str) else ""
+            notified_action = action.copy()
+            notified_action["value"] = counter_name
+            label = action.get("label")
+            label = label.strip() if isinstance(label, str) else ""
+
+            def counter_text_error(key: str, **kwargs) -> str:
+                if label:
+                    return tr(f"{key}_labeled", label=label, **kwargs)
+                return tr(key, **kwargs)
+
+            if not counter_name:
+                self._report_held_error(action=notified_action, owner=owner,
+                                        message=counter_text_error("application.action_executor.counter_empty"))
+                return False
+            if self._get_counter is None:
+                self._report_held_error(action=notified_action, owner=owner,
+                                        message=counter_text_error("application.action_executor.counter_callback_missing"))
+                return False
+            try:
+                self._write_text(str(self._get_counter(counter_name)))
+            except Exception as exc:
+                self._report_held_error(action=notified_action, owner=owner,
+                                        message=counter_text_error("application.action_executor.text_send_failed", error=exc))
+                return False
+            return True
         if action_type == "key_hold":
             return self._execute_key_hold(action, owner or "")
         if action_type == "file_line":
