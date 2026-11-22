@@ -1,9 +1,7 @@
 import unittest
 
-from keyseq.infrastructure.os_backend.macos.backend import (
-    MacKeyboardBackend,
-    MacTkKeyTranslator,
-)
+from keyseq.infrastructure.os_backend.macos.keyboard_backend import MacKeyboardBackend
+from keyseq.infrastructure.os_backend.macos.tk_key_translator import MacTkKeyTranslator
 
 
 class MacTkKeyTranslatorTests(unittest.TestCase):

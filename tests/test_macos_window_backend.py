@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.infrastructure.os_backend.macos import ns_window
-from keyseq.infrastructure.os_backend.macos.backend import MacWindowBackend
+from keyseq.infrastructure.os_backend.macos.window_backend import MacWindowBackend
 
 
 class MacWindowBackendTests(unittest.TestCase):
@@ -17,7 +17,7 @@ class MacWindowBackendTests(unittest.TestCase):
         self.backend = MacWindowBackend(appkit=Mock())
 
     def resolve(self, native=None):
-        return patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=native or self.native)
+        return patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=native or self.native)
 
     def test_releases_topmost_during_modal(self):
         self.assertTrue(self.backend.releases_topmost_during_modal())
@@ -34,7 +34,7 @@ class MacWindowBackendTests(unittest.TestCase):
         appkit = Mock()
         appkit.NSApplication.sharedApplication.side_effect = RuntimeError("failure")
         backend = MacWindowBackend(appkit=appkit)
-        with self.assertLogs("keyseq.infrastructure.os_backend.macos.backend", level="ERROR") as logs:
+        with self.assertLogs("keyseq.infrastructure.os_backend.macos.window_backend", level="ERROR") as logs:
             self.assertFalse(backend.bring_app_to_front())
             self.assertFalse(backend.bring_app_to_front())
         self.assertEqual(len(logs.records), 1)
@@ -59,14 +59,14 @@ class MacWindowBackendTests(unittest.TestCase):
         for number in (0, -1):  # -1 = a window that has never been shown (measured)
             self.native.windowNumber.return_value = number
             with self.resolve(): self.assertIsNone(self.backend.window_handle(self.window))
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=None):
             self.assertIsNone(self.backend.window_handle(self.window))
 
     def test_minimize_preparation_registers_once_and_handles_missing_window(self):
         center = Mock()
         appkit = SimpleNamespace(NSWindowWillMiniaturizeNotification="will-minimize")
         backend = MacWindowBackend(appkit=appkit, notification_center=center)
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=self.native), patch(
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=self.native), patch(
             "keyseq.infrastructure.os_backend.macos.minimize_observer.create_minimize_observer", return_value="observer"
         ):
             self.assertTrue(backend.install_minimize_preparation(self.window))
@@ -74,7 +74,7 @@ class MacWindowBackendTests(unittest.TestCase):
         center.addObserver_selector_name_object_.assert_called_once_with(
             "observer", "willMiniaturize:", "will-minimize", self.native
         )
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=None):
             self.assertFalse(MacWindowBackend(appkit=appkit, notification_center=center).install_minimize_preparation(self.window))
 
     def test_minimize_observer_recursively_detaches_children(self):
@@ -107,7 +107,7 @@ class MacWindowBackendTests(unittest.TestCase):
         with self.resolve():
             self.assertTrue(self.backend.order_out(self.window))
         self.native.orderOut_.assert_called_once_with(None)
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=None):
             self.assertFalse(self.backend.order_out(self.window))
         self.native.orderOut_.side_effect = RuntimeError()
         with self.resolve():
@@ -127,7 +127,7 @@ class MacWindowBackendTests(unittest.TestCase):
         with self.resolve(): self.assertTrue(self.backend.place_window_below(self.window, 19))
         self.native.orderWindow_relativeTo_.assert_called_with(self.backend._get_appkit().NSWindowBelow, 19)
         self.assertFalse(self.backend.place_window_below(self.window, "19"))
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=None):
             self.assertFalse(self.backend.place_window_below(self.window, 19))
         self.native.orderWindow_relativeTo_.side_effect = RuntimeError()
         with self.resolve(): self.assertFalse(self.backend.place_window_below(self.window, 19))
@@ -157,7 +157,7 @@ class MacWindowBackendTests(unittest.TestCase):
         self.assertNotIn("-transparent", [call.args[0] for call in self.window.attributes.call_args_list])
         self.native.setIgnoresMouseEvents_.assert_called_with(True)
         self.native.setLevel_.assert_called_with(self.backend._get_appkit().NSStatusWindowLevel)
-        with patch("keyseq.infrastructure.os_backend.macos.backend.ns_window_for", return_value=None):
+        with patch("keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for", return_value=None):
             self.assertFalse(self.backend.make_click_through_overlay(self.window, "#ff00fe"))
         self.window.attributes.side_effect = __import__("tkinter").TclError()
         self.assertFalse(self.backend.make_click_through_overlay(self.window, "#ff00fe"))
@@ -186,7 +186,7 @@ class MacWindowBackendTests(unittest.TestCase):
 
         for result in (None, RuntimeError("lookup failed")):
             with patch(
-                "keyseq.infrastructure.os_backend.macos.backend.ns_window_for",
+                "keyseq.infrastructure.os_backend.macos.window_backend.ns_window_for",
                 side_effect=result if isinstance(result, Exception) else None,
                 return_value=None if result is None else None,
             ):

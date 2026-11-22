@@ -127,7 +127,8 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
                 self.assertEqual(self.root.input_gateway.validated[-1], expected)
 
     def test_key_hold_recording_uses_mac_command_and_option_sides(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend, MacTkKeyTranslator
+        from keyseq.infrastructure.os_backend.macos.keyboard_backend import MacKeyboardBackend
+        from keyseq.infrastructure.os_backend.macos.tk_key_translator import MacTkKeyTranslator
 
         backend = SimpleNamespace(tk_keys=MacTkKeyTranslator(MacKeyboardBackend()))
         with patch("keyseq.presentation.tk_keys.get_backend", return_value=backend):

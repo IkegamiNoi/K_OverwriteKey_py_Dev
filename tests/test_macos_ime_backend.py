@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from keyseq.infrastructure.os_backend.macos.backend import MacImeBackend
+from keyseq.infrastructure.os_backend.macos.ime_backend import MacImeBackend
 
 
 class Source:
@@ -73,8 +73,8 @@ class MacImeBackendTests(unittest.TestCase):
 
     def test_native_api_load_failure_logs_once(self):
         backend = MacImeBackend()
-        with patch("keyseq.infrastructure.os_backend.macos.backend.InputSourceAPI", side_effect=OSError("missing")), \
-             patch("keyseq.infrastructure.os_backend.macos.backend._LOG.exception") as log:
+        with patch("keyseq.infrastructure.os_backend.macos.ime_backend.InputSourceAPI", side_effect=OSError("missing")), \
+             patch("keyseq.infrastructure.os_backend.macos.ime_backend._LOG.exception") as log:
             self.assertIsNone(backend.get_own_open_status(None))
             self.assertFalse(backend.set_own_open_status(None, False))
             self.assertEqual(log.call_count, 1)

@@ -4,7 +4,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
-from keyseq.infrastructure.os_backend.macos import backend
+from keyseq.infrastructure.os_backend.macos import mouse_backend, window_backend
 from keyseq.infrastructure.os_backend.macos.event_tap import OWN_EVENT_MARK
 from keyseq.infrastructure.os_backend.macos.mouse_hold_tap import MouseHoldTap
 
@@ -29,7 +29,7 @@ class MacMouseBackendTests(unittest.TestCase):
     def test_scroll_maps_axes_and_marks_posts(self) -> None:
         events = [object(), object()]
         quartz = fake_quartz(event_results=events)
-        mouse = backend.MacMouseBackend(quartz=quartz)
+        mouse = mouse_backend.MacMouseBackend(quartz=quartz)
         mouse.scroll_mouse(vertical=True, deltas=(120,), position=None)
         mouse.scroll_mouse(vertical=False, deltas=(-120,), position=None)
         self.assertEqual(quartz.CGEventCreateScrollWheelEvent.call_args_list, [
@@ -44,7 +44,7 @@ class MacMouseBackendTests(unittest.TestCase):
         values = (120, -120, 60, 6, -6, 1, 0)
         events = [object() for _ in values[:-1]]
         quartz = fake_quartz(event_results=events)
-        backend.MacMouseBackend(quartz=quartz).scroll_mouse(
+        mouse_backend.MacMouseBackend(quartz=quartz).scroll_mouse(
             vertical=True, deltas=values, position=None,
         )
         self.assertEqual([args.args[3] for args in quartz.CGEventCreateScrollWheelEvent.call_args_list],
@@ -53,7 +53,7 @@ class MacMouseBackendTests(unittest.TestCase):
 
     def test_empty_deltas_and_position(self) -> None:
         quartz = fake_quartz()
-        mouse = backend.MacMouseBackend(quartz=quartz)
+        mouse = mouse_backend.MacMouseBackend(quartz=quartz)
         with patch.object(mouse, "move_cursor") as move:
             mouse.scroll_mouse(vertical=True, deltas=(), position=(4, 5))
         move.assert_called_once_with(4, 5)
@@ -62,7 +62,7 @@ class MacMouseBackendTests(unittest.TestCase):
     def test_none_event_raises_oserror(self) -> None:
         quartz = fake_quartz(event_results=[None])
         with self.assertRaises(OSError):
-            backend.MacMouseBackend(quartz=quartz).scroll_mouse(
+            mouse_backend.MacMouseBackend(quartz=quartz).scroll_mouse(
                 vertical=True, deltas=(120,), position=None,
             )
 
@@ -72,12 +72,12 @@ class MacMouseButtonStateTests(unittest.TestCase):
         for states, expected in (((True, False), True), ((False, True), True), ((False, False), False)):
             with self.subTest(states=states):
                 quartz = fake_quartz(button_states=states)
-                self.assertEqual(backend.MacWindowBackend(quartz=quartz).is_mouse_button_down(), expected)
+                self.assertEqual(window_backend.MacWindowBackend(quartz=quartz).is_mouse_button_down(), expected)
 
     def test_exception_returns_false_and_logs_once_per_instance(self) -> None:
         quartz = fake_quartz(button_states=[RuntimeError("failed"), RuntimeError("failed")])
-        window = backend.MacWindowBackend(quartz=quartz)
-        with self.assertLogs(backend._LOG, level="ERROR") as logs:
+        window = window_backend.MacWindowBackend(quartz=quartz)
+        with self.assertLogs(window_backend._LOG, level="ERROR") as logs:
             self.assertFalse(window.is_mouse_button_down())
             self.assertFalse(window.is_mouse_button_down())
         self.assertEqual(len(logs.records), 1)
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 class MacMouseAddedTests(unittest.TestCase):
     def test_click_twice_and_button_mapping(self):
         q = _extended_quartz()
-        mouse = backend.MacMouseBackend(quartz=q)
+        mouse = mouse_backend.MacMouseBackend(quartz=q)
         with patch.object(mouse, "move_cursor"):
             mouse.click_mouse(3, 4, "left", 2)
         self.assertEqual([call.args[1] for call in q.CGEventCreateMouseEvent.call_args_list], [20, 21, 20, 21])
@@ -102,21 +102,21 @@ class MacMouseAddedTests(unittest.TestCase):
     def test_drag_steps_last_position_and_releases_after_error(self):
         q = _extended_quartz()
         sleep = Mock()
-        mouse = backend.MacMouseBackend(quartz=q, sleep=sleep)
+        mouse = mouse_backend.MacMouseBackend(quartz=q, sleep=sleep)
         with patch.object(mouse, "move_cursor"):
             mouse.drag_mouse(0, 0, 5, 10, "left", 0.05)
         self.assertEqual(sum(c.args[1] == 22 for c in q.CGEventCreateMouseEvent.call_args_list), 5)
         self.assertEqual(q.CGEventCreateMouseEvent.call_args_list[-1].args[2], (5, 10))
         self.assertEqual(sleep.call_count, 5)
         q = _extended_quartz()
-        mouse = backend.MacMouseBackend(quartz=q, sleep=Mock(side_effect=RuntimeError("stop")))
+        mouse = mouse_backend.MacMouseBackend(quartz=q, sleep=Mock(side_effect=RuntimeError("stop")))
         with patch.object(mouse, "move_cursor"), self.assertRaises(RuntimeError):
             mouse.drag_mouse(0, 0, 1, 1, "left", 0.05)
         self.assertEqual(q.CGEventCreateMouseEvent.call_args_list[-1].args[1], 21)
 
     def test_down_up_drive_hold_tap(self):
         q = _extended_quartz()
-        mouse = backend.MacMouseBackend(quartz=q)
+        mouse = mouse_backend.MacMouseBackend(quartz=q)
         mouse._hold_tap = Mock()
         with patch.object(mouse, "cursor_position", return_value=(1, 2)):
             mouse.mouse_down("left")

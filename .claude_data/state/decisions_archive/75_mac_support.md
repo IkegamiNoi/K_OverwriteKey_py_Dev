@@ -277,3 +277,10 @@
 - deep-reviewer（フェーズ完了判定）: 修正要（中 4・低 8）→ 反映: M1 `Capabilities` の記述を実装どおりに（Mac は status_icon / ime_control を False・未参照）/ M2 JIS の判定 = レイアウトの id に `yen` か `ro` / M3 features §4.6 の id の表に command / option の行と Mac の見本のラベル / M4 features §4.7 の素通しに command / option / L1 §4.2.12 の別名を Windows に限定 / L2 key_input §7.3 の修飾キーの一覧 / L3 ライセンスの表の行数と版の照合のテスト / L5 §4.8 のメニューの処理の on_close の再入と言語のラジオボタン。L6（入力監視の案内・クリック位置の取得の共存・Mac の見本の Caps Lock と fn の位置・§7 のテストの skip の基準）は経緯・作り方に近いので昇格しない。L4（help_ja:932）はユーザー判断待ち。§9 の 1〜15 と §11 の列挙は昇格先の対応表で漏れなし（13 は M3 で補った）。
 - Codex 敵対的レビュー（フェーズ全体・needs-attention）: high 2 / medium 3。メインが裏付け = ①修飾キーの up の送信失敗で `_sent_modifiers` に残る（`macos/backend.py:260-264`）②tap の再有効化で消すのは tap 内の状態だけで `KeyStateManager` に伝わらない（`macos/event_tap.py:193-194`）④`mouse_up` がボタンを問わず保持の tap を止める（`macos/backend.py:405`）。③キュー版の排出がエラーダイアログで止まる間の期限切れ・⑤配布ビルドが収集物の版を照合しない、は設計上の弱点の指摘。採否はユーザー判断待ち。
 - ユーザー判断（2026-11-22）: Codex の 5 件は idea_66 に起票（phase 75 では直さない）/ help_ja:932・help_en の「左右の修飾キー」に Mac の Option・Command の左右の名前の 1 文を足す（反映済み）/ 提案書 28 は phase 75 の追加タスク task_15 として実施（Windows で実装・検証 → Mac の確認で phase 75 を閉じる）。→ task_14 完了。
+
+### 【task_15】提案書 28 のリファクタ（2026-11-22・Windows）
+
+- 起票: reviewer 修正して採用（`_physical_flags` は window も使う → keyboard_backend に 1 つ置き window が import・ロガーはモジュールごと・patch 先と遅延 import のテストの書き換え・grep を広げる）→ 反映。
+- 実装: codex-delegating-implementer（Sol medium・Luna サブエージェント 2 体・自己申告）。`macos/backend.py` を 22 行の `create_backend` だけにし、`keyboard_backend` / `mouse_backend` / `window_backend` / `tk_key_translator` / `ime_backend` / `app_identity` へ分割（再輸出なし）。`modal.install_minimize_grab_custody` の入れ子 5 関数をモジュール関数へ。
+- verifier（Windows）: compile clean / tests 2219 件 失敗 0 skip 7 / tests_ui 1300 件 OK / smoke OK / modal.py の最大の関数 77 行。reviewer 採用（本文は元と同一・patch 先は使う側）。参考 = 未使用の `_LOG` 3 つ・`create_backend` の関数内 import（どちらもそのまま）。
+- 残り: Windows 目視（ダイアログを開いたまま最小化して戻す）と Mac の確認 3（Mac の作業時）。

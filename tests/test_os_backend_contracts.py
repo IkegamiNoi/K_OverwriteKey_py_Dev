@@ -62,7 +62,7 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertIsNone(modifier_name("unknown", sided=False))
 
     def test_layout_key_ids_contract_is_present_on_both_platforms(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
+        from keyseq.infrastructure.os_backend.macos.keyboard_backend import MacKeyboardBackend
 
         self.assertEqual(
             list(inspect.signature(KeyboardBackend.set_layout_key_ids).parameters),
@@ -98,10 +98,13 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertEqual(legacy_constructor.platform_key, "win32")
 
     def test_macos_stub_contracts_and_factory(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import (
-            MacAppIdentity, MacImeBackend, MacKeyboardBackend, MacMouseBackend,
-            MacTkKeyTranslator, MacWindowBackend, create_backend,
-        )
+        from keyseq.infrastructure.os_backend.macos.backend import create_backend
+        from keyseq.infrastructure.os_backend.macos.app_identity import MacAppIdentity
+        from keyseq.infrastructure.os_backend.macos.ime_backend import MacImeBackend
+        from keyseq.infrastructure.os_backend.macos.keyboard_backend import MacKeyboardBackend
+        from keyseq.infrastructure.os_backend.macos.mouse_backend import MacMouseBackend
+        from keyseq.infrastructure.os_backend.macos.tk_key_translator import MacTkKeyTranslator
+        from keyseq.infrastructure.os_backend.macos.window_backend import MacWindowBackend
 
         for protocol, implementation in (
             (ImeBackend, MacImeBackend), (WindowBackend, MacWindowBackend),
@@ -120,14 +123,14 @@ class OsBackendContractTests(unittest.TestCase):
         self.assertEqual(backend.platform_key, "darwin")
         self.assertIsInstance(backend.keyboard, MacKeyboardBackend)
         self.assertIs(backend.tk_keys._keyboard, backend.keyboard)
-        with patch("keyseq.infrastructure.os_backend.macos.backend.EventTap") as tap_factory:
+        with patch("keyseq.infrastructure.os_backend.macos.keyboard_backend.EventTap") as tap_factory:
             handle = backend.keyboard.register_global_hook(lambda _event: None)
             backend.keyboard.unregister_hook(handle)
         tap_factory.return_value.start.assert_called_once_with()
         tap_factory.return_value.stop.assert_called_once_with()
 
     def test_get_backend_creates_macos_stub(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import MacKeyboardBackend
+        from keyseq.infrastructure.os_backend.macos.keyboard_backend import MacKeyboardBackend
         with patch("keyseq.infrastructure.os_backend.sys.platform", "darwin"), patch("keyseq.infrastructure.os_backend._backend", None):
             self.assertIsInstance(get_backend().keyboard, MacKeyboardBackend)
 
@@ -330,7 +333,7 @@ class OsBackendContractTests(unittest.TestCase):
             self.assertEqual(WindowsAppIdentity().app_data_root(dev_root), Path("C:/app"))
 
     def test_macos_app_data_roots(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import MacAppIdentity
+        from keyseq.infrastructure.os_backend.macos.app_identity import MacAppIdentity
         dev_root = Path("/dev/root")
         with patch("sys.frozen", False, create=True):
             self.assertEqual(MacAppIdentity().app_data_root(dev_root), dev_root)
@@ -338,8 +341,8 @@ class OsBackendContractTests(unittest.TestCase):
             self.assertEqual(MacAppIdentity().app_data_root(dev_root), Path("/Users/test/Library/Application Support/keyseq"))
 
     def test_macos_relaunch_delegates_to_shared_function(self) -> None:
-        from keyseq.infrastructure.os_backend.macos.backend import MacAppIdentity
-        with patch("keyseq.infrastructure.os_backend.macos.backend.app_relaunch.relaunch_app", return_value=None) as relaunch:
+        from keyseq.infrastructure.os_backend.macos.app_identity import MacAppIdentity
+        with patch("keyseq.infrastructure.os_backend.macos.app_identity.app_relaunch.relaunch_app", return_value=None) as relaunch:
             self.assertIsNone(MacAppIdentity().relaunch("/work"))
         relaunch.assert_called_once_with("/work")
 

@@ -83,104 +83,108 @@ def _restore_modal_focus(app: tk.Misc) -> None:
         _opened_while_minimized.clear()
 
 
+def _belongs_to_app(app: tk.Misc, window: tk.Misc) -> bool:
+    try:
+        parent = str(window.wm_transient())
+        for _ in range(32):
+            if not parent:
+                return False
+            if parent == str(app):
+                return True
+            parent = str(app.nametowidget(parent).wm_transient())
+    except (tk.TclError, KeyError):
+        return False
+    return False
+
+
+def _deferred_check(app: tk.Misc) -> None:
+    global _custody_window, _minimize_check_id
+    _minimize_check_id = None
+    if not _app_minimized or app.wm_state() != "iconic":
+        return
+    if _custody_window is not None:
+        return
+    hidden_windows: list[tk.Toplevel] = []
+    for window in reversed(tuple(_active_modals)):
+        try:
+            if not window.winfo_exists() or not _belongs_to_app(app, window):
+                continue
+            if window.winfo_viewable():
+                window.withdraw()
+                get_backend().window.order_out(window)
+                hidden_windows.append(window)
+            else:
+                get_backend().window.order_out(window)
+        except tk.TclError:
+            continue
+    _hidden_by_minimize.extend(reversed(hidden_windows))
+    try:
+        holder = app.grab_current()
+    except (tk.TclError, KeyError):
+        return
+    if holder is None:
+        return
+    try:
+        if not holder.winfo_exists() or holder.winfo_viewable():
+            return
+        holder.grab_release()
+    except tk.TclError:
+        return
+    _custody_window = holder
+
+
+def _take_custody(app: tk.Misc, event: tk.Event) -> None:
+    global _app_minimized, _minimize_check_id, _restore_check_id
+    if event.widget is not app:
+        return
+    _app_minimized = True
+    if _restore_check_id is not None:
+        try:
+            app.after_cancel(_restore_check_id)
+        except tk.TclError:
+            pass
+        _restore_check_id = None
+    if _minimize_check_id is None:
+        _minimize_check_id = app.after(0, lambda: _deferred_check(app))
+
+
+def _return_custody(app: tk.Misc, event: tk.Event) -> None:
+    global _app_minimized, _minimize_check_id, _restore_check_id
+    if event.widget is not app:
+        return
+    _app_minimized = False
+    if _minimize_check_id is not None:
+        try:
+            app.after_cancel(_minimize_check_id)
+        except tk.TclError:
+            pass
+        _minimize_check_id = None
+    if _restore_check_id is None:
+        _restore_check_id = app.after(0, lambda: _deferred_return(app))
+
+
+def _deferred_return(app: tk.Misc) -> None:
+    global _restore_check_id
+    _restore_check_id = None
+    if _app_minimized or app.wm_state() == "iconic":
+        return
+    shown = []
+    for window in tuple(_hidden_by_minimize):
+        try:
+            if window.winfo_exists():
+                window.deiconify()
+                shown.append(window)
+        except tk.TclError:
+            continue
+    _hidden_by_minimize.clear()
+    _return_grab(app, shown=tuple(shown))
+
+
 def install_minimize_grab_custody(app: tk.Misc) -> None:
     """App の最小化中だけ非表示の保持者から grab を預かる。"""
     get_backend().window.install_minimize_preparation(app)
-
-    def belongs_to_app(window: tk.Misc) -> bool:
-        try:
-            parent = str(window.wm_transient())
-            for _ in range(32):
-                if not parent:
-                    return False
-                if parent == str(app):
-                    return True
-                parent = str(app.nametowidget(parent).wm_transient())
-        except (tk.TclError, KeyError):
-            return False
-        return False
-
-    def deferred_check() -> None:
-        global _custody_window, _minimize_check_id
-        _minimize_check_id = None
-        if not _app_minimized or app.wm_state() != "iconic":
-            return
-        if _custody_window is not None:
-            return
-        hidden_windows: list[tk.Toplevel] = []
-        for window in reversed(tuple(_active_modals)):
-            try:
-                if not window.winfo_exists() or not belongs_to_app(window):
-                    continue
-                if window.winfo_viewable():
-                    window.withdraw()
-                    get_backend().window.order_out(window)
-                    hidden_windows.append(window)
-                else:
-                    get_backend().window.order_out(window)
-            except tk.TclError:
-                continue
-        _hidden_by_minimize.extend(reversed(hidden_windows))
-        try:
-            holder = app.grab_current()
-        except (tk.TclError, KeyError):
-            return
-        if holder is None:
-            return
-        try:
-            if not holder.winfo_exists() or holder.winfo_viewable():
-                return
-            holder.grab_release()
-        except tk.TclError:
-            return
-        _custody_window = holder
-
-    def take_custody(event: tk.Event) -> None:
-        global _app_minimized, _minimize_check_id, _restore_check_id
-        if event.widget is not app:
-            return
-        _app_minimized = True
-        if _restore_check_id is not None:
-            try:
-                app.after_cancel(_restore_check_id)
-            except tk.TclError:
-                pass
-            _restore_check_id = None
-        if _minimize_check_id is None:
-            _minimize_check_id = app.after(0, deferred_check)
-
-    def return_custody(event: tk.Event) -> None:
-        global _app_minimized, _minimize_check_id, _restore_check_id
-        if event.widget is not app:
-            return
-        _app_minimized = False
-        if _minimize_check_id is not None:
-            try:
-                app.after_cancel(_minimize_check_id)
-            except tk.TclError:
-                pass
-            _minimize_check_id = None
-        if _restore_check_id is None:
-            _restore_check_id = app.after(0, deferred_return)
-
-    def deferred_return() -> None:
-        global _restore_check_id
-        _restore_check_id = None
-        if _app_minimized or app.wm_state() == "iconic":
-            return
-        shown = []
-        for window in tuple(_hidden_by_minimize):
-            try:
-                if window.winfo_exists():
-                    window.deiconify()
-                    shown.append(window)
-            except tk.TclError:
-                continue
-        _hidden_by_minimize.clear()
-        _return_grab(app, shown=tuple(shown))
-
-    app.bind("<Unmap>", take_custody, add="+")
-    app.bind("<Map>", return_custody, add="+")
+    app.bind("<Unmap>", lambda event: _take_custody(app, event), add="+")
+    app.bind("<Map>", lambda event: _return_custody(app, event), add="+")
 
 
 def _return_grab(app: tk.Misc, shown: tuple[tk.Misc, ...] = ()) -> None:

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, call, patch
 
-from keyseq.infrastructure.os_backend.macos import backend, event_tap
+from keyseq.infrastructure.os_backend.macos import event_tap, keyboard_backend, window_backend
 from keyseq.infrastructure.os_backend.macos.event_tap import EventTap, KeyEvent, OWN_EVENT_MARK
 
 
@@ -18,10 +18,10 @@ def key_event(kind="down"):
 
 class MacKeyboardBackendTests(unittest.TestCase):
     def setUp(self):
-        self.factory = patch.object(backend, "EventTap")
+        self.factory = patch.object(keyboard_backend, "EventTap")
         self.tap_class = self.factory.start()
         self.addCleanup(self.factory.stop)
-        self.keyboard = backend.MacKeyboardBackend()
+        self.keyboard = keyboard_backend.MacKeyboardBackend()
 
     def test_lazy_single_tap_and_last_removal(self):
         self.tap_class.assert_not_called()
@@ -51,9 +51,9 @@ class MacKeyboardBackendTests(unittest.TestCase):
             AXIsProcessTrusted=Mock(return_value=False),
         )}):
             self.assertFalse(self.keyboard.input_permission_granted())
-        with patch.object(backend.subprocess, "run", side_effect=OSError("no open")):
+        with patch.object(keyboard_backend.subprocess, "run", side_effect=OSError("no open")):
             self.assertFalse(self.keyboard.open_input_permission_settings())
-        with patch.object(backend.subprocess, "run") as run:
+        with patch.object(keyboard_backend.subprocess, "run") as run:
             self.assertTrue(self.keyboard.open_input_permission_settings())
         run.assert_called_once_with(
             ["open", "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"],
@@ -70,7 +70,7 @@ class MacKeyboardBackendTests(unittest.TestCase):
     def test_suppressing_globals_short_circuit_in_order(self):
         for decision in (False, None):
             with self.subTest(decision=decision):
-                keyboard = backend.MacKeyboardBackend()
+                keyboard = keyboard_backend.MacKeyboardBackend()
                 seen = []
                 keyboard.register_global_hook(lambda e: seen.append(1) or True, suppress=True)
                 keyboard.register_global_hook(lambda e: seen.append(2) or decision, suppress=True)
@@ -140,25 +140,31 @@ class MacKeyboardBackendTests(unittest.TestCase):
         module_names = (
             "keyseq.infrastructure.os_backend.macos.event_tap",
             "keyseq.infrastructure.os_backend.macos.backend",
+            "keyseq.infrastructure.os_backend.macos.keyboard_backend",
+            "keyseq.infrastructure.os_backend.macos.mouse_backend",
+            "keyseq.infrastructure.os_backend.macos.window_backend",
+            "keyseq.infrastructure.os_backend.macos.tk_key_translator",
+            "keyseq.infrastructure.os_backend.macos.ime_backend",
+            "keyseq.infrastructure.os_backend.macos.app_identity",
         )
-        originals = {name: sys.modules.pop(name) for name in module_names}
+        originals = {name: sys.modules.pop(name) for name in module_names if name in sys.modules}
         try:
             with patch("builtins.__import__", side_effect=guarded):
-                importlib.import_module(module_names[0])
-                importlib.import_module(module_names[1])
+                for name in module_names:
+                    importlib.import_module(name)
         finally:
             for name in module_names:
                 sys.modules.pop(name, None)
             sys.modules.update(originals)
 
     def test_physical_flags_logs_only_first_failure(self):
-        with patch.object(backend, "_PHYSICAL_FLAGS_FAILURE_LOGGED", False):
-            with self.assertLogs(backend.__name__, level="ERROR") as captured:
-                self.assertEqual(backend._physical_flags(SimpleNamespace(
+        with patch.object(keyboard_backend, "_PHYSICAL_FLAGS_FAILURE_LOGGED", False):
+            with self.assertLogs(keyboard_backend.__name__, level="ERROR") as captured:
+                self.assertEqual(keyboard_backend._physical_flags(SimpleNamespace(
                     CGEventSourceFlagsState=Mock(side_effect=OSError("first")),
                     kCGEventSourceStateHIDSystemState=7,
                 )), 0)
-                self.assertEqual(backend._physical_flags(SimpleNamespace(
+                self.assertEqual(keyboard_backend._physical_flags(SimpleNamespace(
                     CGEventSourceFlagsState=Mock(side_effect=OSError("second")),
                     kCGEventSourceStateHIDSystemState=7,
                 )), 0)
@@ -467,7 +473,7 @@ class EventTapTests(unittest.TestCase):
 class MacKeyboardSendTests(unittest.TestCase):
     def setUp(self):
         self.q = fake_quartz()
-        self.keyboard = backend.MacKeyboardBackend(quartz=self.q)
+        self.keyboard = keyboard_backend.MacKeyboardBackend(quartz=self.q)
 
     def resolve(self, key, scan_code=None):
         def resolver(_name):
@@ -709,7 +715,7 @@ class MacKeyboardSendTests(unittest.TestCase):
 
     def test_set_layout_key_ids_updates_event_tap_name_lookup(self):
         seen = []
-        with patch.object(backend, "EventTap") as tap_factory:
+        with patch.object(keyboard_backend, "EventTap") as tap_factory:
             self.keyboard.register_global_hook(lambda event: seen.append(event) or True)
             callback = tap_factory.call_args.args[0]
             jis_lookup = tap_factory.call_args.kwargs["is_jis_layout"]
@@ -723,14 +729,14 @@ class MacKeyboardSendTests(unittest.TestCase):
         self.assertEqual(seen[-1].name, "zenkaku_hankaku")
 
     def test_window_modifier_queries_return_false_when_quartz_fails(self):
-        window = backend.MacWindowBackend(quartz=self.q)
+        window = window_backend.MacWindowBackend(quartz=self.q)
         self.q.CGEventSourceFlagsState.side_effect = RuntimeError("unavailable")
-        with self.assertLogs(backend.__name__, level="ERROR"):
+        with self.assertLogs(keyboard_backend.__name__, level="ERROR"):
             self.assertFalse(window.is_shift_down())
             self.assertFalse(window.is_ctrl_alt_win_down())
 
     def test_window_physical_modifier_queries_use_common_flags(self):
-        window = backend.MacWindowBackend(quartz=self.q)
+        window = window_backend.MacWindowBackend(quartz=self.q)
         for flags, shift, other in ((0x20000, True, False),
                                     (0x40000, False, True),
                                     (0x80000, False, True),
@@ -746,7 +752,7 @@ class MacKeyboardSendTests(unittest.TestCase):
 
 class MacAppKitBackendTests(unittest.TestCase):
     def test_foreground_matches_own_pid_other_pid_and_missing_application(self):
-        for pid, expected in ((backend.os.getpid(), True), (backend.os.getpid() + 1, False),
+        for pid, expected in ((window_backend.os.getpid(), True), (window_backend.os.getpid() + 1, False),
                               (None, True)):
             with self.subTest(pid=pid):
                 application = None if pid is None else SimpleNamespace(
@@ -754,15 +760,15 @@ class MacAppKitBackendTests(unittest.TestCase):
                 workspace = SimpleNamespace(frontmostApplication=Mock(return_value=application))
                 appkit = SimpleNamespace(NSWorkspace=SimpleNamespace(
                     sharedWorkspace=Mock(return_value=workspace)))
-                window = backend.MacWindowBackend(appkit=appkit)
+                window = window_backend.MacWindowBackend(appkit=appkit)
                 self.assertEqual(window.is_own_process_foreground(), expected)
 
     def test_foreground_exception_returns_false_and_logs_only_once(self):
         workspace = SimpleNamespace(frontmostApplication=Mock(side_effect=RuntimeError("failed")))
         appkit = SimpleNamespace(NSWorkspace=SimpleNamespace(
             sharedWorkspace=Mock(return_value=workspace)))
-        window = backend.MacWindowBackend(appkit=appkit)
-        with self.assertLogs(backend.__name__, level="ERROR") as logs:
+        window = window_backend.MacWindowBackend(appkit=appkit)
+        with self.assertLogs(window_backend.__name__, level="ERROR") as logs:
             self.assertFalse(window.is_own_process_foreground())
             self.assertFalse(window.is_own_process_foreground())
         self.assertEqual(len(logs.records), 1)
@@ -772,7 +778,7 @@ class MacAppKitBackendTests(unittest.TestCase):
         synchronize = Mock(return_value=True)
         foundation = SimpleNamespace(CFPreferencesAppSynchronize=synchronize,
                                      CFPreferencesCopyAppValue=copy_value)
-        keyboard = backend.MacKeyboardBackend(foundation=foundation)
+        keyboard = keyboard_backend.MacKeyboardBackend(foundation=foundation)
         self.assertEqual(keyboard.repeat_timing(), (450, 75))
         self.assertEqual(keyboard.repeat_timing(), (225, 30))
         self.assertEqual(synchronize.call_count, 2)
@@ -786,7 +792,7 @@ class MacAppKitBackendTests(unittest.TestCase):
     def test_repeat_timing_defaults_only_invalid_values(self):
         copy_value = Mock(side_effect=[None, 5, 30, -1, 0, 5, float("nan"), 5,
                                        float("inf"), 5, True, 5, "bad", 5])
-        keyboard = backend.MacKeyboardBackend(foundation=SimpleNamespace(
+        keyboard = keyboard_backend.MacKeyboardBackend(foundation=SimpleNamespace(
             CFPreferencesAppSynchronize=Mock(), CFPreferencesCopyAppValue=copy_value))
         self.assertEqual(keyboard.repeat_timing(), (500, 75))  # None
         self.assertEqual(keyboard.repeat_timing(), (450, 33))  # -1
@@ -797,8 +803,8 @@ class MacAppKitBackendTests(unittest.TestCase):
         foundation = SimpleNamespace(
             CFPreferencesAppSynchronize=Mock(side_effect=RuntimeError("sync")),
             CFPreferencesCopyAppValue=Mock())
-        keyboard = backend.MacKeyboardBackend(foundation=foundation)
-        with self.assertLogs(backend.__name__, level="ERROR") as logs:
+        keyboard = keyboard_backend.MacKeyboardBackend(foundation=foundation)
+        with self.assertLogs(keyboard_backend.__name__, level="ERROR") as logs:
             self.assertEqual(keyboard.repeat_timing(), (500, 33))
             self.assertEqual(keyboard.repeat_timing(), (500, 33))
         self.assertEqual(len(logs.records), 1)
@@ -806,9 +812,9 @@ class MacAppKitBackendTests(unittest.TestCase):
 
     def test_repeat_timing_value_exceptions_default_only_that_value_and_logs_once(self):
         copy_value = Mock(side_effect=[RuntimeError("delay"), 5, 30, RuntimeError("interval")])
-        keyboard = backend.MacKeyboardBackend(foundation=SimpleNamespace(
+        keyboard = keyboard_backend.MacKeyboardBackend(foundation=SimpleNamespace(
             CFPreferencesAppSynchronize=Mock(), CFPreferencesCopyAppValue=copy_value))
-        with self.assertLogs(backend.__name__, level="ERROR") as logs:
+        with self.assertLogs(keyboard_backend.__name__, level="ERROR") as logs:
             self.assertEqual(keyboard.repeat_timing(), (500, 75))
             self.assertEqual(keyboard.repeat_timing(), (450, 33))
         self.assertEqual(len(logs.records), 1)

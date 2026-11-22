@@ -21,7 +21,7 @@ from keyseq.presentation.tk_keys import (
 def _mac_tk_keys_backend():
     """Mac の受信の表（key_table）で aqua の keycode（上位 8 ビット = vk）を引く偽の backend。"""
     from keyseq.infrastructure.os_backend.macos.key_table import key_for_vk
-    from keyseq.infrastructure.os_backend.macos.backend import MacTkKeyTranslator
+    from keyseq.infrastructure.os_backend.macos.tk_key_translator import MacTkKeyTranslator
 
     def key(keycode):
         return key_for_vk((int(keycode) >> 24) & 0xFF, jis=False)
@@ -185,7 +185,7 @@ class TkKeysTest(unittest.TestCase):
         self.assertEqual(normalize_key_hold_tk_keysym("Shift_L"), "left shift")
 
     def test_aqua_command_and_fn_keysyms(self):
-        from keyseq.infrastructure.os_backend.macos.backend import MacTkKeyTranslator
+        from keyseq.infrastructure.os_backend.macos.tk_key_translator import MacTkKeyTranslator
 
         widget = SimpleNamespace(tk=None)
         backend = SimpleNamespace(tk_keys=MacTkKeyTranslator(SimpleNamespace(_jis=False)))
