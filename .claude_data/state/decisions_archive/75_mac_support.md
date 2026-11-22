@@ -284,3 +284,4 @@
 - 実装: codex-delegating-implementer（Sol medium・Luna サブエージェント 2 体・自己申告）。`macos/backend.py` を 22 行の `create_backend` だけにし、`keyboard_backend` / `mouse_backend` / `window_backend` / `tk_key_translator` / `ime_backend` / `app_identity` へ分割（再輸出なし）。`modal.install_minimize_grab_custody` の入れ子 5 関数をモジュール関数へ。
 - verifier（Windows）: compile clean / tests 2219 件 失敗 0 skip 7 / tests_ui 1300 件 OK / smoke OK / modal.py の最大の関数 77 行。reviewer 採用（本文は元と同一・patch 先は使う側）。参考 = 未使用の `_LOG` 3 つ・`create_backend` の関数内 import（どちらもそのまま）。
 - 残り: Windows 目視（ダイアログを開いたまま最小化して戻す）と Mac の確認 3（Mac の作業時）。
+- Windows 目視（2026-11-22・ユーザー）: プリセット管理 → プリセット追加を開いたまま Win+D → 戻すと、プリセット追加が白いまま（idea_61 と同じ既存の症状・phase 75 前の main でも起きる）。プリセット管理の窓は閉じられ、開き直せば通常どおり動く → 確認 4 は OK（既存の症状のみ）。残り = Mac の確認 3。

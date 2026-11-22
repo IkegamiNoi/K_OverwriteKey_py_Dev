@@ -11,7 +11,7 @@ last_commit_location: `claude/windows-support-continuation-f235f4`（Windows の
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75。task_14（正本反映）完了（2026-11-22）= 暫定 57 凍結・正本昇格・deep-reviewer 指摘反映・Codex 敵対的の 5 件は idea_66・ヘルプ 2 文を両 OS に。task_15（提案書 28 のリファクタ）は Windows で実装・検証 pass・reviewer 採用。残り = Windows 目視（ダイアログを開いたまま最小化して戻す）→ Mac の作業時に Mac の確認（task_15 の確認 3）で phase 75 を閉じる。**
+focus: **phase 75。task_14（正本反映）完了（2026-11-22）= 暫定 57 凍結・正本昇格・deep-reviewer 指摘反映・Codex 敵対的の 5 件は idea_66・ヘルプ 2 文を両 OS に。task_15（提案書 28 のリファクタ）は Windows で実装・検証 pass・reviewer 採用。Windows 目視 OK（Win+D の白い窓は idea_61 の既存の症状）。残り = Mac の作業時に Mac の確認（task_15 の確認 3）で phase 75 を閉じる（その後 current.md を完了に・decisions.md の索引の行を完了に）。**
 next_action_override: 上の focus が正（下の next_action の Windows 検証・task_14 はすべて済み）
 mode: completed
 
