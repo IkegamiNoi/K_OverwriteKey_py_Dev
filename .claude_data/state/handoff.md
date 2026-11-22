@@ -74,8 +74,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
 - **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
 - **【phase 75】`.venv` のパスは OS で違う**（本書の `Scripts/python.exe` は Windows。Mac は `bin/python`）。Mac の `.venv` は Homebrew の 3.13 + `python-tk@3.13`（**Tk 9.1**・Q1 から変更・decisions.md）。**Tk 9 は長さの `cget` を単位つき（`10c`・`2.25p`）で返す → `tk_platform.screen_distance` を使う**。Tk の差の判定は `presentation/tk_platform.py` の 1 か所。
-- **blockers: 【回避中】Codex の書き込み実行の不具合**（2026-10-14 18:24 の Codex 更新〔0.162.x〕以降、書き込みのサンドボックス準備が `setup refresh had errors`〔node_repl.exe の ACL 更新が「使用中」で失敗〕・`~/.codex/.sandbox/sandbox.2026-10-14.log`）。
-  **ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更して回避中**（Codex の更新で直ったら `elevated` に戻す = ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
+- **【解消・2026-11-22】Codex の書き込み実行の不具合**（2026-10-14 の Codex 更新〔0.162.x〕以降の `setup refresh had errors`）。`~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込み OK。
+  再発したら `unelevated` に変えて回避（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
   companion は作業フォルダごとに broker + app-server を常駐させる（呼び出し後も残る設計・worktree ごとに増える）。Codex 不可時の実装代替はユーザー許可が必須。
 - **【罠・phase 58 task_02 で実測】ttk.LabelFrame の `labelwidget` に既定の ttk.Label を使うと枠が 4px 高くなる**（vista・58 → 62px）。`style="TLabelframe.Label"` なら元と同じ
 - **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
