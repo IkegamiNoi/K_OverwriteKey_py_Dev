@@ -7,38 +7,35 @@
 last_updated: 2026-11-22T21:00:00
 phase: instructions/phase/75_mac_support（暫定 57 v0.25 は凍結・正本反映済み）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 29 / idea 67。phase 75 の判断の記録は `decisions_archive/75_mac_support.md` に追記する（decisions.md から移し済み）
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/windows-support-continuation-f235f4`（Windows の worktree・Mac の task_13b まで取り込み済み + task_13c）。push はユーザー
+last_commit_location: `claude/windows-support-continuation-f235f4`（Windows の worktree・Mac の task_13b まで取り込み済み + task_13c〜15）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 focus: **phase 75。task_14（正本反映）完了（2026-11-22）= 暫定 57 凍結・正本昇格・deep-reviewer 指摘反映・Codex 敵対的の 5 件は idea_66・ヘルプ 2 文を両 OS に。task_15（提案書 28 のリファクタ）は Windows で実装・検証 pass・reviewer 採用。Windows 目視 OK（Win+D の白い窓は idea_61 の既存の症状）。残り = Mac の作業時に Mac の確認（task_15 の確認 3）で phase 75 を閉じる（その後 current.md を完了に・decisions.md の索引の行を完了に）。**
-next_action_override: 上の focus が正（下の next_action の Windows 検証・task_14 はすべて済み）
 mode: completed
 
 ## last_action
-ts: 2026-11-22T04:30:00
+ts: 2026-11-22T21:30:00
 who: main
 summary: |
-  実施: task_13b を起票（reviewer 修正して採用）→ ユーザー許可で PyInstaller 6.22.3 と sdist を Mac の .venv / packaging/sources へ → codex-implementer で実装 + メインの補い → verifier（tests 2141・test_third_party 7 pass・smoke OK・ビルド成功〔Tk 9.1 同梱可〕・codesign OK・pynput 差し替え OK）→ reviewer 修正して採用（README の pynput のパス）→ 反映・再ビルド。task_12 で書かれた test_app_data_roots（Mac でエラー）を OS 別に分割（ユーザー承認）。
-  ユーザー判断: 識別子 io.github.ikegaminoi.keyseq・未公証の開き方を README に（暫定 57 v0.24）・C ライブラリ（OpenSSL 等）は Mac の一覧を記録し Windows 作業時に両 OS 分を 1 本で起票・メニューの処理を after(0) で遅らせる案で起票。
-  実機確認: 4 OK。3（再起動）はメニューの処理の中の wait_window が戻らず止まる（開発実行でも起きる・faulthandler で特定・after(0) で直ることを probe で確認）→ 暫定 57 v0.25（§5.4「メニューの処理」）+ task_11g 起票（reviewer 修正して採用→反映）。保存パネルの件は .app でだけ起き、未調査。
-  Codex 敵対的レビュー（v0.25）: needs-attention・中 3（終了と予約の競合／チェック項目の遅延で別の構成セットに作用／tests_ui の漏れ〔反映済み〕）。
+  実施（Windows の worktree）: Windows 検証 pass（tests 2219・tests_ui 1300・smoke・requirements-build の版一致）→ task_13c（Windows の .spec の sources を Mac と同じに・codex-implementer・reviewer 採用）→ C ライブラリを idea_65 → テンキーのサンプルの Windows 実機 OK → task_14（正本反映・暫定 57 v0.25 凍結・architecture §3.6 / key_input §7.9 / features §4.8 を新設・decisions_archive/75）→ refactor_check 推奨 = 提案書 28 → deep-reviewer 修正要→反映 / Codex 敵対的 needs-attention → task_15（提案書 28 のリファクタ・codex-delegating-implementer・reviewer 採用）→ Windows 目視 OK。
+  ユーザー判断: ヘルプの 2 文を両 OS に（カーソルグリッドの素通し・左右の修飾キー）/ Codex の 5 件は idea_66 / 提案書 28 は phase 75 の追加タスク task_15。
 result_files:
-  - packaging/requirements-build.txt・packaging/README.md・packaging/macos/（keyseq.spec・README_dist.txt）
-  - keyseq/presentation/help/content/third_party/（third_party.json・pyobjc.txt・rubicon_objc.txt・python_macos.txt）・tests/test_third_party.py・tests/test_os_backend_contracts.py
-  - instructions/history/57_mac_support.md（v0.24・v0.25）・instructions/phase/75_mac_support/（phase.md・tasks/task_13b_packaging_macos_build.md・tasks/task_11g_menu_command_deferral.md）・.claude_data/state/decisions.md
+  - instructions/common/spec_detail/（architecture・key_input・features・data_schema・ui_terms・nonfunctional）・codebase_map・app_overview・README・.claude/rules/python_rules.md
+  - instructions/history/57_mac_support.md（凍結）・instructions/phase/75_mac_support/tasks/（task_13c・14・15）・instructions/modified_proposal/28_refactor_mac_support.md・instructions/backlog/（idea_65・66）
+  - keyseq/infrastructure/os_backend/macos/（backend.py を分割 → keyboard_backend・mouse_backend・window_backend・tk_key_translator・ime_backend・app_identity）・keyseq/presentation/modal.py・packaging/windows/keyseq.spec
 verified:
-  tests_mac: compile clean / tests 2141・エラー 1（test_app_data_roots → 分割後のモジュール 24 件 OK・全体の再実行は未）/ smoke OK / tests_ui test_help_window OK / ビルド成功
-  tests_windows: not_run（表・テスト・requirements の変更は次の Windows 作業で）
-  visual_mac: task_13b 4 OK・3 NG（→ task_11g）・保存パネル NG（.app のみ）・1・2・5 未報告
+  tests_windows: compile clean / tests 2219 失敗 0 skip 7 / tests_ui 1300 OK / smoke OK（task_15 後）
+  tests_mac: not_run（task_15 の分割後は未実行）
+  visual_windows: task_15 OK（Win+D の白い窓は idea_61 の既存の症状）
 
 ## next_action
-- **Windows 検証（Windows の worktree で・task_11g / task_13b の残課題）**: Windows 検証の残課題 = test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui）・Windows の `.spec` の `dist/sources` の空にし方とアーカイブの照合（Mac と同じ修正）・テンキーのサンプル（A / G / T）の実機・C ライブラリ（OpenSSL 等）の洗い出しと両 OS 分の起票。Windows の worktree へこのブランチ（`claude/task-13b-72ac5c`）を取り込むのはユーザーの判断（push / merge はユーザー）。
-- その後 task_14（正本反映 = 暫定 57 の昇格・凍結・`decisions_archive/75_mac_support.md`・current.md の完了記載・`/refactor_check`）を起票。
-- 保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45（キー名の入力用 / 出力用の整理を追記）・idea_59〜64 は検討段階。
+- **Mac で task_15 の確認 3**（Mac の worktree へこのブランチ `claude/windows-support-continuation-f235f4` を取り込むのはユーザー〔push / merge はユーザー〕）: `../../../.venv/bin/python` で compileall / `tests` 全件 / `tests_ui` の `test_minimize_grab_custody`・`test_modal_grab`・`test_nested_modal_grab`（モジュール指定・通しで走らせない）/ smoke。実機目視 = フック開始・置換・メニュー・ダイアログを開いたままの最小化と戻し（ユーザー）。
+- pass したら phase 75 を閉じる: `instructions/phase/current.md` の「アクティブなフェーズ」を「なし」・直前の完了フェーズ = phase 75・次採番節に「phase 75 は完了」の行 / `decisions.md` の索引の 75 の行を完了に / phase.md の task_15 を完了に / `decisions_archive/75` に追記 / コミット。
+- 保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45・59〜66 は検討段階。
 
 ## blockers
-- **Mac で tests_ui を通しで走らせない**（task_08・09 まではスタブがキー検証できずモーダルで止まる。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints

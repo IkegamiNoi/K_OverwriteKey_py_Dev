@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応**）。続けて `instructions/phase/75_mac_support/phase.md` と主入力 `instructions/history/57_mac_support.md`（v0.18。冒頭の版の履歴で v0.11〜v0.18 の改訂を確認する）を読む。
-   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 75 = macOS 対応・残り = task_15 の Mac の確認だけ**）。続けて `instructions/phase/75_mac_support/phase.md` と `tasks/task_15_refactor.md`（「確認」3）を読む。暫定 57 は **v0.25 で凍結済み**（正本 `spec_detail/` が正・architecture §3.6 / key_input §7.9 / features §4.8）。phase 75 の判断の記録は `decisions_archive/75_mac_support.md` に追記する。
+   次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 75 段階 ④。task_13b（Mac のビルド）完了（2026-11-22・Mac 実機確認 1〜5 OK・reviewer 完了可）・task_11g（メニューの処理の遅延・暫定 57 v0.25）完了。次 = Windows 検証（task_11g・13b の残課題）→ task_14（正本反映）。**
-Mac の worktree = `claude/task-13b-72ac5c`（task_13b まですべてコミット済み・未 push）。Windows の worktree = `claude/continue-c6c37b`。push と main へのマージ・Windows の worktree への取り込みはユーザー（PR は作らない）。
-直近の実測（Mac・task_13b 完了時・2026-11-22・`../../../.venv/bin/python`）: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK / PyInstaller 6.22.3 のビルドと codesign OK（Tk 9.1 同梱可）。tests_windows = not_run。
+**phase 75。task_14（正本反映）完了（2026-11-22）= 暫定 57 凍結・正本昇格・deep-reviewer 指摘反映・Codex 敵対的の 5 件は idea_66・ヘルプ 2 文を両 OS に。task_15（提案書 28 のリファクタ）は Windows で実装・検証 pass・reviewer 採用。Windows 目視 OK（Win+D の白い窓は idea_61 の既存の症状）。残り = Mac の作業時に Mac の確認（task_15 の確認 3）で phase 75 を閉じる（その後 current.md を完了に・decisions.md の索引の行を完了に）。**
+Windows の worktree = `claude/windows-support-continuation-f235f4`（task_15 の Windows 目視の記録まですべてコミット済み・未 push）。Mac の worktree への取り込みと push / main へのマージはユーザー（PR は作らない）。
+直近の実測（Windows・task_15 後・2026-11-22）: compile clean / tests 2219 件・失敗 0・skip 7 / tests_ui 1300 件 OK / smoke OK。tests_mac = not_run（task_15 の `macos/backend.py` の分割後は未実行）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,10 +37,9 @@ Mac の worktree = `claude/task-13b-72ac5c`（task_13b まですべてコミッ�
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = task_08b 完了時・2026-11-14**）:
-compile **clean** / tests **2065 pass**（skip 7）/ tests_ui **1271 pass**（task_08 時）/ smoke **pass**（verifier）。tests_ui の `invalid command name "...apply_if_already_sized"` は破棄後の after のノイズで失敗ではない。
-**Mac（task_11e 後・2026-11-17・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2124 件・失敗 1（test_third_party）・エラー 0・skip 31 / smoke pass / tests_ui 8 本 失敗 0。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
-**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 1977〔task_05〕→ 1997〔M1〕→ 2022〔task_08〕→ 2065〔task_08b〕 / tests_ui: 1270 → 1271）。
+直近の実測（**Windows = task_15 後・2026-11-22**）: compile **clean** / tests **2219 pass**（skip 7）/ tests_ui **1300 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+**Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
+**件数が減ったら退行を疑う**（tests: 1951〔phase 74〕→ 2065〔task_08b〕→ 2219〔task_15・Windows〕 / tests_ui: 1270 → 1300）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,9 +54,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **Windows 検証（Windows の worktree で）**: test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui の test_help_window / test_ui_language / test_keymap_set_history_flow / test_quarantine_manage_flow / test_reference_cleanup_flow / test_orphan_sweep_flow / test_pane_window_width_persistence / test_app_ime_shutdown）・Windows の `.spec` に Mac と同じ修正（`dist/sources` を毎回空に・ファイル名全体で照合）・テンキーのサンプル（A / G / T → `num add` / `num multiply` / `num divide`）の実機・C ライブラリ（Mac = libssl・libcrypto・liblzma・libmpdec・libtommath。Windows 側を洗い出し）→ 両 OS 分を 1 本で起票。
-- その後 task_14（正本反映 = 暫定 57 v0.25 の昇格・凍結・`decisions_archive/75_mac_support.md`・current.md の完了記載・運用文書・`/refactor_check`）を起票。
-- 保留中: 2 枚目のモニタの目視・中クリック。idea_45（キー名の入力用 / 出力用の整理を追記済み）・idea_59〜64 は検討段階。
+- **Mac で task_15 の確認 3**（Mac の worktree へこのブランチ `claude/windows-support-continuation-f235f4` を取り込むのはユーザー〔push / merge はユーザー〕）: `../../../.venv/bin/python` で compileall / `tests` 全件 / `tests_ui` の `test_minimize_grab_custody`・`test_modal_grab`・`test_nested_modal_grab`（モジュール指定・通しで走らせない）/ smoke。実機目視 = フック開始・置換・メニュー・ダイアログを開いたままの最小化と戻し（ユーザー）。
+- pass したら phase 75 を閉じる: `instructions/phase/current.md` の「アクティブなフェーズ」を「なし」・直前の完了フェーズ = phase 75・次採番節に「phase 75 は完了」の行 / `decisions.md` の索引の 75 の行を完了に / phase.md の task_15 を完了に / `decisions_archive/75` に追記 / コミット。
+- 保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45・59〜66 は検討段階（idea_66 = Mac の入力の失敗経路の弱点 5 件・idea_65 = 同梱の C ライブラリの行）。
 - **Mac の再ビルドの後は** `tccutil reset Accessibility io.github.ikegaminoi.keyseq` で古い許可を消してから許可し直す（オンのままでも効かない）。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
 
@@ -133,7 +132,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 74_key_symbol_display / 73_welcome_first_launch / 72_multilingual_ui）。
+  （直近 3 件: 75_mac_support〔phase 75 は進行中・記録はここへ追記〕/ 74_key_symbol_display / 73_welcome_first_launch）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
