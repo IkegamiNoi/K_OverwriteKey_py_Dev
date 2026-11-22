@@ -2,7 +2,7 @@
 
 ## 概要
 
-本ツールは、Python + tkinter + keyboard を用いた**キーボード入力置換シーケンサーアプリ**である。
+本ツールは、Python + tkinter を用いた**キーボード入力置換シーケンサーアプリ**である。対応 OS は **Windows** と **macOS（Apple Silicon）**（phase 75）。
 単キートリガーでキーボード入力を捕捉・置換し、登録した出力シーケンス（アクション列）を実行する。
 
 エントリーポイントは `main.py`。パッケージは `keyseq/`（オニオンアーキテクチャ）。
@@ -14,11 +14,12 @@
 - **keymap**: キー割り当ての管理単位。UI から編集・個別保存/読込ができる。
 - **構成セット（keymap_set）**: trigger_set / hotkey preset / keymap の実体JSONを
   ファイルパス参照で束ねる分離JSON（split 構成）の本流。
-- **フック**: keyboard によるグローバルフック。`suppress=True`。UI 編集中は停止（ネスト対応）。
+- **フック**: グローバルフック（Windows = keyboard・macOS = pyobjc の CGEventTap）。`suppress=True`。UI 編集中は停止（ネスト対応）。
 
 ## 実装前提
 
-- 実装言語は Python、GUI は tkinter、キーフックは keyboard（他に pyautogui / pynput を使用）
+- 実装言語は Python、GUI は tkinter、キーフックは Windows = keyboard / macOS = pyobjc（他に pyautogui / pynput を使用）。OS 依存は `keyseq/infrastructure/os_backend/` に閉じる（`common/spec_detail/architecture.md` §3.6）
+- 配布は PyInstaller の onedir（Windows = exe・macOS = `.app`・定義は `packaging/`）
 - アーキテクチャはオニオンアーキテクチャ（presentation / application / domain / infrastructure）
 - UI 更新は必ず UI スレッドで行う（`after()` 使用）
 - JSON は後方互換を必ず維持する（`common/spec_detail/data_schema.md` に従う）

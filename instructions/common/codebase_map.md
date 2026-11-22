@@ -52,6 +52,8 @@ infrastructure
 
 ---
 
+- `packaging/`（phase 75・リポジトリ直下・アプリのコードではない）: PyInstaller の配布ビルドの定義。`windows/keyseq.spec`・`macos/keyseq.spec`（OS ごとに別ファイル・共通化しない）・`requirements-build.txt`（版の固定）・`README.md`（手順）・`README_dist.txt` / `macos/README_dist.txt`（配布物に同梱する README）。`packaging/sources/`（依存の sdist）は gitignore。仕様 = `features.md` §4.6「バージョン情報・ライセンス」の配布物の条項
+
 ## presentation のフォルダ構成
 
 - `keyseq/presentation/tk_platform.py`: Tk の windowingsystem（aqua か）に基づく共通判定（phase 75）。`is_aqua` / `primary_modifier`（Control ↔ Command）/ accelerator 表記 / `screen_distance`（Tk 9 の単位つきの長さを `winfo_pixels` で）/ `key_label_font_family`（キーボードUIのキーの文字のフォント。aqua では Helvetica）。右クリックは全 OS で `<Button-3>`（切替なし）
@@ -682,6 +684,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
+- menu_command_queue.py（phase 75 task_11g・`features.md` §4.8「メニューの処理」）: `MenuCommandQueue`（App が `app.menu_commands` として 1 つ持つ）。`defer(command)` は aqua なら待ち行列に積んで `after(0)` で 1 つずつ実行する関数を返し、Windows ではそのまま返す。`modal.is_modal_active()` の間は 100 ms ごとに待ち直す・実行中は次を始めない・例外はログ。`cancel_all()` は `on_close` が窓を破棄する直前に呼ぶ。`menu_bar.py` の `add_command` の全項目・言語のラジオボタン・物理キー名のチェックボタンの保存がこれを通す
 - ステータス欄の文言は `TriggerPanelController.update_status`: `フック: ON / OFF / 一時停止`（OFF 優先・`status_text.hook_display_state`）+ `キーマップ: <名前>`（`KeymapPanelController.get_active_keymap_name`。一時メッセージは名前 + 状態の `get_active_keymap_text` のまま・phase 58）
 - タスクバーのアイコン（phase 71）: `update_status` が判定の直後・簡易表示の分岐より前に `app.status_icon.apply(state)` を呼ぶ（`status_icon` を持たない App では何もしない）。`App.__init__` が `title` の直後に `StatusIcon(self, status_icon_dir())` を作り `apply("off")`。`iconphoto` の呼び出しは `StatusIcon.apply` の 1 か所（`default=True`・子窓へ個別に設定しない）
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）。

@@ -33,6 +33,7 @@
 - 実行パス: `<リポジトリルート>\.venv\Scripts\python.exe`
   - 絶対パス例: `C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.venv\Scripts\python.exe`
   - worktree からの相対パス例: `..\..\..\.venv\Scripts\python.exe`
+  - **Mac**（phase 75）: `<リポジトリルート>/.venv/bin/python`（worktree から `../../../.venv/bin/python`。Homebrew の Python 3.13 + `python-tk@3.13`）。Mac では tests_ui を通しで走らせず、モジュールを指定して流す（モーダルで止まるモジュールがある・基準線は `instructions/phase/75_mac_support/mac_test_baseline.md`）
 - 標準検証もこの python で実行する（`compileall` / `unittest discover -s tests` /
   `unittest discover -s tests_ui` / `-m tests.smoke_app`）。
 - 一部の計画書は `py` ランチャ前提で記述されているが、実環境ではこの `.venv` に読み替える。

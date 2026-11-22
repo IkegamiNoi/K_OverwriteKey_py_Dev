@@ -55,6 +55,8 @@
 | — | ディレクトリ | **フォルダ** | Folder | ディレクトリ |
 | — | 初回の案内の窓（phase 73）| 機能の呼び名 **Welcome** / 窓の題名 **ようこそ** / メニューの項目 **Welcome を表示** / 再表示のボタン **閉じる** | Welcome / Welcome / Show Welcome / Close | — |
 | — | トリガー / アクション / フック / キーボードUI / 参照元の掃除 | （そのまま） | Trigger / Action / Hook / Keyboard UI / Clean up references | — |
+| — | macOS の入力の許可（phase 75） | **アクセシビリティの許可**（システム設定の場所は「プライバシーとセキュリティ」→「アクセシビリティ」と macOS の表記のまま書く）/ ボタン **システム設定を開く** | Accessibility permission / Open System Settings | — |
+| — | 修飾キーの呼び名（文中・phase 75） | **Ctrl・Alt・Shift・Windowsキー・Option・Commandキー・Caps Lock・AltGr・fn**（両 OS のキーを並べるときも OS で書き分けない。保存するキー名〔`command` 等〕は差し込みでそのまま出す） | Ctrl / Alt / Shift / the Windows key / Option / the Command key / Caps Lock / AltGr / fn | — |
 
 #### アクションの種類の表示名（phase 72）
 

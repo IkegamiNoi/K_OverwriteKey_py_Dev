@@ -423,7 +423,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
 
 合成の押下は Windows がリピートしないため、押したままの通常キーを**OS のキーボード設定と同じ間隔で送り直し**、実キーボードの長押しと同じ連続入力にする（`data_schema.md` §5.11.9 の `repeat`）。
 
-* **リピートが有効な押す行** = キーボードの押す行で、`repeat` が `true`（bool）、かつキーが修飾キーでないもの。修飾キー = keyboard の `all_modifiers`（`alt` / `alt gr` / `ctrl` / `shift` / `windows` と `left` / `right` つき）と検査を通る別名（`altgr` / `cmd` / `command` / `control` / `left control` / `right control` / `left menu` / `win` / `left win` / `right win` / `option`）。判定は trim + 小文字 + `_` を空白に置き換えて引く（`left_shift` も修飾キー）
+* **リピートが有効な押す行** = キーボードの押す行で、`repeat` が `true`（bool）、かつキーが修飾キーでないもの。修飾キー = keyboard の `all_modifiers`（`alt` / `alt gr` / `ctrl` / `shift` / `windows` と `left` / `right` つき）・macOS の `command` / `option`（`left` / `right` つき・`key_input.md` §7.9）と、検査を通る別名（Windows のみ: `altgr` / `control` / `left control` / `right control` / `left menu` / `win` / `left win` / `right win`。macOS の別名は送信用の `command` / `left shift` / `left ctrl` / `left option` だけ）。他方の OS の名前（Windows の `command` / `cmd` / `option` 系・macOS の `windows` / `win` / `alt` 系・`left menu`）は検査で不明なキーとして拒否される（phase 75。それまで Windows で通っていた `cmd` / `command` / `option` の別名は使えなくなった）。判定は trim + 小文字 + `_` を空白に置き換えて引く（`left_shift` も修飾キー）
 * **対象は同時に 1 つだけ**（実キーボードと同じ）: リピートが有効な押す行の送信が成功したら、そのキーを対象にして待ちから始める（前の対象のリピートは止め、押したままは保つ。後のキーを離しても前のキーのリピートは再開しない）。
   `repeat` が無い・`false` の押す行（別のキー）・修飾キーの押す行・マウスの押す / 離す・対象を含まない hotkey・キー置換は今のリピートに触れない
 * **止める場所**（1 本の規定）: 対象のキーについて押す・離すの送信を始める前に必ず止める（離す行・自動で離すのすべての入口・text の前の一時的な離す・同じキーの押し直し）。
@@ -440,7 +440,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   メイン画面・独自ダイアログ・messagebox・ファイル選択・キーボード表示の窓を区別しない（ダイアログを出す側は変えず、今後増えるダイアログも対象になる）。メイン画面が前面のときもリピートしない。
   * 判定は発火時だけで、リピートの開始・text の後のやり直しでは判定しない（アプリの画面から実行した出力シーケンスが前面を切り替えた直後の押す行でも始まるように。アプリが前面なら 1 回目の発火で止まる）
   * 他のアプリが前面の間にアプリがダイアログを出しても、Windows が前面を奪わせなければキーはそのアプリへ届き続けるので止めない（ユーザーがダイアログを前面にした時点で止まる）。「常に前面」の設定とは無関係
-  * 前面の窓が無い（アクティブの切替の途中等）ときは止める。判定できない（Win32 の呼び出しの例外・Windows 以外）ときは止めない（`key_input.md` §7.7）
+  * 前面の窓が無い（アクティブの切替の途中等）ときは止める。判定できない（OS の呼び出しの例外）ときは止めない（`key_input.md` §7.7・macOS の判定は §7.9）
   * 判定と送信は不可分ではなく、判定の直後にユーザーがアプリの窓を前面にすると 1 回分がアプリの窓へ届き得る＝受容。従来のコンソール窓から起動した場合はコンソールが前面でも止まり得る（止まるだけ）
   * 知らせの前に止める・表示中の抑止（上）は残す（知らせのダイアログが前面に来ない場合の保証）
 * **フックとの関係**: 送り直しは send_guard の中なのでトリガー・キー置換の判定・選んでから実行の長押しの無視（4.2.11）に入らない。
@@ -475,7 +475,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
     * 両ダイアログの「キー入力で記録」ボタンは、「記録中…（Escで停止）」との長い方の文言の幅で固定する（ヘッダの記録ボタンと同じ・4.6。トリガーの追加・編集のダイアログも同じ）
   * キーマップの個別読込も追加として扱う（上記の流れ・キャンセルで runtime 不変）。**同じキーマップファイルの二重読込は拒否**する
   * **編集**: キーマップが 2 つ以上のときは切替キーを空にできない
-  * **割り当て禁止のキー**（phase 59）: **Windows キー（左右）・Caps Lock・AltGr 配列の右 Alt** は、抑止しても OS 側の動作（スタートメニュー・Caps のロックの切替・AltGr の右 Alt）が止まらず、置き換えたキーと本来の機能が両方動くため、**置換元キーと切替キーにできない**。判定するキー名 = `left windows` / `right windows` / `windows` / `caps lock` / `caps_lock` / `capslock` / `alt gr` / `altgr`（Tk の取得は Caps を `caps_lock` と記録するため表記の揺れを含む）。判定は 1 か所の関数で、キーボードUI・割り当ての入口・切替キーの検査で共有する
+  * **割り当て禁止のキー**（phase 59・phase 75 で両 OS 共通に）: **Windowsキー（左右）・Commandキー（左右）・Caps Lock・AltGr 配列の右 Alt・fn** は**置換元キーと切替キーにできない**。Windowsキー・Caps Lock は抑止しても OS 側の動作（スタートメニュー・Caps のロックの切替）が止まらず、置き換えたキーと本来の機能が両方動くため。AltGr 配列の右 Alt はアプリが押さえ込めずに OS へ通ることがあるため。Commandキーは OS のショートカットを守るため、fn はアプリが受け取れないため（macOS）。判定するキー名 = `left windows` / `right windows` / `windows` / `left command` / `right command` / `command` / `caps lock` / `caps_lock` / `capslock` / `alt gr` / `altgr` / `fn`（Tk の取得は Caps を `caps_lock` と記録するため表記の揺れを含む。両 OS で同じ集合・画面とヘルプの文言も OS で切り替えない）。判定は 1 か所の関数で、キーボードUI・割り当ての入口・切替キーの検査で共有する
     * キーボードUI: 禁止のキーの枠は禁止の色で出し、クリックしても編集しない（4.6「キーボード表示のウィンドウ」）。割り当ての入口でも元キーが禁止なら割り当てずエラーを出す
     * 切替キー（編集ダイアログ・まとめて設定ダイアログ）: 記録中に Caps Lock を押しても記録しない（Windows キーは修飾キー単独として従来どおり無視）。OK の検査で禁止のキーを拒否する（編集ダイアログは閉じた後のエラー・まとめて設定は閉じずにその行へ＝既存の検査と同じ扱い）。**今の切替キーから変えたときだけ検査する**（既存の切替キーが禁止のキーでもラベルだけの変更は通る）。既存の禁止の切替キーを外すには別のキーを記録し直す
     * 切替キーの記録で Tk がキーの名前を判別できない（記録の名前が `??`・JIS の Caps キー単独〔「英数」〕等）ときも記録せず、記録中の案内欄に理由を出して記録を続ける。`??` は禁止のキー名には入れない（Caps 以外でも出る「記録できないキー」）。全入口共通の扱いと案内の文言は `key_input.md` §7.4「判別できないキー」（JIS の特殊キーは、選んでいるレイアウトの行に当たれば記録用のフックで取れる・同「記録用のフック」・phase 66）、記録中は IME を自動で OFF にすること（phase 60）は同「記録中の IME」。受容: AltGr 配列で切替キーの記録が右 Alt を何として記録するかは未確認
@@ -513,7 +513,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
 
 ### 4.5 フック制御
 
-* keyboard によるグローバルフックで入力を捕捉する
+* グローバルフックで入力を捕捉する（Windows = keyboard・macOS = CGEventTap。macOS はアクセシビリティの許可が要り、未許可なら開始を失敗にして案内を出す・`key_input.md` §7.9）
 * 停止キー（hook_stop_key）でフックを停止できる
 * UI 編集中はフックを停止する（ネスト対応）
 * **カーソルグリッド**（phase 56）: カーソルグリッド ON のキーマップがアクティブな間は、トリガー・キー置換の代わりにカーソルグリッドの操作キーが効く。カーソルグリッド ON のキーマップがあれば、トリガーもキー置換も無くてもフックを開始・再開できる（§4.7）
@@ -710,7 +710,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   * 上限から 1px ずつ下げ、いちばん長い行の幅 ≤ 内側の幅 かつ 主と下の行の高さの合計 ≤ 内側の高さ になる最大の大きさにする（下 = 主 × 0.19 / 0.27 を切り捨てて下限で止める）。下限でも収まらなければ下限の大きさで出し、はみ出しは受容
   * 主の文字の行と下の文字の行を上から積み、その塊をキーの内側の縦の中央に置く（各行は横の中央）。文字の大きさはキーごとに違ってよい
   * キー置換の枠の文字（送信先のキー名）は、レイアウトの表 `key_display_names` に名前があればその値、無ければ記号キーの表示（下記「記号キーのキー名の表示」）、それも無ければキー名（下記「レイアウトの JSON の `key_display_names`」）
-* **左右の修飾キー**（phase 59）: 枠のラベル（`Shift` / `Ctrl` / `Alt` / `Win`）はそのまま、レイアウトの id から引くキー名を左右で分ける。表示（割り当て・トリガー・停止 / トグル・切替キー）・色・クリックで始める編集の元キー・編集中の強調・タイトル・右クリックのクリアはすべて枠ごと
+* **左右の修飾キー**（phase 59）: 枠のラベル（`Shift` / `Ctrl` / `Alt` / `Win`。Mac の見本は `⌘ Command` / `Option` / `Control` 等の Mac の印字・phase 75）はそのまま、レイアウトの id から引くキー名を左右で分ける。表示（割り当て・トリガー・停止 / トグル・切替キー）・色・クリックで始める編集の元キー・編集中の強調・タイトル・右クリックのクリアはすべて枠ごと
 
   | id | キー名 |
   |---|---|
@@ -719,6 +719,8 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   | `alt_l` / `alt_r` | `alt` / `right alt` |
   | `windows_l` / `windows_r` | `left windows` / `right windows`（割り当て禁止） |
   | `alt_gr` | `alt gr`（割り当て禁止） |
+  | `command_l` / `command_r` | `left command` / `right command`（割り当て禁止・phase 75） |
+  | `option_l` / `option_r` | `option` / `right option`（phase 75） |
 
   * 左の Shift・Ctrl・Alt は phase 58 以前と同じ名前（既存のキーマップの `ctrl` / `shift` / `alt` は左の枠に出て左のキーで効く。左の Win は `windows` から `left windows` に変わった）。右の枠で割り当てると元キー `right ctrl` 等になる。キー名は実行時にフックが届ける名前と同じ（`key_input.md` §7.1）
   * 元キー `windows`（以前のキーボードUI の Win の枠で作った割り当て。実行時は `left windows` で届き効いていない）はどの枠にも出ない（キーマップのデータには残る）
@@ -728,7 +730,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   * 受容: 内蔵の JIS キーボードの無変換・変換は 123 / 121 で離しも届き普通にリピートするが、キー置換は名前で 1 つなので同じ色になる（外付けと内蔵を見分ける手段が無い）
 * **割り当て禁止の枠**（phase 59）: キー名が §4.3「割り当て禁止のキー」に当たる枠は禁止の色（灰色系）で出し、左クリックしても編集を始めない（別の枠を編集中ならその編集を続ける）。トリガー・停止 / トグル・切替キーの役割があればその色を優先する。既存の割り当てがあれば送信先の文言を出し、右クリックで消せる
 * **レイアウトの JSON の左右の修飾キー**（phase 59・書式は不変）: 左右の修飾キーは上の表の標準の id で書く。**AltGr を使う配列**（ドイツ語等。右 Alt が `alt gr` で届く）のレイアウトは右 Alt の行を **`alt_gr`** で書き、JIS・US 等は `alt_r` で書く（アプリは入力配列を判定しない。ユーザーが今の配列に合うレイアウトを選ぶ）。**修飾キー・Caps Lock・Windows キー・AltGr の行に `scan_code` を書かない**（書くと実行時の入力のキー名がその id になり、キーマップの照合と押下状態の記録が変わる。左右の Ctrl・Alt は同じ走査コードで拡張フラグでしか区別できない。規定のみでコードでは防がない）
-  * 見本: `config/user/keylayout/jis.json`（**全キーの JIS TKL**・`layout_id: jis`・左右の Ctrl・Alt・Win・Shift を含む・phase 73）/ `config/user/keylayout/jis_test.json`（以前の一部のキーだけの見本を改名・`layout_id: jis_test`）/ `config/user/keylayout/de.json`（`Deutsch (QWERTZ)`・右 Alt = `alt_gr`）/ `config/user/keylayout/us_tkl.json`（内蔵の US TKL と同じ行・`layout_id` = `us_tkl_sample`・`display_name` = `US TKL（見本）`・自分のレイアウトを作るときのひな形・phase 69）。いずれも初期状態では登録しない（Welcome で JIS を選んだときは `user/keylayout/jis.json` を登録する・phase 73）
+  * 見本: `config/user/keylayout/jis.json`（**全キーの JIS TKL**・`layout_id: jis`・左右の Ctrl・Alt・Win・Shift を含む・phase 73）/ `config/user/keylayout/jis_test.json`（以前の一部のキーだけの見本を改名・`layout_id: jis_test`）/ `config/user/keylayout/de.json`（`Deutsch (QWERTZ)`・右 Alt = `alt_gr`）/ `config/user/keylayout/us_tkl.json`（内蔵の US TKL と同じ行・`layout_id` = `us_tkl_sample`・`display_name` = `US TKL（見本）`・自分のレイアウトを作るときのひな形・phase 69）/ `config/user/keylayout/us_mac.json`・`jis_mac.json`（Mac の内蔵キーボードの並びと印字・`layout_id` = `us_mac_sample` / `jis_mac_sample`・Command / Option は `command_l` / `command_r` / `option_l` / `option_r`・fn は id `fn` で禁止の枠・英数 / かな = `muhenkan` / `henkan`・矢印は右 Shift の下・`jis_mac` は `yen` / `ro` を持つので JIS として受信名を決める〔`key_input.md` §7.9〕・Mac に無いキー〔PrtSc 等〕は置かない・phase 75）。配布物に同梱するのは `us_tkl` / `us_mac` / `jis` / `jis_mac` / `de` の 5 本（`jis_test` は入れない）。いずれも初期状態では登録しない（Welcome で JIS を選んだときは `user/keylayout/jis.json` を登録する・phase 73）
   * 受容: AltGr 配列の PC では元キー `right alt` の割り当ては効かない（`alt gr` で届くため・二重には動かない）。AltGr 配列の実機確認はしていない（自動テストのみ）
 * **レイアウトの JSON の `scan_code`**（phase 62・書式は不変）: `scan_code` を書いた行の `id` は、**受け取り**（フックの実行時・カーソルグリッドの編集の窓・キーボードUIの記録名・`key_input.md` §7.1 / §7.4）と**送信**（keyboard が知らない名前のとき・`key_input.md` §7.7）の両方の名前になる。
   コードに特殊キーの表は無いので、JIS の特殊キー（`muhenkan` / `henkan` / `kana` / `zenkaku_hankaku`）は、**それを書いたレイアウト（見本 = jis.json）を選んでいるときだけ**名前になり送れる（既定の US TKL では送れない・実行時エラー）
@@ -1051,9 +1053,20 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
 
 #### バージョン情報・ライセンス
 
-* **バージョン情報**は小さなモーダルダイアログ（開いている間フックを一時停止し、Escape と「閉じる」で閉じる）。`keyseq/__init__.py` の `__version__` を表示し、初期値は `0.1.0`。表示内容 = アプリ名「Key Replacer Sequencer」・版・「Copyright (C) 2026 池上ノイ (Ikegami Noi)」・「GNU General Public License v3」・実行環境の Python と Tk の版。不具合報告用に文字を選択・コピーできる
+* **バージョン情報**は小さなモーダルダイアログ（開いている間フックを一時停止し、Escape と「閉じる」で閉じる）。`keyseq/__init__.py` の `__version__` を表示し、初期値は `0.1.0`。表示内容 = アプリ名「Key Replacer Sequencer」・版・「Copyright (C) 2026 池上ノイ (Ikegami Noi)」・「GNU General Public License v3 以降」（英語は「... v3 or later」・本体は `GPL-3.0-or-later`・phase 75）・実行環境の Python と Tk の版。不具合報告用に文字を選択・コピーできる
 * **ライセンス**はモーダルでない単一の窓で、再度開くと既存窓を前面化する。内容は本体の著作権表記・GPL v3 の全文、同梱物の名前・版・ライセンス名の一覧、各ライセンス全文。本文は読み取り専用・縦スクロールし、選択して Ctrl+C でコピーできる（右クリックのメニューは無い）
-* 同梱物の正本は `keyseq/presentation/help/content/third_party/third_party.json`。14 件 = keyboard (MIT)、pyautogui (BSD 3 条項)、pynput (GNU LGPL v3)、pyscreeze (BSD 3 条項)、pymsgbox (BSD 3 条項)、pytweening (BSD 3 条項)、mouseinfo (GNU GPL v3 以降)、pygetwindow (BSD 3 条項)、pyrect (BSD 3 条項)、pyperclip (BSD 3 条項)、six (MIT)、Python (PSF License)、Tcl (Tcl/Tk License)、Tk (Tcl/Tk License)。一覧と各全文の順はこの JSON に従い、各全文は同じ `third_party/` 内に置く。ライブラリの版が変わったら該当するライセンス全文と JSON の記録を更新する（JSON の版は `.venv` に入っている版・実行中の Python / Tcl / Tk の版と照合するテスト `tests/test_third_party.py` で検出する）
+* 同梱物の正本は `keyseq/presentation/help/content/third_party/third_party.json`。行ごとに配布物に入る OS（`platforms`。無い行は両 OS）を持ち、**ライセンスの窓は実行中の OS の行だけを出す**（実行中の OS は os_backend の `platform_key` から受け取る・phase 75）。ライセンス名は英語の固有名で、言語で切り替えない。
+  * 両 OS（11 件）: pyautogui (BSD 3-Clause License)、pynput (GNU LGPL v3)、pyscreeze (BSD 3-Clause License)、pymsgbox (BSD 3-Clause License)、pytweening (BSD 3-Clause License)、mouseinfo (GNU GPL v3 or later)、pygetwindow (BSD 3-Clause License)、pyrect (BSD 3-Clause License)、pyperclip (BSD 3-Clause License)、six (MIT License)、PyInstaller (GNU GPL v2 or later (with bootloader exception) / Apache-2.0)
+  * Windows のみ（4 件・窓に出るのは計 15 行）: keyboard (MIT License)、Python 3.14 (PSF License)、Tcl 8.6 と Tk 8.6（別の行・Tcl/Tk License）
+  * macOS のみ（5 件・窓に出るのは計 16 行）: pyobjc (MIT License)、rubicon-objc (BSD 3-Clause License)、Python 3.13 (PSF License)、Tcl 9.1 と Tk 9.1（別の行・Tcl/Tk License）
+  * 版の照合のテスト（`tests/test_third_party.py`）は実行中の OS の行だけを対象にする（他方の OS の行は skip）
+  * 表に無い同梱の C ライブラリ（OpenSSL 等）の扱いは idea_65（未決）
+  * 一覧と各全文の順はこの JSON に従い、各全文は同じ `third_party/` 内に置く。ライブラリの版が変わったら該当するライセンス全文と JSON の記録を更新する（JSON の版は `.venv` に入っている版・実行中の Python / Tcl / Tk の版と照合するテスト `tests/test_third_party.py` で検出する）
+* **配布物**（phase 75・PyInstaller の onedir・定義と手順は `packaging/`）: Windows = `keyseq/`（`keyseq.exe`・`_internal/`・`README.txt`・`sources/`）/ macOS = `keyseq.app`・`README.txt`・`sources/`（README と sources は `.app` の外・§4.8）
+  * 同梱の README（日英 1 ファイル）に書くこと: 本体（GPL v3 以降）の対応するソースの公開リポジトリと**その配布物の git のタグ**（`v<__version__>`）・PyInstaller のブートローダの例外・第三者ライセンスはヘルプのライセンスの窓で見られること・`sources/` の中身・`pynput` の差し替え方（macOS は未公証の `.app` の開き方と再許可も）
+  * `sources/`: 同梱する GPL / LGPL の依存（今は `mouseinfo`・`pynput`）の**同梱した版のソースのアーカイブ**（PyPI の sdist）。ビルドのたびに空にして、ファイル名全体が `<名前>-<版>.tar.gz` / `.zip` のものだけを入れ、無ければビルドを止める。ビルド用の依存は `packaging/requirements-build.txt` で版を固定する（版を上げたら `requirements-build.txt`・`third_party.json`・`sources/`・2 つの `.spec` を揃える）
+  * `pynput`（LGPL v3）は埋め込みのアーカイブに入れず `.py` のファイルで置き、利用者が差し替えられる（各 OS で差し替えが効くことを実測済み）
+  * アイコンは PyInstaller の既定（`.spec` に `.ico` / `.icns` の差し替え口だけ置く）。レイアウトの見本は 5 本（§4.6「キーボード表示のウィンドウ」）
 * タスクバーのアイコンの土台の画像（`status_icon/images/`・phase 71）はアプリ側の著作物（GPL v3 の扱い）で、第三者の同梱物ではないため一覧に足さない
 * 本体 `LICENSE`・ヘルプ本文・`third_party/` の位置は、`keyseq/presentation/bundled_paths.py` の `bundled_root()` を基準に解決する。リポジトリ直下の `LICENSE` を正として、コピーを作らない
 * LICENSE 全文を読めない場合は「LICENSE を読み込めませんでした。」と表示する。ヘルプ・ライセンス窓はメインの「最前面に表示」に追従する
@@ -1251,7 +1264,7 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
   * つまり esc と矢印の操作キーは、条件（深さ ≥1 / 選択あり）を満たすか今の深さのマスのキーであるときだけ suppress する。手編集で別の画面・別の深さのマスのキーに esc や矢印があっても、最上段の Esc・選択なしの矢印の素通しは崩れない
   * 受容: UI スレッドの反映前後の 1 打の漏れ・余分な suppress（Space の直後の Esc・深さ 1 から戻した直後の Esc・マスを選んだ直後の最初の矢印 等）/
     手編集で絞り込む・戻る・クリック・次の画面への操作キーが矢印の操作キーと重なると、そのキーは常時の集合から外れ、選択なしでは素通し・選択ありでは優先順位で先の操作が効く（式の帰結）
-* **ctrl / alt / windows（左右）を押している間は素通し**（Alt+Tab・Ctrl+C 等）。修飾キー単独は素通し
+* **ctrl / alt / windows（左右）を押している間は素通し**（Alt+Tab・Ctrl+C 等。macOS は command / option〔左右〕も・phase 75）。修飾キー単独は素通し
 * Shift+クリックのキーの右クリック・Shift+矢印の 1px は、**キーを振り分けた時点**の物理的な shift の押下で決める（UI スレッドで見直さない）。key_hold で押下中の shift は見えないので左クリック（OS 上は Shift+クリック）・矢印も 1px にならず通常の移動量（受容）
 * キーリピート: マスのキー・絞り込む・戻る・次の画面へはリピートを無視、クリックはリピートでクリックしない（suppress はする）、**矢印はリピートを受けて動かす**
 * カーソル移動とクリックは pyautogui（呼び出しごとに `_pause=False`・FAILSAFE を一時的に外す。既存のマウス操作と同じ経路・`nonfunctional.md`「カーソルグリッドの座標系」）
@@ -1321,5 +1334,25 @@ JSON のキー・コードの名前は `select_before_run`（UI の呼び名は�
 * key_hold の押下中のもの（§4.2.12）は従来の規則のまま
 * スコープ外: 複数画面への同時表示・細分化後の境界のドラッグ・中クリック / ダブルクリック / ドラッグ / ホイール・配色と線の太さの設定・まとめて設定のダイアログでの形の編集・出力シーケンスからカーソルグリッドを操作すること /
   （phase 57）右クリック専用の操作キー・移動量の上限 / 十字の大きさ / 色の設定・クリック点の記憶・ずらした点を中心にした細分化・テンキーの矢印を既定に含めること・細分化のボタンの並びの十字・キーボード表示に操作キーを出すこと
+
+### 4.8 macOS（phase 75）
+
+対象は Apple Silicon（arm64）の macOS・Python 3.13 + Tk 9.1。機能は Windows と同じで、下の差だけを持つ（入力の差は `key_input.md` §7.9・OS 境界は `architecture.md` §3.6）。OS 間の設定の共有は保証しない（各 OS で作った設定だけを保証・`\` 区切りの相対パスや `C:\` の絶対パスは変換しない）。
+
+* **設定の保存先**: ビルド後の `.app` は `~/Library/Application Support/keyseq/config/`（Windows は exe の隣の `config/`・開発実行はリポジトリの `config/`）。レイアウトの見本のコピーは `architecture.md` §3.6
+* **キー名**: Command / Option は `command` / `option` 系（画面にもキー名をそのまま出す・Windows の名前は拒否・`key_input.md` §7.9）。Caps Lock は割り当てられない（常に素通し）。既定のプリセットとサンプルは Command 系（`data_schema.md` §5.14）
+* **Tk の差**（判定は `tk windowingsystem` = aqua・presentation の `tk_platform.py`）:
+  * メニューのアクセラレータと範囲選択等の `Control` のバインドは `Command`。右クリックは `<Button-3>`（Windows と同じ）
+  * 起動時の既定の窓の高さ = `max(820, 3 枠がスクロールバーなしで収まる高さ)`（画面の高さで頭打ち・Windows は 820 のまま）/ キーボードUI のキーの文字のフォントは Helvetica（下限 7px は同じ）
+* **マウス**: pyautogui を基本に、①回数つきのクリック（各回の down / up に `kCGMouseEventClickState`）②ドラッグのアクション（途中を `kCG*MouseDragged`）③key_hold のボタンの保持中の移動（移動を監視する tap で `MouseMoved` を `MouseDragged` に書き換える。保持中のボタンの物理の down / up・離すで止める。tap を作れなければ書き換えない）は Quartz で送る。スクロールは `CGEventCreateScrollWheelEvent`（ピクセル単位・1 ノッチ = 10 px・横は負 = 右・OS のナチュラルなスクロールの設定は効かない）
+* **窓**（NSWindow は `Tk_MacOSXGetNSWindowForDrawable(winfo_id())` で一意に引き、引けない窓には何もしない）:
+  * **カーソルグリッドの窓**（§4.7）: 透かす色の部分を黒にして窓全体を `-alpha` 0.5 の半透明にし、`ignoresMouseEvents` でクリック透過（線と文字も半透明）。Tk が表示のたびに戻すため、`<Map>` の後の `after(0)` で透過と窓のレベル（`NSStatusWindowLevel`）をかけ直す
+  * **最小化とモーダル**: メインの最小化で、モーダルの台帳の窓（入れ子を含む）を隠して記録し、戻したら開いた順に表示し直して grab を戻す（判断は `<Unmap>` / `<Map>` の後の `after(0)`）。隠すときは NSWindow も `orderOut` する。メインをしまう直前に子の窓のつながりを外す（残像を防ぐ）。モーダルのダイアログの最小化ボタンは無効
+  * **最前面とモーダル**: モーダルのダイアログかメッセージの窓がある間は、メイン・ヘルプ・ライセンス・キーボードUI の最前面を外し、閉じたら設定どおりに戻す（その間は他のアプリの窓が上に来ることがある）
+  * **メッセージの窓**: presentation の messagebox は 1 つの入口（`message_box`）を通し、`parent` が無ければ表示中のいちばん内側のモーダル → メイン窓の順で補う。エラーと警告は出す前にアプリを前面にする
+  * **メニューの処理**: メニューバーの項目のうちモーダルを開き得る処理（`add_command` の全項目・言語のラジオボタン・物理キー名のチェックボタンの保存）は `after(0)` で遅らせ、App の待ち行列で 1 つずつ実行する（メニューの処理の中でモーダルに入ると待ちが戻らなくなるため）。前の処理が戻るまで・モーダルかメッセージの窓が開いている間は次を始めない。物理キー名の表示と反映・フォントの大きさは即時（反映したら未保存の印を立て、遅らせた保存は構成セットが変わっていたら行わない）。終了が確定したら待ち行列を捨てる（キャンセルなら続ける）。`on_close` は実行中に再び呼ばれたら何もしない。言語のラジオボタンの印は待ちの間も選んだ値を示し、書き込みに失敗したら保存済みの値へ戻す。キーボードのショートカットとメインの窓のボタンは即時（Windows はすべて即時）
+* **アイコン**: 状態のアイコンは `iconphoto` で Dock に出る。AppUserModelID は設定しない（§4.5 のタスクバーの条項は Windows のみ）
+* **配布物**（`.app`）: 識別子 `io.github.ikegaminoi.keyseq`（権限が識別子と署名に結びつくため変えない）・ad-hoc 署名のみ（公証しない）。README と依存のソースは `.app` の外に置く（署名を壊さない）。再ビルドで署名が変わったらアクセシビリティの許可を取り直す（`tccutil reset`）。未公証の `.app` の開き方を配布物の README に書く（中身は §4.6「バージョン情報・ライセンス」の配布物の条項）
+* スコープ外: 公証・App Store・インストーラ（`.dmg` 等）・Intel Mac・Linux・CI でのビルド
 
 ---

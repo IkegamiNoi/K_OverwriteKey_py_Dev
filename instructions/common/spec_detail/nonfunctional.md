@@ -20,7 +20,8 @@
 * カーソル移動・クリックは pyautogui（`_pause=False`・FAILSAFE を一時的に外す）。既定の `PAUSE` は 1 回ごとに約 100ms UI スレッドを止めるため使わない（実測: `_pause=False` で 0.1〜5ms・クリックはフック動作中に 2〜36ms）
 * カーソルグリッドの窓は、透過色（`-transparentcolor`）の後、表示前に Tk のラッパーの HWND（`GetParent(winfo_id())`）へ `WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW` を足し、
   クリック素通し・フォーカスを取らない。**自アプリの窓が前面のときに `tk.Toplevel` を作るとその窓が前面になる**（実測）ため、窓は最初に表示するときに作る
-* Win32 の呼び出しは `infrastructure/win32_window.py` に置き、presentation から ctypes を直接呼ばない。LastError は `use_last_error=True` の user32 で読む
+* Win32 の呼び出しは `infrastructure/os_backend/windows/win32_window.py` に置き、presentation から ctypes を直接呼ばない（`get_backend().window` を通す・`architecture.md` §3.6）。LastError は `use_last_error=True` の user32 で読む
+* 以上は Windows の規定。macOS はモニタを `NSScreen` で列挙して左上原点・Tk と同じ座標系へ変換し、窓のクリック透過は半透明の窓で行う（`features.md` §4.8・phase 75）
 * 失敗（窓の生成・列挙・カーソル移動 / クリック）ではカーソルグリッドを畳んで操作キーの suppress をやめ、フックは止めない（窓が無いのにキーを握りつぶし続けない・`features.md` §4.7）
 
 ---

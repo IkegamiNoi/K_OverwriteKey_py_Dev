@@ -1,24 +1,25 @@
 # Key Replacer Sequencer
 
-Python + tkinter + keyboard で動作する、キーボード入力置換シーケンサーアプリです。
+Python + tkinter で動作する、キーボード入力置換シーケンサーアプリです。
 
 単キーをトリガーとして、ホットキー送信、テキスト入力、マウスクリックなどの出力シーケンスを実行できます。キーマップを使った入力置換や、構成セットの保存・読込にも対応しています。
 
 ## 動作環境
 
-- Python 3
-- tkinter
-- keyboard
-- pyautogui
-- pynput
+- Windows、または macOS（Apple Silicon）
+- Python 3 と tkinter（macOS は Homebrew の Python 3.13 と `python-tk@3.13`）
+- pyautogui・pynput（Windows は keyboard、macOS は pyobjc も使います）
 
-依存ライブラリを入れる場合は、プロジェクト直下で以下を実行します。
+依存ライブラリは、プロジェクト直下で以下を実行して入れます（OS に合うものだけが入ります）。
 
 ```powershell
-pip install keyboard pyautogui pynput
+pip install -r requirements.txt
 ```
 
-`keyboard` によるグローバルフックを使用するため、環境によっては管理者権限での実行が必要です。
+- Windows: `keyboard` によるグローバルフックを使用するため、環境によっては管理者権限での実行が必要です。
+- macOS: システム設定の「プライバシーとセキュリティ」→「アクセシビリティ」でアプリを許可してください。python から起動する場合、許可の対象はターミナル（または python）になります。
+
+配布用のビルド（Windows の exe・macOS の `.app`）の手順は [packaging/README.md](packaging/README.md) を参照してください。
 
 ## 起動方法
 

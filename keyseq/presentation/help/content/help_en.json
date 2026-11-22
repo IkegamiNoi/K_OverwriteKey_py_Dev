@@ -328,7 +328,7 @@
                 "Enter / Numpad Enter: Click. Hold Shift to right-click.",
                 "Tab: Move to the next screen (monitor).",
                 "Arrow keys: Move the click position (crosshair) within the selected Cell. Hold Shift to move 1px at a time.",
-                "While Ctrl, Alt, or the Windows key is held down, keys pass through to other apps unchanged."
+                "While Ctrl, Alt, Option, the Windows key, or the Command key is held down, keys pass through to other apps unchanged."
               ]},
               {"type": "p", "text": "Space, BackSpace, Enter, Tab, and the arrow keys are the default operation keys. Reassign them with “Edit Cursor Grid…”. Esc (back) and numpad Enter (click) cannot be reassigned."}
             ]

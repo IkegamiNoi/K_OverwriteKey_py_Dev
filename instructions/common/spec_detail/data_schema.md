@@ -853,7 +853,12 @@ JSON スキーマは変えない。
 | --- | --- | --- |
 | `keymap_1` ショートカット（最初に有効）| 1 | トリガー r = 行を選択 / c = コピー / v = 貼り付け / t = アプリの切替 / a = 行を別のアプリへ貼る |
 | `keymap_2` 右手側の文字 | 2 | 左手側のキーを右手側の文字へ置換 + トリガー h = 案内文を入力 |
-| `keymap_3` テンキー | 3 | 左手側のキーをテンキーの数字・記号へ置換（q → `-`）+ トリガー h = 案内文を入力 |
+| `keymap_3` テンキー | 3 | 左手側のキーをテンキーの数字・記号へ置換（q → `-`・a / g / t → `num add` / `num multiply` / `num divide`〔テンキーの名前・`key_input.md` §7.8。phase 75 で `plus` 等から変更〕）+ トリガー h = 案内文を入力 |
+
+* **OS ごとの既定データ**（phase 75・JSON スキーマは不変）: ホットキーのプリセットとサンプルのショートカットのキー名は `domain/default_profile.py` の 2 組（`WINDOWS_DEFAULT_PROFILE` / `MACOS_DEFAULT_PROFILE`・データのみ・OS 判定なし）で持ち、どちらを使うかは `OsBackend.default_profile` が決めて App の組み立てで `ConfigService` へ渡す。新規作成・サンプル設定に戻す・互換処理の既定への戻し・プリセット管理の「既定に戻す」は渡された既定を使う。既存の設定は自動変換しない
+  * macOS のプリセット（8 件）: `command+tab` / `command+space` / `command+q` / `command+w` / `command+h` / `command+m` / `option+command+esc` / `ctrl+up`
+  * macOS のサンプル: コピー / 貼り付け = `command+c` / `command+v`・アプリの切替 = `command+tab`・行の選択 = `command+left` → `command+shift+right`（Windows は `ctrl+c` / `ctrl+v` / `alt+tab` / `home` → `shift+end`）
+  * 既存のサンプルを使っている利用者は、テンキーの置換先の変更を「サンプル設定に戻す」で取り込む（自動移行しない）
 
 * ラベル（キーマップ名・出力シーケンス名・案内文）は言語ファイルの `sample.*`。サンプルは全言語で 1 つで、ラベルだけが言語で変わる
 * **書き出し**（初回の「サンプル入り」のみ）: `config/sample/`（`config/user/` と同じ下位フォルダの並び）へ、言語に依らない英語の固定ファイル名で書く。構成セットは `sample/keymap_sets/sample.json`。子（出力シーケンス → トリガー一覧 → キーマップ）を先に、構成セットを最後に書く（`save_runtime_data(..., write_startup_entry=False)`）

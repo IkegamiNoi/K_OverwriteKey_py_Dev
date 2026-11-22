@@ -8,7 +8,7 @@
 
 * 外側の層は内側の層に依存してよい
 * 内側の層は外側の層に依存してはならない
-* domain 層は tkinter / keyboard 等の UI・フック実装に依存してはならない
+* domain 層は tkinter / keyboard / pyobjc 等の UI・フック・OS の実装に依存してはならない
 * infrastructure 層は domain / application のインターフェースに従って実装する
 * presentation 層は application 層を通じて操作を実行する
 * **presentation は `application/config_service/` の内部モジュールを直接参照しない**。
@@ -41,7 +41,7 @@
 
 #### infrastructure（`keyseq/infrastructure`）
 
-* keyboard によるグローバルフック
+* OS ごとの入力・窓・IME・起動の実装（`os_backend/`・下の §3.6）
 * JSON 入出力（ConfigService）
 
 #### presentation（`keyseq/presentation`）
@@ -49,8 +49,8 @@
 * UI（tkinter）: FullView / CompactView / KeyboardWindow / ダイアログ
 * イベント処理・各コントローラ
 * ヘルプ・ライセンスの表示は `keyseq/presentation/help/` に置く。`HelpWindowController` はヘルプ窓を、`LicenseWindowController` はライセンス窓をそれぞれ管理し、ヘルプ本文・絞り込み・同梱ライセンスの読込もこのパッケージ内で行う。バージョン情報の表示は、層の外の `keyseq/__init__.py` が公開する `__version__` を参照する。
-* 同梱データ（LICENSE・ヘルプ本文・ライセンス全文・アイコンの土台の画像）の位置は `keyseq/presentation/bundled_paths.py` の `bundled_root()` に集約する（exe 化時の変更点を 1 か所に・phase 71 で `help/` から昇格）。
-* タスクバーのアイコン（フックの状態の印）は `keyseq/presentation/status_icon/` に置く。印の形の計算は Tk に依存しない純関数（`badge_shapes`）、画像の合成と窓への設定は `StatusIcon`。AppUserModelID の設定（Win32）は infrastructure の `win32_window.set_app_user_model_id` で、エントリーポイント `main.py` から呼ぶ（最初の窓を作る前に 1 回だけ設定するため）。
+* 同梱データ（LICENSE・ヘルプ本文・ライセンス全文・アイコンの土台の画像）の位置は `keyseq/presentation/bundled_paths.py` の `bundled_root()` に集約する（exe 化時の変更点を 1 か所に・phase 71 で `help/` から昇格）。ビルド後（PyInstaller・`sys.frozen`）は `sys._MEIPASS`（Windows = exe の隣の `_internal`・Mac = `.app` の `Contents/Frameworks`）、開発実行はリポジトリの直下を返す（phase 75）。
+* タスクバーのアイコン（フックの状態の印）は `keyseq/presentation/status_icon/` に置く。印の形の計算は Tk に依存しない純関数（`badge_shapes`）、画像の合成と窓への設定は `StatusIcon`。AppUserModelID の設定（Windows のみ）は backend の `AppIdentity.apply_process_identity` で、エントリーポイント `main.py` から呼ぶ（最初の窓を作る前に 1 回だけ設定するため。Mac は何もしない・phase 75）。
 
 ### 3.4 UI スレッド
 
@@ -64,3 +64,20 @@
 `instructions/common/codebase_map.md` を正とする。
 
 ---
+
+### 3.6 OS 境界（phase 75）
+
+Windows と macOS（Apple Silicon）で動かすため、OS に依存する実装を `keyseq/infrastructure/os_backend/` に閉じる。
+
+* 配置: `os_backend/__init__.py`（`get_backend()`）・`contracts.py`（Protocol と `Capabilities` / `OsBackend`）・`windows/`（Win32 と `keyboard`）・`macos/`（`pyobjc`・CGEventTap）・OS 共通の補助（`app_relaunch.py`・`pyautogui_mouse.py`）
+* **`sys.platform` の分岐は `keyseq/` 内では `get_backend()` の 1 か所だけ**。Win32 と `keyboard` の import は `windows/`、`pyobjc` は `macos/` に閉じ、選ばれた OS でだけ import する（AST の検査テストで守る）。テストの `skipUnless` は対象外。Tk の差は `tk windowingsystem`（presentation の `tk_platform.py`）で判定する
+* presentation は `os_backend` の公開面だけを参照する。domain / application は OS を判定しない（OS で変わる既定データ・語彙は backend から注入する）
+* 境界（Protocol）: `KeyboardBackend`（フック・送信・キー名の検証と解決・リピート間隔・権限）/ `MouseBackend` / `WindowBackend`（前面の判定・モニタ一覧・クリック透過・重なり順・物理状態・最前面とモーダル）/ `TkKeyTranslator`（Tk のキーの解釈）/ `ImeBackend` / `AppIdentity`（起動時の OS 固有設定・設定のルート・再起動）
+  * `InputGateway` の公開メソッドは維持し、application から見た契約を変えない
+  * 窓を受ける API は Tk の窓オブジェクトを引数にする（HWND / NSWindow を Protocol に出さない）。モニタの座標は左上原点・Tk と同じ座標系
+  * `Capabilities` は OS ごとに無い機能を宣言する（クリック透過・窓の重なり順は両 OS とも True。macOS は `status_icon` / `ime_control` を False と宣言しているが、今はどこからも参照されない。無効化の UI は、動かない機能が見つかったときに作る）
+  * `OsBackend` の項目: `default_profile`（既定データ・`data_schema.md`）・`queued_hook_dispatch`（フックから UI への受け渡しの方式・`key_input.md` §7.9）・`platform_key`（`win32` / `darwin`。ライセンスの表の OS 列に使う）
+* **設定のルート**（`AppIdentity.app_data_root`）: 開発実行はリポジトリの直下・ビルド後は Windows = exe のあるフォルダ・Mac = `~/Library/Application Support/keyseq/`。どちらもその下に `config/` を置く（相対の構造を OS で揃える）
+  * レイアウトの見本は同梱物（`bundled_root()` の `config/user/keylayout/`）で、設定のルートに `config/user/keylayout/` のフォルダが**無いときだけ**全部コピーする（一時フォルダへ全件コピーしてから改名・失敗したら一時フォルダを消す・上書きしない）。消した見本は戻さない・更新で増えた見本は既にフォルダがある利用者には届かない。開発実行では同梱物と設定のルートが同じなので何もしない
+* **再起動**（`AppIdentity.relaunch`）: ビルド後は argv[0] の重複を除いて起動し直す（Mac の `.app` も `open -n` は使わない・実測で 1 つだけ起き直る）
+* ビルドは PyInstaller の onedir（各 OS で実行・クロスビルドしない）。定義と手順は `packaging/`（`packaging/README.md`）。配布物の中身は `features.md` §4.6「バージョン情報・ライセンス」

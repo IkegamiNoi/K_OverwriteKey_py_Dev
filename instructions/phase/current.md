@@ -7,10 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 75](75_mac_support/phase.md)（macOS 対応）**。暫定仕様先行モード・主入力 = [暫定 57](../history/57_mac_support.md)（v0.22・ユーザー確定済）・起票元 = ユーザー要望（2026-11-09）。番号対応: phase 75 / 暫定 57 / decisions 75。完了タスク = task_01〜04（段階 ①）・05〜07e（段階 ②・2026-11-13 区切り M1 pass）・task_08（2026-11-13・ディスパッチャ・Windows 検証 pass・reviewer 採用・Windows 目視 OK）・task_08b（2026-11-14・CGEventTap・Mac で実装・検証 pass・reviewer 修正して採用・Mac 目視 ①②⑥ OK・③④は task_09 へ移した・Windows 検証 pass = compile clean・tests 2065 件 失敗 0・smoke OK）・task_09 / 09a 起票済み（2026-11-14）・**task_09 実装済み（2026-11-14・Mac・tests 2031 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・reviewer 修正して採用・修正反映済み。Mac 実機目視 1〜6 OK・残り = Windows 検証〔tests_ui 含む〕）**・**task_09a 実装済み（2026-11-14・Mac・TIS は ctypes・reviewer 修正して採用）。Mac 目視 1 回目で不具合 3 件 → 暫定 57 v0.9 §5.1（送るフラグ = 物理側 + 送信側）で修正・一覧の hotkey 表示・Command+Option+P（tests 2057 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・reviewer 修正して採用・修正反映済み）。Mac 再目視 4③④・5 OK・3 は idea_57〔置換先の修飾キー・当初からの仕様〕と task_09c〔表示の適用範囲〕へ分離。残り = Windows 検証**・**task_09c 実装済み（2026-11-14・Mac・codex-delegating-implementer・tests 2057 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・tests_ui 15 本 失敗 0・reviewer 採用。残り = Mac 実機目視・Windows 検証）**・**2026-11-15: 暫定 57 v0.11（§5.3.4 = Mac の修飾キーのキー名 command / option・§5.3.3 廃止）確定・task_09d / 09e / 09f 起票。task_09d 実装済み（Mac・tests 2064 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・reviewer 修正して採用・Mac 目視 OK。残り = Windows 検証〔ドイツ語入力の目視を含む〕）**・**task_09e 実装済み（2026-11-15・Mac・codex-delegating-implementer・tests 2065 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・tests_ui 10 本 失敗は既知の Caps Lock 1 件のみ・reviewer 採用。Mac 目視は 09f の後・Windows 検証は未実施）**・**task_09f 実装済み（2026-11-15・Mac・codex-delegating-implementer・tests 2070 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・tests_ui 10 本 失敗は既知の Caps Lock 1 件のみ・reviewer 採用・Mac 目視 OK〔09e と合わせて〕。残り = Windows 検証）**・**task_09b 実装済み（2026-11-15・Mac・暫定 57 v0.12 = fn を禁止のキーとして置く・矢印は右 Shift の下・tests 2071 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・reviewer 採用・Mac 目視 OK）**・**Caps Lock の未決 = 案 B（2026-11-15・Mac の仕様差として暫定 57 §5.1 に記録・テストを OS 非依存に）**・**task_10 実装済み（2026-11-15・Mac・権限の案内と実行中の障害の停止・登録失敗で開始を失敗にする不具合を両 OS で修正・tests 2091 件 失敗 6・エラー 10〔基準線どおり〕・smoke OK・reviewer 採用・Mac 目視 OK = 同じプロセスでの再試行が成功）**・**task_11 実装済み（2026-11-15・Mac・前面の判定とリピート間隔・暫定 57 v0.13 = リピート間隔はグローバル設定の InitialKeyRepeat / KeyRepeat・task_11 を 11〜11d に分割・reviewer 採用・Mac 目視 OK）**・**task_11a 実装済み（2026-11-16・Mac・pyautogui / pynput を `os_backend/pyautogui_mouse.py` へ共通化・暫定 57 v0.14 = 回数つきのクリック・ドラッグ・押すの保持中の移動〔`MouseHoldTap`〕を Quartz・横スクロールの符号・tests 2108 件 失敗 1〔test_third_party〕・smoke OK・reviewer 採用・Mac 目視 OK・中クリックは未確認・スクロールの向きの設定は idea_58）**・**task_11b 実装済み（2026-11-16・Mac・窓と画面〔NSWindow の引き方・前面の自窓・重なり順・モニタ一覧・クリック透過〕・暫定 57 v0.15 / v0.16 = クリック透過は窓全体を `-alpha` 0.5 の半透明・素通しとレベル 25 を表示のたびにかけ直す〔Tk 9.1 の実測〕・tests 2115 件 失敗 1〔test_third_party〕・smoke OK・tests_ui 4 本は test_modal_grab の既知 4 件のみ・reviewer 採用・Mac 目視 OK・2 枚目のモニタは保留〔ユーザー判断〕）**・**task_11c 実装済み（2026-11-17・Mac・最小化と grab・暫定 57 v0.17 = 預かり / 復元を `after(0)` へ遅らせる・入れ子のダイアログを内側から withdraw + `order_out`・ダイアログの最小化ボタンを無効・しまう直前に子の窓のつながりを外す〔残像対策〕・task_11c を 11c / 11e に分割・tests 2119 件 失敗 1〔test_third_party〕・smoke OK・tests_ui 8 本 失敗 0〔test_modal_grab・test_minimize_grab_custody の基準線の失敗を解消〕・reviewer 採用・Mac 目視 OK）**・**task_11e 実装済み（2026-11-17・Mac・最前面とモーダル・暫定 57 v0.18 = モーダルの間はメインとヘルプ・ライセンスの最前面を外す〔ユーザー判断 B〕・後からレベルをかけ直す方式は目視でちらつき・取りこぼし〔本物のクリック 12 回で比較〕・task_11f〔parent なしの messagebox・エラーを前面に〕を分割・tests 2122 件 失敗 1〔test_third_party〕・smoke OK・tests_ui 8 本 失敗 0・reviewer 完了可・Mac 目視 OK）**・**task_11f 実装済み（2026-11-17・Mac・messagebox の入口 `message_box.py`・暫定 57 v0.19 = parent を補う・エラーと警告はアプリを前面に〔ユーザー要件〕・メッセージの窓の間は最前面を外す〔キーボードUIも〕・presentation の 28 ファイルの import を置き換え・tests 2131 件 失敗 1〔test_third_party〕・smoke OK・tests_ui 14 本 失敗 0・reviewer 修正して採用〔指摘はメインが反映〕・Mac 目視 OK）**・**task_11d 実装済み（2026-11-17・Mac・割り当て禁止の文言とヘルプの説明を両 OS 共通に〔Windowsキー・Commandキー・Caps Lock・AltGr・fn〕・プリセットのヒントを ctrl+c に・暫定 57 v0.20・tests 2131 件 失敗 1〔test_third_party〕・smoke OK・tests_ui 4 本 失敗 0・reviewer 採用・Mac 目視 3・4 OK〔1・2 は Mac で画面から出す経路がないためテストで代える・ユーザー判断〕）**・段階 ③ の Mac 側は task_11〜11f で完了。次 = task_09〜11f の Windows 検証 → 段階 ④（task_12 起票）。idea_60（ダイアログから開いたヘルプに入力できない）を起票。Windows 検証（task_09〜09f・09b のテスト）は未実施。・**2026-11-17（Windows）: task_09〜11f の Windows 検証 pass（テスト側の取りこぼし 3 件を修正）・Windows 目視 OK（Win+D の白い窓は既存の問題 → idea_61）。task_12 完了（2026-11-18・Windows 目視 OK・暫定 57 v0.21・codex-implementer + メインの補い・tests 2202 件 失敗 0・smoke OK・reviewer 完了可・Mac の確認は task_13 で）**・**2026-11-18: 暫定 57 v0.22（§6.3 配布物の中身とライセンスの表示・Codex 敵対的レビュー 2 回）確定・task_13a 実装済み（ライセンスの表の OS 列・tests 2203 件 失敗 0・smoke OK・reviewer 完了可・Windows 目視 OK〔14 行・v3 以降〕で完了）**。task_13 実装済み（2026-11-18・PyInstaller 6.22.3・ビルド成功・tests 2203 件 失敗 0・smoke OK・reviewer 修正して採用→反映。**Windows 実機確認 OK〔2026-11-21・exe = 保存先と見本・再起動・言語の切り替え・ライセンス 15 行・置換とシーケンス〔マウス含む〕・ヘルプとアイコン〕で完了**）。次 = task_13b（Mac）。idea_62（修飾キー付きの置換元）を起票。ろ キーの `\` を置換先にすると Shift で `|` になる件は、キーボードUIのレイアウトが JIS でなかったことが原因で仕様の受容どおり（2026-11-22・不具合ではない）・**2026-11-22（Mac）: task_13b 実装・検証 pass・reviewer 修正して採用（実機確認で 2 件 = メニューからのモーダルが戻らない → task_11g・保存パネルが .app で固まる → 調査中）。task_11g 完了（暫定 57 v0.25 §5.4「メニューの処理」・Codex 敵対的レビュー 5 回・reviewer 採用・tests 2157 件 失敗 0・smoke OK・Mac 目視 1〜7 OK・Windows 検証は未実施）。idea_64（Mac の保存パネルを広げた形で）を起票。task_13b 完了（2026-11-22・Mac 実機確認 1〜5 OK〔再起動は `open -n` 不要＝今の再起動のままで 1 つだけ起き直る〕・保存パネルの件は task_11g で解決・サンプルのテンキーを物理のテンキーのキー名に・reviewer 完了可・tests 2157 件 失敗 0・smoke OK）。Windows 検証の残課題 = test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui）・Windows の `.spec` の `dist/sources` の空にし方とアーカイブの照合（Mac と同じ修正）・テンキーのサンプル（A / G / T）の実機・C ライブラリ（OpenSSL 等）の洗い出しと両 OS 分の起票。次 = 残りの Windows 検証 → task_14（正本反映）**
-  **次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 62**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`）。その前 = キーの記号の表示とキー置換の送信（`domain/key_symbols.py`・`InputGateway.send_mapped_key`。残件 = プリセットが編集で開くまで表示されない不具合は別セッション）。
-- 直前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
+- **アクティブなフェーズ = なし**（phase 75 = macOS 対応は 2026-11-22 完了）。次フェーズはユーザー判断で `/phase_start`。
+  **次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 29 / idea 66**（暫定 47 は idea_53 で保留中の番号）。
+- 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`・`packaging/`）。残件 = 検討段階の idea（idea_45 キー名の入力用 / 出力用の整理・idea_59〜65。idea_65 = 同梱の C ライブラリのライセンスの行）・2 枚目のモニタの目視と中クリックの確認（保留・ユーザー判断）・JIS キーボードでの記号キーの実測（暫定 57 §9 の 10・文書値のテストで代えた）・右 Option / 右 Control の実測（キーの無い機種）。
+- 直前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。暫定仕様先行モード〔暫定 57 v0.25 凍結〕・JSON スキーマ不変・判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)・refactor_check 推奨 = [提案書 28](../modified_proposal/28_refactor_mac_support.md)〔macos/backend.py の分割・modal.py の最小化の関数の分割・実施はユーザー判断〕）。
+- その前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
 - その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
 - その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
@@ -84,7 +85,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**27 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**28 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -133,6 +134,7 @@
   **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
+  **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
   次フェーズは **`76_<topic>`**・decisions も **76** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -184,9 +186,9 @@
   54 = タスクバーのアイコンで状態を表示〔**v0.4・凍結**・phase 71 の主入力〕 /
   55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
   56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
-  57 = macOS 対応〔**v0.5・未凍結**・phase 75 の主入力〕 /
+  57 = macOS 対応〔**v0.25・凍結**・phase 75 の主入力〕 /
   次採番は **`58_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -207,7 +209,8 @@
   **25 = phase 68 由来・実施済**（2026-10-25・フェーズ外で単独実施）〔子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ〕 /
   **26 = phase 69 由来・保留**（2026-10-26 ユーザー判断）〔`KeyboardWindow.redraw` 100 行からキーの文字の描画を抽出・キーが無いレイアウトの大きさの定数化〕 /
   **27 = phase 70 由来・保留**（2026-10-29 ユーザー判断）〔`app.py` の「呼んで失敗をログに残す」同型の try/except 5 個を 1 関数へ〕
-  次採番は **`28_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **28 = phase 75 由来・ユーザー判断待ち**（2026-11-22）〔`macos/backend.py` を 1 クラス 1 ファイルへ・`modal.install_minimize_grab_custody` の入れ子の関数を外へ〕
+  次採番は **`29_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
