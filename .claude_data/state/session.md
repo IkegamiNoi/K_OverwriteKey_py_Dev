@@ -4,14 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T15:30:00
-phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.25・v0.25 は Codex 敵対的レビュー needs-attention で確定待ち）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 64
+last_updated: 2026-11-22T18:00:00
+phase: instructions/phase/75_mac_support（主入力 = 暫定 57 v0.25）。次採番 = phase 76 / 暫定 58 / decisions 76 / 提案書 28 / idea 66
 直前の完了フェーズ = **phase 74**（記号キーのキー名の表示・`decisions_archive/74_key_symbol_display.md`）
-last_commit_location: `claude/task-13b-72ac5c`（Mac の worktree・state のコミットまで。task_13b / 11g の作業ファイルは未コミット）。push はユーザー
+last_commit_location: `claude/windows-support-continuation-f235f4`（Windows の worktree・Mac の task_13b まで取り込み済み + task_13c）。push はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 75 段階 ④。task_13b（Mac のビルド）完了（2026-11-22・Mac 実機確認 1〜5 OK・reviewer 完了可）・task_11g 完了。次 = Windows 検証（task_11g・13b の残課題）→ task_14（正本反映）。**
+focus: **phase 75 段階 ④。Windows 検証 pass（tests 2219・tests_ui 1300・smoke・版の照合）・task_13c（Windows の .spec の sources）完了・C ライブラリは idea_65。残り = Windows 実機でテンキーのサンプル（A / G / T）の確認（ユーザー）→ task_14（正本反映）。**
+next_action_override: 上の focus が next_action より新しい（下の next_action の Windows 検証の項目は実機のテンキー以外すべて済み）
 mode: completed
 
 ## last_action

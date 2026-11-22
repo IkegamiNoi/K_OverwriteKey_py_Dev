@@ -898,3 +898,10 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 同じ日（ユーザー判断「分けて進める」）: 暫定 57 §5.3.5（v0.26 案）は取り下げ（コミット前の下書きを戻した）。サンプルのテンキーの置換先を `num add` / `num multiply` / `num divide` に直した（`domain/config.py:108-110`・`tests/test_sample_config.py`・Mac で送れることを実測）。キー名の入力用 / 出力用の整理は idea_45 に追記（新しい idea は作らない）。既存のサンプルを使っている利用者は、「サンプルを復元」で作り直す必要がある。
 - 同じ日: サンプルの修正の後、作り直した .app でテンキーのサンプルが動いた → task_13b の実機確認 1〜5 すべて OK。保存パネルが固まる件は今回は再現せず（task_11g のメニューの処理の遅延で解決した見込み）→ メニューとボタンの両方の経路をユーザーが確認中。
 - 同じ日: メニューとボタンの両方の経路で保存パネルが固まらないことをユーザーが確認 → task_11g で解決として閉じる。`open -n` は不要と判定（今の再起動で keyseq が 1 つだけ起き直り、Dock も 1 つ・前面・置換が動く＝実機確認 3）。前回のレビュー後の差分（.spec のソース・README の再許可・サンプルのテンキー）は reviewer 完了可 → **task_13b 完了**。Windows 検証の残課題 = test_third_party・test_os_backend_contracts（test_app_data_roots の分割）・test_sample_config・requirements-build.txt・task_11g（tests と tests_ui）・Windows の `.spec` の `dist/sources` の空にし方とアーカイブの照合（Mac と同じ修正）・テンキーのサンプル（A / G / T）の実機・C ライブラリ（OpenSSL 等）の洗い出しと両 OS 分の起票。
+
+### 【Windows 検証 task_11g / 13b・task_13c】（2026-11-22・Windows）
+
+- Windows 検証（verifier）: compile clean / tests 2219 件・失敗 0・skip 7（test_third_party・test_os_backend_contracts の分割後の test_app_data_roots・test_sample_config・MenuCommandQueue を含む）/ tests_ui 1300 件 OK / smoke OK。`requirements-build.txt` の win32 とマーカー無しの 12 件は `.venv` の版と一致。
+- task_13c（起票・実装 = codex-implementer）: Windows の `.spec` の `collect_distribution()` を Mac と同じに（`<名前>-<版>.tar.gz|.zip` のファイル名全体で照合・`dist/keyseq/sources/` を毎回空にして一致したものだけ copy2）。verifier: 古いファイルと `dummy.sha256` は入らない・`.sha256` だけではビルドが止まる・exe 起動 OK。reviewer 採用。手順書の Windows 節の照合の記述を新しい挙動に合わせた（メイン）。
+- 同梱の C ライブラリ（Windows = OpenSSL〔libcrypto / libssl〕・libffi・zlib・VC++ ランタイム・静的に入る bzip2 / xz / zstd / mpdecimal / expat。Mac = OpenSSL・liblzma・libmpdec・libtommath）は両 OS 分を idea_65 に起票（task_13b の推奨どおり 1 本で）。
+- 残り = Windows の実機確認（テンキーのサンプル A / G / T の置換先 `num add` / `num multiply` / `num divide`・ユーザー）→ task_14。

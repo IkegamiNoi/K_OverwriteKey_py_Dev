@@ -8,6 +8,7 @@ import shutil
 ROOT = os.path.abspath(os.path.join(SPECPATH, "..", ".."))
 SOURCE_PACKAGES = {"mouseinfo": "0.1.3", "pynput": "1.8.2"}
 SOURCES_DIR = os.path.join(ROOT, "packaging", "sources")
+SOURCE_EXTENSIONS = (".tar.gz", ".zip")
 
 
 def files(pattern):
@@ -28,16 +29,22 @@ def read_version():
 
 def collect_distribution():
     dist = os.path.join(DISTPATH, "keyseq")
-    os.makedirs(os.path.join(dist, "sources"), exist_ok=True)
     with open(os.path.join(dist, "README.txt"), "w", encoding="utf-8", newline="\n") as output:
         with open(os.path.join(ROOT, "packaging", "README_dist.txt"), encoding="utf-8") as source:
             output.write(source.read().replace("{version}", read_version()))
     archives = os.listdir(SOURCES_DIR) if os.path.isdir(SOURCES_DIR) else []
+    selected = []
     for package, version in SOURCE_PACKAGES.items():
-        prefix = f"{package}-{version}.".casefold()
-        if not any(name.casefold().startswith(prefix) for name in archives):
+        expected = {f"{package}-{version}{ext}".casefold() for ext in SOURCE_EXTENSIONS}
+        matches = [name for name in archives if name.casefold() in expected]
+        if not matches:
             raise FileNotFoundError(f"Missing source archive: {package}-{version} in {SOURCES_DIR}")
-    shutil.copytree(SOURCES_DIR, os.path.join(dist, "sources"), dirs_exist_ok=True)
+        selected += matches
+    destination = os.path.join(dist, "sources")
+    shutil.rmtree(destination, ignore_errors=True)
+    os.makedirs(destination)
+    for name in sorted(selected):
+        shutil.copy2(os.path.join(SOURCES_DIR, name), destination)
 
 
 block_cipher = None
