@@ -1,5 +1,6 @@
 ---
 name: away
+disable-model-invocation: true
 description: ユーザー不在（就寝・外出）モードに切り替える。判断待ちに当たったら、戻る時刻に応じてその場で待つか引き継いで終了する
 ---
 

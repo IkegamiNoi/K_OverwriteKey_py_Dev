@@ -1,5 +1,6 @@
 ---
 name: init_project
+disable-model-invocation: true
 description: テンプレートからプロジェクトを初期化する（対象ファイルを app_overview.md に合わせて一括修正）
 ---
 

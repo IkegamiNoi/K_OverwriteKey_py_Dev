@@ -1,5 +1,6 @@
 ---
 name: back
+disable-model-invocation: true
 description: ユーザー不在モード（/away）を解除し、判断はその場で聞く普段の運用に戻す
 ---
 

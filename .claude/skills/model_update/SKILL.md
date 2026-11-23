@@ -1,5 +1,6 @@
 ---
 name: model_update
+disable-model-invocation: true
 description: エージェントが使うモデルの ID・推論レベルを更新する（新バージョンへの追従 / 担当モデルの変更）。稼働側とモード変種を漏れなく揃える
 ---
 
@@ -47,7 +48,8 @@ description: エージェントが使うモデルの ID・推論レベルを更�
 ### 5. 確認
 
 - `grep` で旧 ID が稼働側・全モード変種から消えたこと（過去の記録を除く）と、他系統の ID を巻き込んでいないことを確かめる
-- 稼働側と稼働中モードの変種の一致: `switch_agent_mode.py` は対話式のため、`diff --strip-trailing-cr` で管理対象を 1 つずつ比べる
+- 稼働側と各モードの一致: `switch_*.py` を対話起動し、冒頭の `check` と `diff <id>` で確かめる（`.claude_data/modes/README.md` の変更手順 4）。
+  対話起動できない場面では `diff --strip-trailing-cr` で管理対象を 1 つずつ比べる
   （例: `for f in $(cd <switch_files>/<mode> && find . -type f); do diff -q --strip-trailing-cr "$f" "<switch_files>/<mode>/$f"; done`）
 - 編集したファイルについて、モード変種同士も比べる（モード固有の差異以外が一致すること）
 

@@ -1,5 +1,6 @@
 ---
 name: template_pull
+disable-model-invocation: true
 description: template リポジトリで育った運用ルール・インフラをこのプロジェクトへ取り込む（逆同期。差分抽出 → 分類表で確認 → 適合化して反映）
 ---
 
@@ -149,7 +150,8 @@ git diff --no-index --stat <template>/<path> ./<path>
 - **`.gitignore` の根拠**: `git check-ignore -v` で確認する。グローバル設定や
   `.git/info/exclude` 由来のものは追跡ファイルに入っておらず、別マシンでは無効
 - **実測**: python は `.venv`（`.claude/rules/python_rules.md`）。`compileall` と、モードを
-  触った場合は `switch_*.py` の `check` を実行する。**自己申告で済ませない**
+  触った場合は `switch_*.py` を対話起動して冒頭の `check` 結果を確認する（引数付きのコマンド実行には
+  対応していない。標準入力から `q` を流せば check だけ見て終了できる）。**自己申告で済ませない**
 
 ### 8. レビュー（手順 9 のコミット前に行う）
 
