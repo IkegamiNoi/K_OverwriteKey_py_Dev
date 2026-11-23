@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T00:30:00
+last_updated: 2026-11-24T01:15:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
-last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・d0ca007f = phase 77 起票）。push / merge はユーザー
+last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・4819cdb7 = phase 77 task_01）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77 task_01 完了（reviewer 採用・tests 2275 pass）。次 = task_02（統合確認・実機目視はユーザー）。**
-mode: implementing
+focus: **phase 77 task_02: 標準検証 4 種 pass（tests 2275/skip 7・tests_ui 1316・smoke）・deep-reviewer 採用・codex-reviewer 3 件。対応案（Codex①受容・②除外・③採用 = task_02a で lexists + テスト・deep①保留〔別タスク化候補〕・②〜⑤除外）をユーザーへ提示し回答待ち。その後 task_02a → 実機目視（ユーザー）。**
+mode: pending_review
 
 ## last_action
 ts: 2026-11-24T00:30:00
@@ -36,7 +36,7 @@ verified:
   smoke: pass
 
 ## next_action
-- task_02（統合確認）: `/task_new` で `tasks/task_02_integration_check.md` を起票 → verifier で標準検証 4 種（compileall・tests・tests_ui〔同時 1 本・taskkill 禁止〕・smoke）→ 受け入れ条件（暫定 59 §4）の照合 → deep-reviewer + codex-reviewer → ユーザーの実機目視（新規 config で初回起動 → サンプル入り → 別名保存・読込の案内先が config/user/）。
+- ユーザーが対応案を承認したら: decisions.md に採否を記録 → `tasks/task_02a_broken_symlink_conflict.md` を起票（`sample_install._find_conflicting_children` の `os.path.exists` → `os.path.lexists`・リンク切れの symlink が衝突になるテスト 1 件〔symlink を作れない環境は skip〕）→ codex-implementer → verifier → reviewer → コミット → ユーザーの実機目視（task_02 定義の手順）→ task_03（正本反映・Codex① の空フォルダの受容を明記）。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
