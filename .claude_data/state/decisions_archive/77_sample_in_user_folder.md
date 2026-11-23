@@ -9,6 +9,7 @@
 - task_01 書き出し先と衝突照合 4819cdb7 = codex-implementer（Luna high・テスト 2 件の誤りを再依頼で修正）・reviewer 採用。
 - task_02 統合確認 15763ad0 / 3543ef3b: 標準検証 4 種 pass（tests 2275・tests_ui 1316・smoke）・deep-reviewer 採用・codex-reviewer 3 件・実機目視 OK（ユーザー）。
 - task_02a リンク切れの symlink 70a418f0 = codex-implementer（Luna high）・reviewer 採用（この Windows では symlink を作れずテストは skip）。
+- task_03a 構成セット本体のリンク切れ・false と 0 の区別 = codex-implementer（Luna high・テストの対象ファイルの誤り〔false を含まないキーマップを選んだ〕を再依頼で修正）・reviewer 修正して採用（未使用 import の削除）・tests 2278 / tests_ui first_launch 9 / smoke pass。
 - task_03 正本反映（本記録）。refactor_check = 不要（M3 = preview と書き込みの子の並びの 2 か所目〔既知の保留・current.md 別タスク化候補〕・M6 = app.py の直値は既存の重複の値の置き換え・他は該当なし）。
 
 ### 【phase 77 起票】サンプルを config/user/ へ書き出す（暫定 59 v0.2・2026-11-23・ユーザー確定）

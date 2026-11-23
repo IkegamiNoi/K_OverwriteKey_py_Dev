@@ -268,6 +268,46 @@ class SampleInstallTest(unittest.TestCase):
         save.assert_not_called()
         self.assertTrue(os.path.islink(child))
 
+    def test_broken_symlink_keymap_set_is_incomplete_without_writes(self):
+        self.path.parent.mkdir(parents=True)
+        try:
+            self.path.symlink_to(self.path.parent / "missing-target.json")
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink creation is unavailable: {exc}")
+        with patch.object(self.service.repository, "save_json") as save:
+            result = self.install()
+        self.assertEqual(result.status, "incomplete")
+        save.assert_not_called()
+        self.assertTrue(os.path.islink(self.path))
+
+    def test_bool_and_number_difference_is_conflict(self):
+        self.assertEqual(self.install().status, "written")
+        child = self.root / SAMPLE_DIR / "sequences/copy.json"
+        payload = self.service.repository.load_json(str(child))
+        def replace_false(value):
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if item is False:
+                        value[key] = 0
+                        return True
+                    if replace_false(item):
+                        return True
+            elif isinstance(value, list):
+                for item in value:
+                    if replace_false(item):
+                        return True
+            return False
+        self.assertTrue(replace_false(payload))
+        self.service.repository.save_json(str(child), payload)
+        self.path.unlink()
+        before = self.snapshot()
+        with patch.object(self.service.repository, "save_json") as save:
+            result = self.install()
+        self.assertEqual(result.status, "incomplete")
+        self.assertIn("user/sequences/copy.json", result.error)
+        save.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
+
 
 if __name__ == "__main__":
     unittest.main()

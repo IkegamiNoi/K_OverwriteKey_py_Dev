@@ -47,8 +47,8 @@
 1. task_01: **完了（2026-11-24・codex-implementer〔Luna high〕・テスト 2 件の誤りを再依頼で修正・reviewer 採用）** 書き出し先の変更と同名の子の判定 — `sample_install.py`（基準 `config/user/`・書き出す前の 13 子の照合〔中身が同じなら衝突にしない〕・衝突時は書かず `incomplete` 相当で空で始める）・`app.py:405` の起動設定・テスト（暫定 59 §4 の 1・2・4〜8）
 2. task_02: **完了（2026-11-24・標準検証 4 種 pass〔tests 2275・tests_ui 1316・smoke〕・deep-reviewer 採用・codex-reviewer 3 件 → ③ を task_02a・実機目視 OK〔ユーザー〕）** 統合確認 — 標準検証 4 種・受け入れ条件 §4 の照合・実機目視（ユーザー・§4 の 3 = 初回起動でサンプルを開いた状態の保存 / 読込の案内先）
 2a. task_02a: **完了（2026-11-24・codex-implementer〔Luna high〕・reviewer 採用）** リンク切れのシンボリックリンクを衝突として扱う（`os.path.lexists`・テスト 1 件・task_02 の codex-reviewer 指摘③）
-3a. task_03a: 構成セット本体のリンク切れも incomplete・子の照合で false と 0 を区別（完了判定前の Codex 敵対的レビュー指摘 1・3）
-3. task_03: 正本反映 — 暫定 59 の昇格（§6: `data_schema.md` §5.14・`data_schema/5_08_09_orphan_sweep.md` 経路 5・`features.md` §Welcome）と凍結・`decisions_archive/77_sample_in_user_folder.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
+3a. task_03a: **完了（2026-11-24・codex-implementer〔Luna high〕・テストの対象ファイルの誤りを再依頼で修正・reviewer 修正して採用）** 構成セット本体のリンク切れも incomplete・子の照合で false と 0 を区別（完了判定前の Codex 敵対的レビュー指摘 1・3）
+3. task_03: **完了（2026-11-24・メイン〔文書〕・完了判定前レビュー deep-reviewer 完了可 + codex-adversarial-reviewer needs-attention → 1・3 を task_03a・refactor_check 不要）** 正本反映 — 暫定 59 の昇格（§6: `data_schema.md` §5.14・`data_schema/5_08_09_orphan_sweep.md` 経路 5・`features.md` §Welcome）と凍結・`decisions_archive/77_sample_in_user_folder.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
 
 ## レビュー方針
 

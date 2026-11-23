@@ -60,7 +60,7 @@ def install_sample(
 ) -> SampleInstallResult:
     path = sample_keymap_set_path(config_root)
     try:
-        if os.path.exists(path):
+        if os.path.lexists(path):
             if check_sample_complete(service, config_root=config_root):
                 return SampleInstallResult("existing", path)
             return SampleInstallResult("incomplete", path, "Sample references are missing or unreadable")
@@ -95,8 +95,9 @@ def _find_conflicting_children(service, keymap_set_path, data, config_root, save
             continue
         try:
             existing = service.repository.load_json(child_path)
-            expected = json.loads(json.dumps(payload, ensure_ascii=False))
-            if existing == expected:
+            if json.dumps(existing, ensure_ascii=False, sort_keys=True) == json.dumps(
+                payload, ensure_ascii=False, sort_keys=True,
+            ):
                 continue
         except Exception:
             pass
