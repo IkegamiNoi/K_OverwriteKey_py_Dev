@@ -36,6 +36,7 @@ verified:
 
 ## next_action
 - phase 78 は完了。ブランチ `claude/idea-03-ec8eea` の push / merge はユーザー。次フェーズはユーザー判断（`/phase_start`）。
+- **idea_65（同梱の C ライブラリのライセンス）に着手（2026-11-23・ブランチ `claude/template-import-idea-65-7e55e5`）**: ユーザー判断 = 案 A（ライブラリごとに third_party.json の行と全文の txt・OS 列で出し分け）・暫定仕様先行（暫定 60 → phase 79）。範囲は「静的に取り込まれた物〔bzip2・xz・zstd・mpdecimal・expat〕も含める」を推奨して回答待ち。実測: Windows の python.txt に VC++ ランタイムの条件・bzip2・libffi・Zstandard の節はあるが OpenSSL・zlib・xz・mpdecimal・expat は無い / python_macos.txt に第三者の節は無い。次 = 回答後に `/spec_draft` で暫定 60 を起票。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 - **template の取り込み（完了・2026-11-23）**: template 7791fa7..1a99527 を取込済（skills 移行・save_mode の model コマンド・full_hooks 登録解除・フック修正 ほか・last_pulled = 1a99527）。template 側は 1a99527・5c41b38・6086db4 とも main にマージ済み（84a48a4）。Operation_check でファイル面の確認済（skills 15 個・5 つに disable-model-invocation・settings.json = auto_save_and_use_task_file・フックのコマンドを手で実行して出力 OK）。**残りの確認（取り込み後のブランチで開いた新しいセッションで）**: `disable-model-invocation` の 5 つが Claude の Skill 一覧から消えていること・UserPromptSubmit の状態注入が会話に出ること・worktree のセッションで SessionStart の branch が worktree 側になること（取り込み前のセッションでは main の handoff が注入された）。
 
