@@ -67,6 +67,34 @@ class InputGatewayScrollTests(unittest.TestCase):
                 )
         self.assertEqual(caught.exception.errno, 5)
 
+    def test_build_click_inputs_normalizes_virtual_desktop_and_orders_events(self) -> None:
+        events = mouse_backend._build_click_inputs(0, 50, "right", 2, (-100, -50, 201, 101))
+        self.assertEqual(len(events), 5)
+        self.assertEqual(events[0].mi.dwFlags, 0xC001)
+        self.assertEqual((events[0].mi.dx, events[0].mi.dy), (32768, 65535))
+        self.assertEqual([event.mi.dwFlags for event in events[1:]], [8, 16, 8, 16])
+        self.assertTrue(all((event.mi.dx, event.mi.dy) == (0, 0) for event in events[1:]))
+
+    def test_click_sends_all_events_once_and_partial_send_raises(self) -> None:
+        send_input = Mock(return_value=3)
+        with patch.object(mouse_backend, "_virtual_screen", return_value=(0, 0, 100, 100)), \
+             patch.object(mouse_backend, "_send_input_api", return_value=send_input):
+            self.gateway.click_mouse(10, 20, "left", 1)
+        send_input.assert_called_once()
+        self.assertEqual(send_input.call_args.args[0], 3)
+        self.assertEqual(send_input.call_args.args[1][0].mi.dwFlags, 0xC001)
+
+        send_input = Mock(return_value=1)
+        with patch.object(mouse_backend, "_virtual_screen", return_value=(0, 0, 100, 100)), \
+             patch.object(mouse_backend, "_send_input_api", return_value=send_input), \
+             patch.object(send_input_api.ctypes, "get_last_error", return_value=5, create=True):
+            with self.assertRaises(OSError):
+                self.gateway.click_mouse(10, 20, "left", 1)
+
+    def test_click_rejects_unsupported_button(self) -> None:
+        with self.assertRaises(ValueError):
+            mouse_backend._build_click_inputs(0, 0, "side", 1, (0, 0, 1, 1))
+
 
 if __name__ == "__main__":
     unittest.main()

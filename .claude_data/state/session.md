@@ -4,35 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T19:30:00
+last_updated: 2026-11-23T21:00:00
 phase: アクティブなフェーズ = なし（phase 76 = カウンター機能の拡張は 2026-11-23 完了）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 完了（2026-11-23）。** task_07 = 正本反映・凍結・C1 の修正（reviewer 採用・tests 2267 / tests_ui 1316 / smoke pass）。次フェーズはユーザー判断で `/phase_start`。push / merge はユーザー。
-mode: idle
+focus: **フェーズ外の不具合修正（Windows のクリックがカーソル移動前に押される）を実装・検証済み、実機確認待ち・未コミット。** phase 76 は 2026-11-23 完了・次フェーズはユーザー判断。
+mode: pending_review
 
 ## last_action
-ts: 2026-11-23T19:30:00
+ts: 2026-11-23T21:00:00
 who: main
 summary: |
-  phase 76（カウンター機能の拡張）を完了（19c41c8c）。task_06 = 統合確認（R1〜R3・R9 を修正・実機目視 OK）/ task_07 = 暫定 58 v1.1 を正本へ昇格・凍結・decisions_archive/76・current.md 完了記載・refactor_check 不要。
-  フェーズ完了判定: deep-reviewer 修正して採用（低 3 件を修正）/ codex 敵対的 needs-attention → C1（無視した押下の巻き戻しが他の押下の書いた名前を消す）を採用して修正（CounterValues の書き込みの通し番号・CounterAdditionRecords・codex-implementer・reviewer 採用）・C2 / C3 除外。詳細は decisions_archive/76。
-  phase 76 のコミット: task_01 25c123df / task_02 b56a2fc1 / task_03 54895e55 / task_04 7af28e7a / task_05 9242ae4f / task_06 64d519e4・db6722df / task_07 b6112f06・19c41c8c。
+  フェーズ外の不具合修正（ユーザー依頼）: Windows でクリックのアクションの連続実行・実マウスクリック直後の実行で、カーソル移動前に元の位置が押される。原因 = pyautogui.click が SetCursorPos（即時）と座標なしの mouse_event を別々に送り、入力ストリーム上で順序保証されない。
+  修正 = `WindowsMouseBackend.click_mouse` を override し、絶対移動（MOVE|ABSOLUTE|VIRTUALDESK・仮想デスクトップ基準）+ clicks 回の DOWN/UP を 1 回の SendInput で送る（`_build_click_inputs` / `_virtual_screen`）。infrastructure 層のみ。Mac は対象外（元から座標付き CGEvent）。
+  codex-implementer（Luna high）実装・reviewer 採用（参考: ダブルクリック認識とマルチモニタ負座標は実機未確認）。codebase_map.md の該当行を追従。
 result_files:
-  - .claude_data/state/session.md・handoff.md
+  - keyseq/infrastructure/os_backend/windows/mouse_backend.py
+  - tests/test_input_gateway_scroll.py
+  - instructions/common/codebase_map.md
 verified:
-  compile: clean（task_07 C1 後）
-  tests: pass 2267（失敗 0・skip 7・task_07 C1 後）
-  tests_ui: pass 1316（task_07 C1 後・全体）
-  smoke: pass（task_07 C1 後）
-  visual: OK（task_06・R9 の再目視含む）
+  compile: clean
+  tests: pass 2270（失敗 0・skip 7）
+  tests_ui: not_run（変更範囲外）
+  smoke: pass
+  visual: 未（ユーザーの実機確認待ち）
 
 ## next_action
-- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4（呼び出し先の amount 不正を呼び出しの行で通知・既存と同じ扱い）・idea_37（カウンター値による条件分岐）。
-- ブランチ `claude/task-06-confirmation-03414b`・`claude/counter-feature-expansion-a5d3c3`・前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
+- ユーザーの実機確認（連続クリック・実クリック直後のクリックのアクション・clicks=2 のダブルクリック認識）を待つ。OK なら worktree `click-timing-issue-79de93`（ブランチ `claude/click-timing-issue-79de93`）で上記 3 ファイル + session.md をコミット。再現する場合は移動と押下の SendInput を分けて間に短い待ちを入れる案を検討。
+- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4・idea_37。前ブランチ群の push / merge・2 枚目のモニタの目視・中クリックはユーザー判断。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
