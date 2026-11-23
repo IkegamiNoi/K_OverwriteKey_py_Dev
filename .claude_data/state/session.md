@@ -15,32 +15,24 @@ focus: **phase 76 完了（2026-11-23）。** task_07 = 正本反映・凍結・
 mode: idle
 
 ## last_action
-ts: 2026-11-23T16:30:00
+ts: 2026-11-23T19:30:00
 who: main
 summary: |
-  task_07: 暫定 58 v1.1 を data_schema（§5.2・§5.3 counter_starts・§5.11.1・§5.11.5・§5.11.6・§5.11.8・§5.11.11 新設）/ features（§4.2〜§4.2.9・§4.6・巻き戻しは §4.2.9）/ ui_terms / codebase_map へ昇格・凍結・decisions_archive/76・decisions 索引・current.md（アクティブなし・別タスク化候補 1 行）・refactor_check 不要（verifier の M1〜M6）→ b6112f06。phase.md の task_07 は「レビュー待ち」。レビュー 2 本を実行中。
-  task_06 完了: R9 の再目視 OK（ユーザー）→ phase.md と task_06 に完了を記載。次 = task_07（正本反映・R6 の注記を含む）。
-  task_06: 定義を起票。verifier = compileall clean / tests 2254 pass / tests_ui 1316 件・失敗 5・エラー 28（主因 = テストが counter_starts に未追従 R1）/ smoke pass。
-  deep-reviewer + codex-reviewer の指摘を裏取りし task_06 に表で整理（R2 = run_to_end.py:205 の名前の取り直し・R3 = linked_call.py:20-21 の集合差での削除）。ユーザーが R1〜R3 採用（R4〜R8 は推奨どおり）。
-  codex-delegating-implementer（Sol medium・Luna high サブエージェント使用）が R1〜R3 を実装（未コミット 13 ファイル・`CallContext.added_counter_names` / `_run_to_end_added_counter_names`）。reviewer = 修正要（R1 採用・R2+R3 は settle_after_normal 系〔call_wait.py:369・call_run_to_end.py:433・call_context.py:342,382,455・linked_call.py:105-114〕の追加名の記録漏れ）→ Codex へ差し戻し済み（settle 系の囲み + 再現テスト + send_wait._settle_after_stopped_sequence + codebase_map 1 行が入った・Codex 完了）→ reviewer 再レビュー = 採用（指摘なし）・verifier 全 pass（tests 2257・tests_ui 1316・smoke）→ 64d519e4 でコミット。実機目視 = 他は OK・**仕様変更フラグ**: (=値) が保留中のカウンター操作を含まず counter_text で表示 22 と入力 25 がずれる（features §4.2.2 L65 どおり）→ ユーザー判断 A（暫定 58 v1.1 §5.3・decisions 記録・32247122）→ R9 を codex-implementer で実装（本体 4 + テスト 2 ファイル・reviewer = 修正して採用〔import 整理・長い式の変数化・未使用 import・changed_frames 分岐のテスト 1 件〕・verifier = tests 2261 pass / tests_ui 12 モジュール errors 2〔スタブに deferred_counters_for 無し〕→ reviewer 完了可・tests 2262 / tests_ui 全 pass〔2 件は単体で確認〕・smoke OK → コミット済み・R9 の再目視（ユーザー）待ち）→ verifier + reviewer → 再目視。保存→読込・サンプル設定の目視は自動テストで代替→ 戻ったら verifier + reviewer を再実行。差し戻し前の検証 = tests 2256 pass・tests_ui 対象 6 モジュール 128 pass・smoke pass・test_minimize_grab_custody 単体 29 pass（全体実行時のみの失敗 = 干渉・phase 76 と無関係・R8 解決）。
-  （以下は task_05 時点の記録）
-  実施: task_05（編集 UI）を完了してコミット（9242ae4f）。ユーザーの指示で本日はここまで → session.md を整理し handoff.md を再生成。
-  phase 76 のここまで: task_01 保存形式 25c123df / task_02 実行 b56a2fc1 / task_03 counter_text 54895e55 / task_04 表示 7af28e7a / task_05 編集 UI 9242ae4f（いずれも reviewer 採用）。
-  実装エージェント: task_01・03・04 = codex-implementer（Luna high）/ task_02・05 = codex-delegating-implementer（Sol medium・サブエージェント未使用）。
-  /refactor_check の候補（task_07 で判定）: executor の counter_text 分岐の `_labeled` 動的キーと `execute` 内 28 行の切り出し / counter_text の書式の重複・import の並び。
+  phase 76（カウンター機能の拡張）を完了（19c41c8c）。task_06 = 統合確認（R1〜R3・R9 を修正・実機目視 OK）/ task_07 = 暫定 58 v1.1 を正本へ昇格・凍結・decisions_archive/76・current.md 完了記載・refactor_check 不要。
+  フェーズ完了判定: deep-reviewer 修正して採用（低 3 件を修正）/ codex 敵対的 needs-attention → C1（無視した押下の巻き戻しが他の押下の書いた名前を消す）を採用して修正（CounterValues の書き込みの通し番号・CounterAdditionRecords・codex-implementer・reviewer 採用）・C2 / C3 除外。詳細は decisions_archive/76。
+  phase 76 のコミット: task_01 25c123df / task_02 b56a2fc1 / task_03 54895e55 / task_04 7af28e7a / task_05 9242ae4f / task_06 64d519e4・db6722df / task_07 b6112f06・19c41c8c。
 result_files:
   - .claude_data/state/session.md・handoff.md
 verified:
-  compile: clean（task_05 後）
+  compile: clean（task_07 C1 後）
   tests: pass 2267（失敗 0・skip 7・task_07 C1 後）
   tests_ui: pass 1316（task_07 C1 後・全体）
-  smoke: pass（task_05 後）
+  smoke: pass（task_07 C1 後）
   visual: OK（task_06・R9 の再目視含む）
 
 ## next_action
-- task_06: 完了（2026-11-23）。
-- phase 76 完了。次フェーズはユーザー判断（`/phase_start`）。ブランチ `claude/task-06-confirmation-03414b` の push / merge はユーザー。
-- ブランチ `claude/counter-feature-expansion-a5d3c3` と前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
+- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4（呼び出し先の amount 不正を呼び出しの行で通知・既存と同じ扱い）・idea_37（カウンター値による条件分岐）。
+- ブランチ `claude/task-06-confirmation-03414b`・`claude/counter-feature-expansion-a5d3c3`・前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
