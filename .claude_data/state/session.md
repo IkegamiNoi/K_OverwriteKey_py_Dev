@@ -7,12 +7,12 @@
 last_updated: 2026-11-23T21:00:00
 phase: アクティブなフェーズ = なし（phase 76 = カウンター機能の拡張は 2026-11-23 完了）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
-last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
+last_commit_location: `claude/click-timing-issue-79de93`（worktree `click-timing-issue-79de93`・08568e3e）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ外の不具合修正（Windows のクリックがカーソル移動前に押される）を実装・検証済み、実機確認待ち・未コミット。** phase 76 は 2026-11-23 完了・次フェーズはユーザー判断。
-mode: pending_review
+focus: **フェーズ外の不具合修正（Windows のクリックがカーソル移動前に押される）を完了（08568e3e・ユーザー実機確認 OK）。** phase 76 は 2026-11-23 完了・次フェーズはユーザー判断。
+mode: idle
 
 ## last_action
 ts: 2026-11-23T21:00:00
@@ -30,10 +30,10 @@ verified:
   tests: pass 2270（失敗 0・skip 7）
   tests_ui: not_run（変更範囲外）
   smoke: pass
-  visual: 未（ユーザーの実機確認待ち）
+  visual: OK（ユーザー実機確認・2026-11-23）
 
 ## next_action
-- ユーザーの実機確認（連続クリック・実クリック直後のクリックのアクション・clicks=2 のダブルクリック認識）を待つ。OK なら worktree `click-timing-issue-79de93`（ブランチ `claude/click-timing-issue-79de93`）で上記 3 ファイル + session.md をコミット。再現する場合は移動と押下の SendInput を分けて間に短い待ちを入れる案を検討。
+- クリック不具合修正は完了（08568e3e）。ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。
 - 次フェーズはユーザー判断（`/phase_start`）。保留中: R4・idea_37。前ブランチ群の push / merge・2 枚目のモニタの目視・中クリックはユーザー判断。
 
 ## blockers
