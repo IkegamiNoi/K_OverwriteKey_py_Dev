@@ -402,7 +402,7 @@ class App(tk.Tk):
                 ),
             )
             if installed.status in ("written", "existing"):
-                self._startup_settings["keymap_set_path"] = "sample/keymap_sets/sample.json"
+                self._startup_settings["keymap_set_path"] = "user/keymap_sets/sample.json"
             else:
                 self._welcome_sample_error = installed
 

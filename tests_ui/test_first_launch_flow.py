@@ -80,7 +80,7 @@ class FirstLaunchFlowUiTest(unittest.TestCase):
     def _assert_sample_status(self, status):
         self.install_sample.return_value = SampleInstallResult(status, "unused")
         app = self._create_app(first_launch_welcome=True)
-        expected = {"ui_language": "en", "keymap_set_path": "sample/keymap_sets/sample.json"}
+        expected = {"ui_language": "en", "keymap_set_path": "user/keymap_sets/sample.json"}
         self.assertEqual(app._startup_settings, expected)
         self.assertEqual(self.loaded_startup, expected)
         self.write_startup.assert_called_once_with(expected)

@@ -477,6 +477,16 @@ class OrphanScanTest(unittest.TestCase):
     def _save(self, root, path, payload):
         self.repository.save_json(self._resolved(root, path), payload)
 
+    def test_installed_sample_children_are_all_referenced(self):
+        with tempfile.TemporaryDirectory() as root:
+            service = ConfigService(JsonRepository())
+            result = service.install_sample(config_root=root, keyboard_layout_id="us_tkl")
+            self.assertEqual(result.status, "written")
+            states = self._states(self._scan(root))
+            children = [path for path in states if path.startswith("user/")]
+            self.assertEqual(len(children), 13)
+            self.assertTrue(all(states[path] == ORPHAN_REFERENCED for path in children), states)
+
     def _tree_snapshot(self, root):
         directories: set[str] = set()
         files: dict[str, bytes] = {}

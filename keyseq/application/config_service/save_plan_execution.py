@@ -125,6 +125,26 @@ def _restore_payload_keymap_parent_refs(
             keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(parent_refs)
 
 
+def preview_child_payloads(
+    service: Any, keymap_set_path: str, data: Any, *, config_root: str,
+    split_base_dir: str, save_plan: SavePlan,
+) -> list[tuple[str, Any]]:
+    normalized, normalized_keymaps = _restore_input_parent_refs(service, data)
+    resolved_root, resolved_set_path, payloads = _build_and_validate_runtime_payloads(
+        service, normalized, keymap_set_path, config_root=config_root,
+        startup_data=None, startup_entry_loaded=False, keep_legacy_copy=False,
+        legacy_path="", split_base_dir=split_base_dir, save_plan=save_plan,
+    )
+    _restore_payload_keymap_parent_refs(service, normalized_keymaps, payloads)
+    children: list[tuple[str, Any]] = []
+    for kind in ("sequences", "trigger_sets"):
+        children.extend((str(item["resolved_path"]), item["payload"])
+                        for item in payloads[kind] if not item["skip"])
+    children.extend((service._resolve_config_relative_path(str(item["path"]), resolved_root), item["payload"])
+                    for item in payloads["keymaps"] if not item["skip"])
+    return children
+
+
 def _write_runtime_payloads(
     service: Any, payloads: dict[str, Any], resolved_config_root: str,
     resolved_keymap_set_path: str, *,

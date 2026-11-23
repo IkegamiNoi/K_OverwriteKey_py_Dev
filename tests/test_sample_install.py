@@ -30,25 +30,25 @@ class SampleInstallTest(unittest.TestCase):
             for path in self.root.rglob("*") if path.is_file()
         }
 
-    def test_writes_fixed_paths_without_startup_or_user_files(self):
+    def test_writes_fixed_paths_without_startup_or_sample_files(self):
         result = self.install(keyboard_layout_id="us_full")
         self.assertEqual(result.status, "written", result.error)
         self.assertEqual(result.error, "")
         self.assertEqual(result.keymap_set_path, str(self.path))
-        self.assertEqual(SAMPLE_DIR, "sample")
+        self.assertEqual(SAMPLE_DIR, "user")
         self.assertEqual(sample_keymap_set_path(str(self.root)), str(self.path))
-        expected = {"sample/keymap_sets/sample.json"}
+        expected = {"user/keymap_sets/sample.json"}
         for directory in ("keymaps", "trigger_sets"):
-            expected.update(f"sample/{directory}/{name}.json" for name in (
+            expected.update(f"user/{directory}/{name}.json" for name in (
                 "shortcuts", "right_hand", "numpad",
             ))
-        expected.update(f"sample/sequences/{name}.json" for name in (
+        expected.update(f"user/sequences/{name}.json" for name in (
             "select_line", "copy", "paste", "switch_app", "paste_line_to_app",
             "right_hand_guide", "numpad_guide",
         ))
         self.assertEqual(set(self.snapshot()), expected)
         self.assertFalse((self.root / "config.json").exists())
-        self.assertFalse(any(path.is_file() for path in (self.root / "user").rglob("*")))
+        self.assertFalse((self.root / "sample").exists())
         loaded = self.service.load_runtime_data_from_keymap_set_path(
             str(self.path), config_root=str(self.root),
         )
@@ -88,7 +88,7 @@ class SampleInstallTest(unittest.TestCase):
                 )
                 self.assertEqual(result.status, "written", result.error)
                 loaded = self.service.load_runtime_data_from_keymap_set_path(
-                    str(root / "sample/keymap_sets/sample.json"), config_root=str(root),
+                    str(root / "user/keymap_sets/sample.json"), config_root=str(root),
                 )
                 self.assertEqual(len(loaded["keymaps"]), 3)
                 self.assertEqual(loaded["active_keymap_id"], "keymap_1")
@@ -164,13 +164,17 @@ class SampleInstallTest(unittest.TestCase):
         self.service.repository.save_json(str(self.root / "custom/edited.json"), {"actions": []})
         self.assertEqual(self.install().status, "existing")
 
-    def test_leftover_children_are_overwritten(self):
+    def test_different_leftover_child_blocks_install_without_writes(self):
         child = self.root / SAMPLE_DIR / "sequences/copy.json"
         child.parent.mkdir(parents=True)
         child.write_text("broken leftover", encoding="utf-8")
-        self.assertEqual(self.install().status, "written")
-        self.assertIsInstance(self.service.repository.load_json(str(child)), dict)
-        self.assertTrue(self.service.check_sample_complete(config_root=str(self.root)))
+        before = self.snapshot()
+        with patch.object(self.service.repository, "save_json") as save:
+            result = self.install()
+        self.assertEqual(result.status, "incomplete")
+        self.assertEqual(result.error, "Sample files already exist: user/sequences/copy.json")
+        save.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
 
     def test_failure_leaves_no_keymap_set_and_retry_succeeds(self):
         save_json = self.service.repository.save_json
@@ -188,10 +192,10 @@ class SampleInstallTest(unittest.TestCase):
         self.assertEqual(result.error, "OSError: sample write failed")
         self.assertFalse(self.path.exists())
         self.assertEqual(len(calls), 14)
-        self.assertTrue(all(path.startswith("sample/sequences/") for path in calls[:7]))
-        self.assertTrue(all(path.startswith("sample/trigger_sets/") for path in calls[7:10]))
-        self.assertTrue(all(path.startswith("sample/keymaps/") for path in calls[10:13]))
-        self.assertEqual(calls[-1], "sample/keymap_sets/sample.json")
+        self.assertTrue(all(path.startswith("user/sequences/") for path in calls[:7]))
+        self.assertTrue(all(path.startswith("user/trigger_sets/") for path in calls[7:10]))
+        self.assertTrue(all(path.startswith("user/keymaps/") for path in calls[10:13]))
+        self.assertEqual(calls[-1], "user/keymap_sets/sample.json")
         self.assertFalse((self.root / "config.json").exists())
         self.assertEqual(self.install().status, "written")
 
@@ -206,6 +210,49 @@ class SampleInstallTest(unittest.TestCase):
             str(self.path), data, config_root=str(self.root), write_startup_entry=False,
         )
         self.assertEqual((startup_path.stat().st_mtime_ns, startup_path.read_bytes()), before)
+
+    def test_identical_leftover_children_allow_retry(self):
+        save_json = self.service.repository.save_json
+        def fail_set(path, payload):
+            if os.path.abspath(path) == str(self.path):
+                raise OSError("set write failed")
+            save_json(path, payload)
+        with patch.object(self.service.repository, "save_json", side_effect=fail_set):
+            self.assertEqual(self.install().status, "failed")
+        self.assertEqual(self.install().status, "written")
+
+    def test_mixed_identical_and_different_children_remain_unchanged(self):
+        self.assertEqual(self.install().status, "written")
+        self.path.unlink()
+        different = self.root / SAMPLE_DIR / "sequences/copy.json"
+        different.write_text('{"different": true}', encoding="utf-8")
+        before = self.snapshot()
+        with patch.object(self.service.repository, "save_json") as save:
+            result = self.install()
+        self.assertEqual(result.status, "incomplete")
+        save.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_old_sample_tree_is_untouched(self):
+        old = self.root / "sample/sequences/copy.json"
+        old.parent.mkdir(parents=True)
+        old.write_text('{"old": true}', encoding="utf-8")
+        before = self.snapshot()
+        self.assertEqual(self.install().status, "written")
+        self.assertEqual({k: v for k, v in self.snapshot().items() if k.startswith("sample/")},
+                         before)
+
+    def test_child_paths_and_external_layout_remain_config_relative(self):
+        self.assertEqual(self.install(keyboard_layout_id="jis",
+                         external_layout_path="user/keylayout/jis.json").status, "written")
+        loaded = self.service.load_runtime_data_from_keymap_set_path(
+            str(self.path), config_root=str(self.root))
+        raw = self.service.repository.load_json(str(self.path))
+        self.assertEqual(loaded["external_keyboard_layouts"],
+                         [{"path": "user/keylayout/jis.json"}])
+        self.assertTrue(raw["active_keymap_path"].startswith("user/keymaps/"))
+        self.assertTrue(all(item["path"].startswith("user/keymaps/")
+                            for item in raw["keymaps"]))
 
 
 if __name__ == "__main__":

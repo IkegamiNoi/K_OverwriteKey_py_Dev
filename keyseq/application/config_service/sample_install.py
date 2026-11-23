@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -13,10 +14,11 @@ from keyseq.application.save_plan import (
     SavePlan,
     compose_sequence_key,
 )
+from keyseq.application.config_service.save_plan_execution import preview_child_payloads
 
 
-SAMPLE_DIR = "sample"
-SAMPLE_KEYMAP_SET_RELATIVE_PATH = "sample/keymap_sets/sample.json"
+SAMPLE_DIR = "user"
+SAMPLE_KEYMAP_SET_RELATIVE_PATH = "user/keymap_sets/sample.json"
 
 
 @dataclass(frozen=True)
@@ -66,14 +68,40 @@ def install_sample(
         data["keyboard_layout"] = keyboard_layout_id
         if external_layout_path:
             data["external_keyboard_layouts"] = [{"path": external_layout_path}]
+        save_plan = _sample_save_plan(config_root)
+        conflicts = _find_conflicting_children(service, path, data, config_root, save_plan)
+        if conflicts:
+            return SampleInstallResult(
+                "incomplete", path, "Sample files already exist: " + ", ".join(conflicts),
+            )
         service.save_runtime_data(
             path, data, config_root=config_root,
             split_base_dir=os.path.abspath(os.path.join(config_root, SAMPLE_DIR)),
-            save_plan=_sample_save_plan(config_root), write_startup_entry=False,
+            save_plan=save_plan, write_startup_entry=False,
         )
         return SampleInstallResult("written", path)
     except Exception as exc:
         return SampleInstallResult("failed", path, f"{type(exc).__name__}: {exc}")
+
+
+def _find_conflicting_children(service, keymap_set_path, data, config_root, save_plan):
+    split_base_dir = os.path.abspath(os.path.join(config_root, SAMPLE_DIR))
+    conflicts = []
+    for child_path, payload in preview_child_payloads(
+        service, keymap_set_path, data, config_root=config_root,
+        split_base_dir=split_base_dir, save_plan=save_plan,
+    ):
+        if not os.path.exists(child_path):
+            continue
+        try:
+            existing = service.repository.load_json(child_path)
+            expected = json.loads(json.dumps(payload, ensure_ascii=False))
+            if existing == expected:
+                continue
+        except Exception:
+            pass
+        conflicts.append(os.path.relpath(child_path, config_root).replace(os.sep, "/"))
+    return conflicts
 
 
 def _load_object(service, path: str, config_root: str) -> dict[str, Any]:

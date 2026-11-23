@@ -4,31 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T23:00:00
+last_updated: 2026-11-24T00:30:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・d0ca007f = phase 77 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77 起票済み・コミット d0ca007f（整合チェック reviewer 修正して採用 → 反映済み）。task_01 は未着手（ユーザーの進行指示待ち）。**
-mode: pending_review
+focus: **phase 77 task_01 完了（reviewer 採用・tests 2275 pass）。次 = task_02（統合確認・実機目視はユーザー）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-23T22:30:00
+ts: 2026-11-24T00:30:00
 who: main
 summary: |
-  ユーザー要望: サンプルを `config/sample/` に置くと別名保存・読込が `config/sample/` へ案内され不便 → `config/user/` へ書き出す（案 A）。ユーザー確定 = 既存 `config/sample/` は移行しない・ファイル名はそのまま・暫定仕様先行。
-  `instructions/history/59_sample_in_user_folder.md` v0.1 を起票（§4 確認事項 = ①同名の子があれば書かず空で始める〔案 A 推奨〕②孤児の掃除の参照元 `config/sample/keymap_sets/` は残す〔案 A 推奨〕）。
-  codex-adversarial-reviewer 指摘 5 件（引用行は実測済み）→ 対応案: 1 採用（全パス事前確認・別プロセスの競合は除外）/ 2 修正して採用（中身が同じファイルは衝突にしない = 途中失敗の再試行を保つ）/ 3 受容を明記（利用者自作の user/keymap_sets/sample.json がサンプルとして開く）/ 4 採用（「書かない・移行しない・読込と参照は続ける」へ文言修正）/ 5 採用（旧サンプルの別名保存で子の案内先は移らない旨・受け入れ条件 3 を新規書き出しに限定）。
-  ユーザーが対応案を承認（2026-11-23）→ v0.2 へ反映（§3.1〜3.5・受け入れ条件 8 項目）。
+  phase 77 task_01（`tasks/task_01_sample_write_to_user.md`）完了。`sample_install.py` の書き出し先を `user/`・構成セットが無いとき書き出す 13 子を照合（中身が同じなら衝突にしない・違えば何も書かず incomplete〔error = "Sample files already exist: <相対パス>"〕）。`save_plan_execution.preview_child_payloads`（書き込みなし）を追加。`app.py` の起動設定を `user/keymap_sets/sample.json`。`orphan_scan.py` 不変。application + presentation 1 行。
+  codex-implementer（Luna high）実装 → verifier で Codex のテストの誤り 2 件（配置クラス違い・loaded keymaps に path キー無し）→ 再依頼で修正 → 再検証 pass → reviewer 採用（参考 = except のコメント・任意で不採用）。
 result_files:
-  - instructions/history/59_sample_in_user_folder.md
+  - keyseq/application/config_service/sample_install.py
+  - keyseq/application/config_service/save_plan_execution.py
+  - keyseq/presentation/app.py
+  - tests/test_sample_install.py
+  - tests/test_orphan_scan.py
+  - tests_ui/test_first_launch_flow.py
+  - instructions/phase/77_sample_in_user_folder/tasks/task_01_sample_write_to_user.md
+  - instructions/phase/77_sample_in_user_folder/phase.md
 verified:
-  compile: not_run（文書のみ）
+  compile: clean
+  tests: pass 2275（失敗 0・skip 7）
+  tests_ui: pass 9（test_first_launch_flow のみ）
+  smoke: pass
 
 ## next_action
-- `/task_new` で `instructions/phase/77_sample_in_user_folder/tasks/task_01_*.md` を起票 → codex-implementer（Luna high）へ実装依頼（`sample_install.py`・`app.py:405`・テスト 3 ファイル・「既存テストの途中に差し込まない」「apply_patch で編集」を明記）→ verifier → reviewer。
+- task_02（統合確認）: `/task_new` で `tasks/task_02_integration_check.md` を起票 → verifier で標準検証 4 種（compileall・tests・tests_ui〔同時 1 本・taskkill 禁止〕・smoke）→ 受け入れ条件（暫定 59 §4）の照合 → deep-reviewer + codex-reviewer → ユーザーの実機目視（新規 config で初回起動 → サンプル入り → 別名保存・読込の案内先が config/user/）。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
