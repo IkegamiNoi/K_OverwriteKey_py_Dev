@@ -1,6 +1,6 @@
 # 暫定仕様 60: 同梱の C ライブラリのライセンス（bundled_c_library_licenses）
 
-> 状態: **未凍結・v0.2・主入力**（v0.1 起票 → v0.2 deep-reviewer「修正して採用」の 1〜13 を反映 → v0.3 §6 Q1〜Q5 をユーザー確定・2026-11-23）。Codex 敵対的レビュー前。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.4・主入力**（v0.1 起票 → v0.2 deep-reviewer「修正して採用」の 1〜13 を反映 → v0.3 §6 Q1〜Q5 をユーザー確定 → v0.4 Codex 敵対的レビュー（needs-attention 4 件）の採否を反映 = 1・2・4 採用・3 一部採用・「全文の制約を外す」は除外（ユーザー 2026-11-23）。ユーザー確定前。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_65](../backlog/idea_65_bundled_c_library_licenses.md)（2026-11-22・phase 75 task_13b / 13c の同梱一覧の照合）。
 > 番号対応: phase 79 / 暫定 60 / decisions 79。
@@ -58,24 +58,37 @@
 ## §4 版の照合のテスト
 
 - `tests/test_third_party.py` に、**Python から版を取れる C ライブラリ**の照合を足す。対象 = OpenSSL（`ssl.OPENSSL_VERSION`）・Zstandard（`compression.zstd.zstd_version`。無い Python では skip）・mpdecimal（`decimal.__libmpdec_version__`）・expat（`pyexpat.EXPAT_VERSION`）。形は既存の `test_python_tcl_and_tk_versions_match_runtime` にそろえる（`load_third_party()` で実行中の OS の行を取り、名前で引いて実行時の値と照合し、行が無ければ skip）。
+- mpdecimal は `_decimal.__libmpdec_version__` を使う（`decimal` の属性は純 Python 版 `_pydecimal` の互換値〔2.4.2〕を返しうるため。`_decimal` が無ければ skip せず失敗にする）。
 - 照合の比べ方（実行時の文字列から版の部分を取り出す規則）はタスク定義で決める。
+- このテストは開発用の `.venv` の値を見るだけで、**配布物の中身との一致は保証しない**。配布物との突き合わせは §4.1 の棚卸しで行う。
+
+### §4.1 配布物の棚卸し（出荷ごと・各 OS）
+
+- ビルドした配布物（Windows = `dist/keyseq/`・Mac = `keyseq.app` と同じ階層の物）の中を再帰的にたどり、**バイナリ（`.dll`・`.pyd`・`.so`・`.dylib`・実行ファイル）と Tcl / Tk のデータ・拡張（`tcl` / `tk` のフォルダ・tcllib 等）を一覧にする**。
+- 一覧の各項目を、**表のどの行で表示するか**、または**表示しない理由**（例: Python のパッケージの行に含まれる・本体の物・表示の義務が無い）に対応づける。対応づけられない物があれば止めてユーザーに報告する。
+- Python の本体と Tcl / Tk の DLL に静的に入る物は、各 OS のビルドの定義（Windows = CPython の `PCbuild` のプロジェクト・Mac = Homebrew の formula とビルドの設定）から洗い出す。
+- 版は、実行時の値（§4）か、ビルドの入力（CPython の外部ライブラリの定義・Homebrew の formula の版）で記録する。
+- 棚卸しの結果（一覧・対応づけ・版の根拠）は、各 OS のタスクの記録に残す。出荷ごとの手順は `packaging/README.md` に書く（Q4）。
 - 版を取れない物（libffi・zlib-ng・zlib・bzip2・xz・libtommath）はテストで照合しない。版を上げたときの確認の手順は `packaging/` の手順書に書く（§6 Q4）。
 - **既存の照合からの除外**: `test_library_versions_match_installed_distributions`（`tests/test_third_party.py:41-53`）は Python / Tcl / Tk 以外の全行を `importlib.metadata.version(name)` で照合する。C ライブラリの行をその除外の集合に加える（同名の PyPI パッケージと取り違えないため）。
 - **一覧の固定値**: `test_bundled_notices_are_complete_unique_and_ordered`（`tests/test_third_party.py:21-39`）は OS ごとの名前の列を固定しているので、行を足したタスクで期待値を更新する。
 
 ## §5 タスクの分け方（予定）
 
-1. **Windows の行**（task_01）: §1 の未実測の版（libffi・zlib-ng・xz）を確定し、Windows の行と全文・§4 のテスト（照合の追加・除外・一覧の期待値）・`packaging/README.md` の Windows 節（Q4）を入れる。Windows の検証（標準検証 4 種）とライセンスの窓の目視。
-2. **Mac の行**（task_02・Mac で実施）: Mac のビルドで同梱の dylib と静的に入る物・各版を実測し、Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節を入れる。Mac のテストとライセンスの窓の目視。
+1. **Windows の行**（task_01）: §4.1 の棚卸しを行い、§1 の未実測の版（libffi・zlib-ng・xz）を確定する。VC++ の DLL の入手元と、適用される Microsoft の再頒布の条件を記録する（Q1）。Windows の行と全文・§4 のテスト（照合の追加・除外・一覧の期待値）・`packaging/README.md` の Windows 節（Q4）を入れる。Windows の検証（標準検証 4 種）とライセンスの窓の目視。
+2. **Mac の行**（task_02・Mac で実施）: Mac のビルドで §4.1 の棚卸しを行い、同梱の dylib と静的に入る物・各版を確定する。Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節を入れる。Mac のテストとライセンスの窓の目視。
 3. **正本反映**（task_03）: §9 の昇格・本書の凍結・decisions_archive/79・current.md・idea_65 の INDEX_done への移動・refactor_check。
 
 ## §6 確定した判断（ユーザー 2026-11-23・Q1〜Q5 はすべて下記の提案どおり）
 
 - **Q1 VC++ ランタイムを行に載せるか**: 提案 = **載せない**。VC++ ランタイムの再頒布の条件は、表示を求めるものではなく、再頒布の仕方の条件（改変しない・Microsoft の商標を使わない等）。その条件は `python.txt` の「Additional Conditions for this Windows binary build」に既に載っていて、窓で読める。ライセンス文を持つ OSS ではないため、他の行と形がそろわない。
+  - v0.4（Codex 指摘 4・ユーザー 2026-11-23）: 行は足さないが、条件の確認は閉じない。条項は「配布者と利用者に、Microsoft の再頒布可能コードを守る条項への同意を求めよ」としている（`python.txt:281-296`）。task_01 で、同梱の `VCRUNTIME140*.dll` の入手元（PyInstaller が CPython のインストールから集めた物か）と、適用される Microsoft の条件を確かめて記録する。利用者へ何かを示す必要がある（README への追記など）とわかったら、その時点でユーザーに確認する。
 - **Q2 libtommath（Mac・Unlicense）と xz（0BSD / パブリックドメイン）のように表示の義務が無い物も載せるか**: 提案 = **載せる**。何が入っているかを一覧で確かめられることを優先する（§2 の「範囲」の趣旨）。
 - **Q3 Tcl / Tk のために入る物**: 提案 = **一般則として「別のファイルで入る物は行を足し、Tcl / Tk の DLL に静的に入っている物は Tcl / Tk の行の配布物として扱う」**。Windows の `zlib1.dll`（`tcl86t.dll` だけが読み込む）は別のファイルなので `zlib` の行を足す。`tcl86t.dll` に静的に入る libtommath は行を足さない。Mac の libtommath は別の dylib で入るので行を足す（Q2。Python ではなく Homebrew の tcl-tk の依存の可能性があり、出所は task_02 で実測する。並びは §3 のとおり Python の行の直後でよい）。
 - **Q4 `packaging/` の手順書**: 提案 = `packaging/README.md` の Windows / macOS の節に「C ライブラリの版の確認」の手順（§4 で照合しない物の確かめ方）を 1 段落ずつ足す。
+  - v0.4（Codex 指摘 3・ユーザー 2026-11-23）: 手順は版の確認に限らず、**出荷ごとの §4.1 の棚卸し**（配布物の一覧と表の行の突き合わせ）とする。配布物を自動で検査するテストは作らない（§8）。
 - **Q5 Python の本体に組み込まれた第三者のコード**（mimalloc・HACL*・SipHash・dtoa など。CPython の `Doc/license.rst`「Licenses and Acknowledgements for Incorporated Software」に載る物）: 提案 = **OS ごとに 1 行「CPython incorporated software」を足し**、全文はその版の `Doc/license.rst` の該当節をテキストにした物にする（`version` = その OS の Python の版・`license` = `Various (see text)`）。理由 = 本体に入る物は Python の版で決まり、ライブラリごとに行を分けると行数が膨らむうえ、版を個別に実測できない。expat・libffi・zlib など §3 の行と重なる物があっても、重複は許す（§3 の行は配布物の中身の一覧、この行は CPython の謝辞の写しという役割の違い）。
+  - v0.4（Codex 指摘 1・ユーザー 2026-11-23）: `Doc/license.rst` には本体に組み込まれた物がすべて載っているわけではない（3.14.6 の `Doc/html/license.html` に HACL* の節は無いと実測。HACL* は `python314.dll` に入っている）。**全文 = `Doc/license.rst` の該当節 + そこに無い組み込みのコードの表示**（ソースのヘッダー等にある著作権表示と許諾文）とする。組み込みのコードは §4.1 のとおりビルドの定義から洗い出す。Windows の HACL* は必須。
 
 ## §7 受け入れ条件（ドラフト）
 
@@ -84,12 +97,17 @@
 3. `third_party.json` の形が変わらず、既存の読み込みとテストが通る（§3）。C ライブラリの行はすべて `platforms` を持ち、各 OS の Python の行の直後に §3 の順で並ぶ。
 4. §4 の照合のテストが、実行中の OS の行で通る（Windows と Mac の両方）。C ライブラリの行が `test_library_versions_match_installed_distributions` の対象から外れ、一覧の期待値が更新されている。
 5. 各全文が実測した版の上流のライセンスファイルと一致し、版の確定の根拠（実測の方法か参照した定義）がタスクの記録に残っている（§3）。
-6. `packaging/README.md` の Windows / macOS の節に C ライブラリの版の確認の手順がある（Q4）。
+6. `packaging/README.md` の Windows / macOS の節に、出荷ごとの棚卸しの手順がある（Q4・§4.1）。
 7. 正本 `features.md` の「idea_65（未決）」の行が、本書の内容で置き換わっている（§9）。
+8. 各 OS の §4.1 の棚卸しの結果（配布物の全バイナリと Tcl / Tk のデータ・拡張の一覧、各項目の行または表示しない理由、版の根拠）がタスクの記録にあり、対応づけられない物が無い。Tcl / Tk の行にまとめた物は、その行の全文に表示が含まれている（Q3）。
+9. 「CPython incorporated software」の行の全文に、`Doc/license.rst` に無い組み込みのコードの表示が含まれている。Windows では HACL* の表示が必須（Q5）。
+10. Windows の VC++ の DLL の入手元と、適用される再頒布の条件が task_01 の記録にある（Q1）。
 
 ## §8 スコープ外（本フェーズでやらない）
 
 - ビルドの手順・`.spec` の変更（収集の除外の検討を含む）。
+- 配布物の中身と表の行を自動で突き合わせるテスト（§4.1 は手順書に従う手作業）。
+- 全文の ` — ` の制約を外すための `tests_ui/test_help_window.py` の変更（§3 の制約で足りる）。
 - Python のパッケージの行の見直し（既存の行は変えない）。
 - 配布物の README の変更（第三者ライセンスは窓で見られる旨が既に書いてある）。
 - sqlite3 など配布物に入らない物。
