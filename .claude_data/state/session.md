@@ -15,25 +15,24 @@ focus: **phase 77 完了（2026-11-24）。** 初回のサンプルを `config/u
 mode: idle
 
 ## last_action
-ts: 2026-11-24T00:30:00
+ts: 2026-11-24T04:20:00
 who: main
 summary: |
-  phase 77 task_01（`tasks/task_01_sample_write_to_user.md`）完了。`sample_install.py` の書き出し先を `user/`・構成セットが無いとき書き出す 13 子を照合（中身が同じなら衝突にしない・違えば何も書かず incomplete〔error = "Sample files already exist: <相対パス>"〕）。`save_plan_execution.preview_child_payloads`（書き込みなし）を追加。`app.py` の起動設定を `user/keymap_sets/sample.json`。`orphan_scan.py` 不変。application + presentation 1 行。
-  codex-implementer（Luna high）実装 → verifier で Codex のテストの誤り 2 件（配置クラス違い・loaded keymaps に path キー無し）→ 再依頼で修正 → 再検証 pass → reviewer 採用（参考 = except のコメント・任意で不採用）。
+  phase 77（サンプルを config/user/ へ書き出す）完了。task_03a（構成セット本体もリンク切れなら incomplete・子の照合を json.dumps(sort_keys=True) の文字列で比較して false と 0 を区別）= codex-implementer（Luna high・テストの対象ファイルの誤りを再依頼で修正）・reviewer 修正して採用。
+  task_03 正本反映（data_schema §5.14・孤児の掃除の経路 5・features §Welcome・codebase_map）・暫定 59 凍結・decisions_archive/77・current.md 完了記載・refactor_check 不要。完了判定前レビュー = deep-reviewer 完了可 + codex-adversarial-reviewer（1・3 採用 / 2・4 除外・ユーザー承認）。
 result_files:
   - keyseq/application/config_service/sample_install.py
-  - keyseq/application/config_service/save_plan_execution.py
-  - keyseq/presentation/app.py
   - tests/test_sample_install.py
-  - tests/test_orphan_scan.py
-  - tests_ui/test_first_launch_flow.py
-  - instructions/phase/77_sample_in_user_folder/tasks/task_01_sample_write_to_user.md
+  - instructions/common/spec_detail/data_schema.md
+  - instructions/history/59_sample_in_user_folder.md
+  - .claude_data/state/decisions_archive/77_sample_in_user_folder.md
   - instructions/phase/77_sample_in_user_folder/phase.md
 verified:
   compile: clean
-  tests: pass 2275（失敗 0・skip 7）
-  tests_ui: pass 9（test_first_launch_flow のみ）
+  tests: pass 2278（失敗 0・skip 9〔symlink の特権不足〕）
+  tests_ui: pass 1316（task_02 時点の全体）/ 9（task_03a 後の test_first_launch_flow）
   smoke: pass
+  visual: OK（ユーザー実機確認・2026-11-24）
 
 ## next_action
 - phase 77 は完了。ブランチ `claude/sample-folder-save-path-d3cd34` の push / merge はユーザー。次フェーズはユーザー判断（`/phase_start`）。
@@ -45,6 +44,7 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **phase 77 の要点**: 初回のサンプルは `config/user/`（`sample_install.SAMPLE_DIR = "user"`）。構成セットが無いときは `_find_conflicting_children` が `save_plan_execution.preview_child_payloads` と既存の子を照合（lexists・sort_keys の json 文字列比較）。旧 `config/sample/` は書かない・孤児の掃除の経路 5 で参照だけ残す。symlink のテストは Windows の特権不足で skip（Mac で一度流すと確証）。
 - **phase 76 の要点**: 実効値（値が入った名前は値・それ以外は開始値・それも無ければ 0）は `keyseq/application/counter_values.py`（`CounterValues(dict)`・`counter_value`・`counter_start`・`counter_display_values`・`counter_starts_of`）に 1 か所。保留は `(op, name, amount)`。開始値は構成セットの `counter_starts`（`domain/sequence_control.normalize_counter_starts`）→ `App._sync_control_vars_from_data` で `AppState.set_counter_starts`。ダイアログは開始値を `_dialog_counter_start` で返し、`action_edit._apply_counter_start_result` が行の追加・置換の成立後に書く。新しい種類 `counter_text` は `ActionExecutor.execute` の 1 分岐。
 - **Codex の傾向（phase 76 で実測）**: テストを書き漏らす（task_01・04 は 2 回目の依頼で追加）・既存テストの途中に新しいテストを差し込む（task_01）・タスク定義の一部（通知のラベル）を落とす（task_03）。依頼文に「既存テストの途中に差し込まない」を書き、差分を直読みしてから verifier へ。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
@@ -55,6 +55,6 @@ verified:
 - **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。Bash の heredoc の前に `cat > file` を単独で書かない（stdin 待ちでハングする）。
 - **Codex は互換の工夫・テストの期待値の推測を足すことがある**。差分を直読みしてから verifier / reviewer へ。Codex は LF を混ぜることがある（コミットは git が正規化）。
 - `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・current.md「テスト負債」）。
-- 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜57）の条項を実装の根拠に引かない（暫定 58 は phase 76 の主入力・未凍結）。
+- 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59）の条項を実装の根拠に引かない（正本 `spec_detail/` が正）。
 - **【Codex のプロセス】** companion は作業フォルダごとに `app-server-broker.mjs serve` を常駐させ、`codex app-server` は呼び出し後も残る。worktree を多く使うと codex.exe が溜まる。`codex-delegating-implementer` は 180 秒を超えるとバックグラウンドへ移る → 出力ファイルの更新時刻で進み具合を見る。
 - **【罠・phase 58】ttk.LabelFrame の `labelwidget` に既定の ttk.Label を使うと枠の要求高さが 4px 増える**（`style="TLabelframe.Label"` なら同じ）
