@@ -49,7 +49,7 @@
 ## タスク
 
 - task_01: **完了（2026-11-24・実機目視 OK〔ライセンスの窓 25 行〕・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2279 / tests_ui test_help_window 25 / smoke pass）。VC++ はユーザー判断で配布物の README に一文を追記済み（暫定 60 v0.7）** **Windows の行**（Windows で実施）。配布物の棚卸し（§4.1）・未実測の版（libffi・zlib-ng・xz）の確定・VC++ の DLL の入手元と条件・実際の配り方で条件を満たす根拠の記録（利用者への対応が要るとわかったら、ユーザー判断と対応が済むまで出荷しない）・Windows の行と全文・「CPython incorporated software」（HACL* 含む）・`tests/test_third_party.py`（照合の追加・除外・一覧の期待値）・`packaging/README.md` の Windows 節。標準検証 4 種とライセンスの窓の目視
-- task_02: **実装・検証済み（2026-11-24・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2217 / test_help_window 25 / smoke pass）・実機目視待ち** **Mac の行**（Mac で実施）。Mac のビルドで棚卸し（拡張モジュールの中の HACL* の有無を含む）・Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節。Mac のテストとライセンスの窓の目視
+- task_02: **完了（2026-11-24・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2217 / test_help_window 25 / smoke pass）・実機目視 OK〔ライセンスの窓 21 行〕→ 完了** **Mac の行**（Mac で実施）。Mac のビルドで棚卸し（拡張モジュールの中の HACL* の有無を含む）・Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節。Mac のテストとライセンスの窓の目視
 - task_03: **統合確認と正本反映**。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
 
 ## レビュー方針

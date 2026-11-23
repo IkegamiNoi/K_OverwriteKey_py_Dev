@@ -98,4 +98,4 @@ OpenSSL = Cellar openssl@3 3.6.2 の `LICENSE.txt`（`openssl.txt` と同一）/
 - 実装: codex-implementer（Luna high）= JSON の 5 行・`mac_names`・`_NON_PYPI_NAMES`・README の macOS 手順 5。全文 4 ファイルはメインが配置（`cpython_incorporated_macos.txt` の `license.rst` の部分は v3.13.18 の原本と diff 一致）。
 - reviewer: 採用（全文 4 ファイルを Cellar の原本と diff 一致・dylib 7 個と記録が過不足なく対応）。
 - verifier: compileall clean / `tests.test_third_party` 8 件 OK（skip 1 = expat の subTest・Mac に行が無い）/ `tests` 2217 件 OK（skip 33）/ `tests_ui.test_help_window` 25 件 OK / smoke OK。
-- 実機目視（ユーザー）: 未実施。
+- 実機目視（ユーザー・2026-11-24）: OK（再ビルドした `dist/keyseq.app` のライセンスの窓に 21 行・各全文。最初のビルドは表の変更前だったため再ビルドした）。→ task_02 完了。
