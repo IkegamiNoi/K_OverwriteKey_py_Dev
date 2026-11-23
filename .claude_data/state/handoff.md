@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 77 = サンプルを config/user/ へ書き出す は 2026-11-23 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 78 = アクションの hotkey の保存時の検査と正規化 は 2026-11-23 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 77 完了（2026-11-23）。** 初回のサンプルを `config/user/` へ書き出す（構成セット `user/keymap_sets/sample.json`・既存 `config/sample/` は移行しない）・構成セットが無いとき中身の違う同名の子（読めない・リンク切れ・false と 0 の違いを含む）があれば何も書かず警告して空で始める・孤児の掃除の経路 5 は旧サンプル用に残す。アクティブなフェーズなし・次フェーズはユーザー判断。
-worktree = `claude/sample-folder-save-path-d3cd34`（99d69f70 までコミット済み・未 push）。push / main へのマージはユーザー。
-直近の実測（Windows・task_03a 後・2026-11-23）: compile clean / tests 2278 pass（skip 9）/ tests_ui 1316 pass（task_02 時点の全体）/ smoke pass / 実機目視 OK。
+**phase 78 完了（2026-11-23）。** 出力シーケンスの hotkey アクションを OK で `validate_hotkey` に通し（他方の OS の修飾キーの検査が先・文言不変）、不正なら保存しない・通れば正規化した値を保存。既存の正規化前の値は移行しない・今のレイアウトで通らない既存値はラベルだけの変更でも保存できない。アクティブなフェーズなし・次フェーズはユーザー判断。
+worktree = `claude/idea-03-ec8eea`（phase 78 完了までコミット済み・未 push）。push / main へのマージはユーザー。
+直近の実測（Windows・phase 78 完了時・2026-11-23）: compile clean / tests 2278 pass（skip 9）/ tests_ui 1319 pass / smoke pass / 実機目視 OK。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,9 +37,9 @@ worktree = `claude/sample-folder-save-path-d3cd34`（99d69f70 までコミット
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = phase 77 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1316 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = phase 78 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1319 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
-**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕）。
+**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78・task_03a の 2 件は統合確認の後に追加〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,8 +54,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4（呼び出し先の amount 不正を呼び出しの行で通知・既存と同じ扱い）・idea_37（カウンター値による条件分岐）・2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45・59〜66 は検討段階。
-- ブランチ `claude/sample-folder-save-path-d3cd34`（phase 77）・`claude/click-timing-issue-79de93`・`claude/task-06-confirmation-03414b`・`claude/counter-feature-expansion-a5d3c3` の push / merge はユーザー。
+- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4（呼び出し先の amount 不正を呼び出しの行で通知・既存と同じ扱い）・idea_37（カウンター値による条件分岐）・2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45（phase 78 で Mac の `option+comma` を追記）・59〜66 は検討段階。
+- ブランチ `claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`（phase 77）・`claude/click-timing-issue-79de93`・`claude/task-06-confirmation-03414b`・`claude/counter-feature-expansion-a5d3c3` の push / merge はユーザー。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
 - **Stop フックの注意**: 変化の無い短い応答のたびに `/save_state` を求めて繰り返すことがある（判定の見直し候補・フックは未変更）。
 
@@ -68,6 +68,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 注意事項・blockers
 - **【phase 76】Codex はテストを書き漏らす・既存テストの途中に新しいテストを差し込む・タスク定義の一部を落とす・本番の経路を通らない浅いテストを書くことがある**（task_01・03・04・07 で実測）。依頼文に「既存テストの途中に差し込まない」を書き、差分を直読みしてから verifier へ。実効値の 1 か所 = `keyseq/application/counter_values.py`（`CounterValues` は書き込みの通し番号を持つ・`state.counters` への書き込みは `__setitem__` / `pop` に限る。`update` 等を足すなら番号を進める）。
+- **【phase 78】tests_ui の fake root（素の `tk.Tk` + SimpleNamespace）で ActionDialog の hotkey の OK を呼ぶなら `root.validate_hotkey` を設定する**（`test_action_dialog_key_hold.py` / `labels.py` の setUp と同じ形。無いと AttributeError）。
 - 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
 - **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
 - **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
@@ -132,7 +133,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 77_sample_in_user_folder / 76_counter_expansion / 75_mac_support）。
+  （直近 3 件: 78_action_hotkey_save_validation / 77_sample_in_user_folder / 76_counter_expansion）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
