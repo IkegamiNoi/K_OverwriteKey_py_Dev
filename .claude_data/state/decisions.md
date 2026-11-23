@@ -85,6 +85,7 @@
 | 73_welcome_first_launch | [73_welcome_first_launch.md](decisions_archive/73_welcome_first_launch.md) | 初回起動の Welcome とサンプルの作り直し（2026-11-09 完了・暫定 56 v0.7 凍結） |
 | 74_key_symbol_display | [74_key_symbol_display.md](decisions_archive/74_key_symbol_display.md) | 記号キーのキー名の表示（2026-11-09 完了・直接改訂）。表示の表 36 個・キーボードUIの置換先で Shift+¥ / Shift+ろ を `bar` / `underscore` で保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。refactor_check: 不要 |
 | 75_mac_support | [75_mac_support.md](decisions_archive/75_mac_support.md) | macOS 対応（2026-11-22 完了・暫定仕様先行モード〔暫定 57 v0.25 凍結〕・JSON スキーマ不変）。os_backend で OS 依存を分離・Mac は CGEventTap・Command / Option は別のキー名で他方の OS の名前を拒否・Mac のフックの受け渡しはキュー版・aqua のメニューの処理の遅延・PyInstaller の配布（exe / .app・ソースの同梱・pynput の差し替え口）・GPL v3 以降。refactor_check: 推奨 = 提案書 28 → phase 75 task_15 で実施済み |
+| 76_counter_expansion | [76_counter_expansion.md](decisions_archive/76_counter_expansion.md) | カウンター機能の拡張（2026-11-23 完了・暫定仕様先行モード〔暫定 58 v1.1 凍結〕・JSON スキーマ = 任意キーの追加〔行の `amount`・構成セットの `counter_starts`〕と種類 `counter_text` の追加）。増やす量（負・0 可）・名前ごとの開始値（リセットはそこへ）・実効値は `counter_values.py` の 1 か所・保留は `(op, name, amount)`・一覧の `(=値)` は保留を反映（v1.1）・無視した押下の巻き戻しはその押下が入れた名前だけ消す。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -645,10 +646,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 理由: 本体 0 件なのに編集画面は既定 8 件を表示し、編集画面を OK で閉じるまでアクション編集にプリセットが出なかった（ユーザー報告 2026-11-08）。E4 だけ他の経路と違う理由がない。
 - B: 仕様のまま → **除外**（報告された不具合が残る）/ C: 初回起動で共通プリセットのファイルを生成 → **除外**（起動時の書き込みが増え、§5.10.2「読めなければ置き換えない」と関わる）
 - 影響範囲: 共通プリセットが読めないときの E4 のみ。読めて空配列のときは従来どおり空。`tests/test_per_keymap_triggers_load.py` の空データの期待値を更新。
-
-
-### 【phase 76 task_06】一覧の `(=値)` に保留中のカウンター操作を含める（2026-11-23・ユーザー判断 A）
-- 検出: 実機目視で `[count+3]` が保留（features §4.2.2）のまま ▶ が `[counter_text]` にあるとき、表示 `(=22)` に対し入力は 25（正本 §4.2.2 L65「直前に実行した通常アクションの時点の値」どおり）
-- A: `(=値)` = 実効値にそのトリガー（呼び出し先の表示枠は最上段）の保留を順に反映した値（次のステップの開始時の値）・表示だけ → **採用**
-- B: 行ごとの見込み値 → **除外**（ループ・呼び出しをまたいで正確に出せない）/ C: 現行 + ヘルプで説明 → **除外**
-- 影響: 暫定 58 §5.3 に条項追加・§9 に features §4.2.2 L65 の改訂を追加（task_07 で昇格）。実行の挙動は不変

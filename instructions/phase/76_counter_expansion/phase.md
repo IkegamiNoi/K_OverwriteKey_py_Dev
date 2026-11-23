@@ -10,7 +10,7 @@
 **対象レイヤ = domain（保存形式・表示）・application（実効値・保留・実行）・config_service（構成セットの保存 / 読込）・presentation（編集ダイアログ・一覧）。JSON スキーマ = 任意キーの追加（行の `amount`・構成セットの `counter_starts`）と種類の追加（`counter_text`）。**
 
 - 起票元: ユーザー要望（2026-11-22）。
-- 主入力（暫定仕様）: [58_counter_expansion.md](../../history/58_counter_expansion.md)（v1.0・ユーザー確定済）
+- 主入力（暫定仕様）: [58_counter_expansion.md](../../history/58_counter_expansion.md)（v1.1・凍結〔2026-11-23・phase 76 task_07〕）
 - モード: **暫定仕様先行モード**。番号対応: phase 76 / 暫定 58 / decisions 76。
 
 ## 確定（ユーザー 2026-11-22）
@@ -51,7 +51,7 @@
 4. task_04: **完了（2026-11-22・codex-implementer・reviewer 採用）** 表示 — 一覧の書式（§5.3）・実効値と開始値を受ける書式の関数・呼び出し先の表示枠の写し（描き直しの契機は開始値を変える側の task_05）
 5. task_05: **完了（2026-11-22・codex-delegating-implementer〔Sol medium〕・reviewer 採用）** 編集 UI — ダイアログ（増やす量・開始値・名前の変更での入れ替え・`counter_text` の種類の候補）・コントローラでの開始値の確定と未保存・候補の名前・構成セットを置き換える全経路での `AppState` への同期（サンプル設定に戻すを含む）と一覧・呼び出し先の表示枠の描き直し・名称の文言（ja / en）とヘルプ（§5）
 6. task_06: **完了（2026-11-23・deep-reviewer + codex-reviewer・修正 R1〜R3〔codex-delegating-implementer〕・R9〔codex-implementer〕・reviewer 採用・実機目視 OK）** 統合確認 — 標準検証 4 種・受け入れ条件 §7 の照合・実機目視（ユーザー）
-7. task_07: 正本反映 — 暫定 58 の昇格（§9）と凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
+7. task_07: **正本反映済み・フェーズ完了判定のレビュー待ち（2026-11-23・メイン〔文書〕）** 正本反映 — 暫定 58 の昇格（§9）と凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
 
 ## レビュー方針
 

@@ -72,6 +72,9 @@
 | `key_hold` | 押下・解放 | Press / Release |
 | `system` | 制御 | Control |
 | `file_line` | ファイルの行 | File line |
+| `counter_text` | カウンターの値を入力 | Type counter value |
+
+制御（`system`）の操作のうちカウンターの 2 つ（phase 76 で改称）: `counter_inc` = カウンター / Counter（旧「カウンター +1」）・`counter_reset` = カウンターリセット / Reset counter（旧「カウンターを0に」）。カウンターの行の欄は「増やす量」/ Amount・「開始値」/ Start value（`features.md` §4.6「出力シーケンスの編集」）。
 
 #### 用語の細則
 

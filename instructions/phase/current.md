@@ -7,11 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 76](76_counter_expansion/phase.md)**（カウンター機能の拡張・2026-11-22 起票）。カウンターの行の任意の増やす量（`amount`）・カウンター名ごとの開始値（構成セットの `counter_starts`・リセットはそこへ戻す）・新しい種類「カウンターの値を入力」（`counter_text`）。
-  主入力 = [暫定 58](../history/58_counter_expansion.md)（v1.0・ユーザー確定済）・暫定仕様先行モード・起票元 = ユーザー要望・番号対応 = phase 76 / 暫定 58 / decisions 76。
+- **アクティブなフェーズ = なし**（phase 76 = カウンター機能の拡張は 2026-11-23 完了）。次フェーズはユーザー判断で `/phase_start`。
   **次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = macOS 対応（phase 75・`keyseq/infrastructure/os_backend/`・`packaging/`）。残件 = 検討段階の idea（idea_45 キー名の入力用 / 出力用の整理・idea_59〜66。idea_65 = 同梱の C ライブラリのライセンスの行・idea_66 = Mac の入力の失敗経路の弱点 5 件）・2 枚目のモニタの目視と中クリックの確認（保留・ユーザー判断）・JIS キーボードでの記号キーの実測（暫定 57 §9 の 10・文書値のテストで代えた）・右 Option / 右 Control の実測（キーの無い機種）。
-- 直前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
+- 直近の一連の作業の領域 = カウンター機能の拡張（phase 76・`application/counter_values.py`・`sequence_steps.py`・`call_context.py`・`action_executor.py`）。残件 = カウンター値による条件分岐（[idea_37](../backlog/idea_37_counter_conditional_branch.md)・後送り）。その前の macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45 キー名の入力用 / 出力用の整理・idea_59〜66。idea_65 = 同梱の C ライブラリのライセンスの行・idea_66 = Mac の入力の失敗経路の弱点 5 件）・2 枚目のモニタの目視と中クリックの確認（保留・ユーザー判断）・JIS キーボードでの記号キーの実測（暫定 57 §9 の 10・文書値のテストで代えた）・右 Option / 右 Control の実測（キーの無い機種）。
+- 直前の完了フェーズ = [phase 76](76_counter_expansion/phase.md)（2026-11-23・カウンター機能の拡張〔増やす量・開始値・カウンターの値を入力〕。暫定仕様先行モード〔暫定 58 v1.1 凍結〕・判断は [decisions_archive/76](../../.claude_data/state/decisions_archive/76_counter_expansion.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
 - その前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
 - その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
@@ -136,7 +136,7 @@
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  **phase 76 は 2026-11-22 起票・進行中**（`76_counter_expansion` / 暫定 58〔v1.0・ユーザー確定〕/ decisions 76）。次の phase は `77_<topic>`。
+  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。次の phase は `77_<topic>`。
   次フェーズは **`77_<topic>`**・decisions も **77** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -189,7 +189,7 @@
   55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
   56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
   57 = macOS 対応〔**v0.25・凍結**・phase 75 の主入力〕 /
-  58 = カウンター機能の拡張〔v1.0・ユーザー確定・phase 76 の主入力〕 /
+  58 = カウンター機能の拡張〔**v1.1・凍結**・phase 76 の主入力〕 /
   次採番は **`59_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -407,6 +407,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   ウィンドウ幅の保存の 3 まとまりを持つ。phase 20 で「高さの処理は独立したまとまりではない」として
   **分割不要と再判定済**。次にまとまりが増えたら再判定する（phase 18 / 20 由来）
 
+- `application/action_executor.py` の counter_text 分岐（phase 76）: `counter_text_error` だけが `_labeled` のキーを f-string で組み立てる（他の分岐は明示キー）・`"counter_text"` は定数 `ACTION_TYPE_COUNTER_TEXT` があるのに他の種別と同じく直値で並ぶ。種別の直値を定数へ寄せるときに一緒に直す（phase 76 の refactor_check は不要判定）
 ## 作業開始時の指示
 
 Claude は作業開始時に、このファイルで指定された参照先の `phase.md` を必ず読んでください。
