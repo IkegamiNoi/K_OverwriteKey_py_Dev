@@ -7,11 +7,11 @@
 last_updated: 2026-11-23T23:00:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
-last_commit_location: `claude/click-timing-issue-79de93`（worktree `click-timing-issue-79de93`・08568e3e）。push / merge はユーザー
+last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・d0ca007f = phase 77 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77 を起票（暫定 59 v0.2 確定・phase.md・current.md・decisions.md）。phase.md の整合チェック（reviewer）の結果待ち。task_01 は未着手。**
+focus: **phase 77 起票済み・コミット d0ca007f（整合チェック reviewer 修正して採用 → 反映済み）。task_01 は未着手（ユーザーの進行指示待ち）。**
 mode: pending_review
 
 ## last_action
@@ -28,7 +28,7 @@ verified:
   compile: not_run（文書のみ）
 
 ## next_action
-- reviewer の phase.md 整合チェックの結果を反映 → `/task_new` で `instructions/phase/77_sample_in_user_folder/tasks/task_01_*.md` を起票 → codex-implementer（Luna high）へ実装依頼（`sample_install.py`・`app.py:405`・テスト 3 ファイル・「既存テストの途中に差し込まない」「apply_patch で編集」を明記）→ verifier → reviewer。
+- `/task_new` で `instructions/phase/77_sample_in_user_folder/tasks/task_01_*.md` を起票 → codex-implementer（Luna high）へ実装依頼（`sample_install.py`・`app.py:405`・テスト 3 ファイル・「既存テストの途中に差し込まない」「apply_patch で編集」を明記）→ verifier → reviewer。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
