@@ -409,6 +409,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   **分割不要と再判定済**。次にまとまりが増えたら再判定する（phase 18 / 20 由来）
 
 - `application/action_executor.py` の counter_text 分岐（phase 76）: `counter_text_error` だけが `_labeled` のキーを f-string で組み立てる（他の分岐は明示キー）・`"counter_text"` は定数 `ACTION_TYPE_COUNTER_TEXT` があるのに他の種別と同じく直値で並ぶ。種別の直値を定数へ寄せるときに一緒に直す（phase 76 の refactor_check は不要判定）
+- `application/config_service/save_plan_execution.py` の `preview_child_payloads` と `_write_runtime_payloads`: 子の並び（sequences → trigger_sets → keymaps）とキーマップのパスの解決が 2 か所に書かれている（片方だけ変えるとサンプルの衝突判定がずれる）。次に保存の書き出し順を触るとき、子を `(path, payload)` で並べる処理を 1 つにして書き込み側もそれを使う（phase 77 task_02 の deep-reviewer 指摘①・保留）
 ## 作業開始時の指示
 
 Claude は作業開始時に、このファイルで指定された参照先の `phase.md` を必ず読んでください。
