@@ -7,6 +7,21 @@ class CounterValues(dict[str, int]):
     def __init__(self) -> None:
         super().__init__()
         self.starts: dict[str, int] = {}
+        self._serial = 0
+        self._write_serials: dict[str, int] = {}
+
+    def __setitem__(self, name: str, value: int) -> None:
+        self._serial += 1
+        self._write_serials[name] = self._serial
+        super().__setitem__(name, value)
+
+    def write_serial(self, name: str) -> int | None:
+        return self._write_serials.get(name)
+
+    def pop(self, name: str, default: int | None = None) -> int | None:
+        value = super().pop(name, default)
+        self._write_serials.pop(name, None)
+        return value
 
     def value(self, name: str) -> int:
         return self[name] if name in self else self.starts.get(name, 0)

@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T17:40:00
-phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
-直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
+last_updated: 2026-11-23T19:30:00
+phase: アクティブなフェーズ = なし（phase 76 = カウンター機能の拡張は 2026-11-23 完了）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
+直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 task_07: ユーザー判断「推奨どおり」= C1 採用・C2 / C3 除外（decisions_archive/76 に記録・features §4.2.9 と data_schema §5.11.6 を改訂）。C1 の修正（CounterValues の書き込みの通し番号・他の押下が書いた名前は消さない・undo は名前が無ければ実効値から）を codex-implementer で実装中（task_07 末尾「追加の修正 C1」）→ 差分を読む → verifier + reviewer → task_07・フェーズ完了。**
-mode: implementing
+focus: **phase 76 完了（2026-11-23）。** task_07 = 正本反映・凍結・C1 の修正（reviewer 採用・tests 2267 / tests_ui 1316 / smoke pass）。次フェーズはユーザー判断で `/phase_start`。push / merge はユーザー。
+mode: idle
 
 ## last_action
 ts: 2026-11-23T16:30:00
@@ -32,14 +32,14 @@ result_files:
   - .claude_data/state/session.md・handoff.md
 verified:
   compile: clean（task_05 後）
-  tests: pass 2254（失敗 0・skip 7・task_05 後）
-  tests_ui: 部分のみ pass（test_action_dialog_control 44 / test_action_dialog_labels 8 / test_trigger_panel_controller_action_edit 22 / test_action_list_rendering 15）・**全体は未実行**
+  tests: pass 2267（失敗 0・skip 7・task_07 C1 後）
+  tests_ui: pass 1316（task_07 C1 後・全体）
   smoke: pass（task_05 後）
   visual: OK（task_06・R9 の再目視含む）
 
 ## next_action
 - task_06: 完了（2026-11-23）。
-- task_07: レビューの指摘の採否（ユーザー）→ 修正 → phase.md の task_07 とフェーズを完了に → コミット。
+- phase 76 完了。次フェーズはユーザー判断（`/phase_start`）。ブランチ `claude/task-06-confirmation-03414b` の push / merge はユーザー。
 - ブランチ `claude/counter-feature-expansion-a5d3c3` と前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
 ## blockers

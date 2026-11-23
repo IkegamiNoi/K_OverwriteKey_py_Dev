@@ -2,8 +2,9 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.application.app_state import AppState
-from keyseq.application.call_context import CallStep
-from keyseq.application.sequence_history import snapshot_for
+from keyseq.application.call_context import CallStep, start_linked_call, track_counter_additions
+from keyseq.application.counter_values import CounterValues
+from keyseq.application.sequence_history import snapshot_for, undo_counter_deltas
 from keyseq.application.sequence_runner import call_wait
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.sequence_steps import LoopFrame, StepResume
@@ -2518,7 +2519,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
             initial_position=0, wrapped=False, processed=1,
             counter_deltas=(("n", 1),),
         )
-        self.runner._run_to_end_added_counter_names.add("n")
+        self.runner._run_to_end_added_counter_names.writes["n"] = self.state.counters.write_serial("n")
 
         self.runner._perform_run_to_end_step("f1", actions, 0)
         self.assertIs(self.runner._run_to_end_snapshot, snapshot)
@@ -2562,7 +2563,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         )
         self.assertEqual((position, stopped, waiting), (0, True, None))
         self.assertEqual(self.state.counters["new"], 1)
-        self.assertIn("new", ctx.added_counter_names)
+        self.assertIn("new", ctx.added_counter_names.writes)
 
         self.runner._rollback_linked_press(ctx)
 
@@ -2896,6 +2897,61 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.performed, [text("v1"), text("v2")])
         self.assertEqual(self.messages, ["一時停止中の実行を破棄しました(f5)"])
         self.assertIsNone(self.state.run_to_end_key)
+
+    def test_counter_values_write_serial_advances_and_pop_clears(self):
+        counters = CounterValues()
+        counters["n"] = 1
+        first = counters.write_serial("n")
+        counters["n"] = 2
+        self.assertGreater(counters.write_serial("n"), first)
+        counters.pop("n")
+        self.assertIsNone(counters.write_serial("n"))
+
+    def test_undo_missing_counter_uses_start_value(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 10})
+        undo_counter_deltas(counters, [("n", 3)])
+        self.assertEqual(counters["n"], 7)
+
+    def test_counter_addition_record_keeps_name_written_by_another_press(self):
+        self.state.set_counter_starts({"n": 10})
+        ctx = start_linked_call("set", "f1", "f5", self._find_trigger, self.state, step=False)
+        with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+            self.state.counters["n"] = 11
+        ctx.deltas_by_key["f1"] = [("n", 1)]
+        self.state.counters["n"] += 5
+
+        self.runner._rollback_linked_press(ctx)
+
+        self.assertEqual(self.state.counters["n"], 15)
+        undo_counter_deltas(self.state.counters, [("n", 5)])
+        self.assertEqual(self.state.counters["n"], 10)
+
+    def test_counter_addition_record_tracks_latest_owned_write(self):
+        self.state.set_counter_starts({"n": 10})
+        ctx = start_linked_call("set", "f1", "f5", self._find_trigger, self.state, step=False)
+        with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+            self.state.counters["n"] = 11
+        ctx.deltas_by_key["f1"] = [("n", 1)]
+        self.state.counters["n"] += 5
+        with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+            self.state.counters["n"] += 1
+
+        self.runner._rollback_linked_press(ctx)
+
+        self.assertIn("n", self.state.counters)
+        self.assertEqual(self.state.counters["n"], 16)
+
+    def test_counter_addition_record_allows_removing_untouched_owned_name(self):
+        self.state.set_counter_starts({"n": 10})
+        ctx = start_linked_call("set", "f1", "f5", self._find_trigger, self.state, step=False)
+        with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+            self.state.counters["n"] = 11
+        ctx.deltas_by_key["f1"] = [("n", 1)]
+
+        self.runner._rollback_linked_press(ctx)
+
+        self.assertNotIn("n", self.state.counters)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 from keyseq.application.call_chain import chain_top
+from keyseq.application.counter_values import counter_value
 from keyseq.shared.i18n import tr
 
 
@@ -109,7 +110,7 @@ def undo_counter_deltas(
 ) -> None:
     """Reverse counter operations in reverse order without clamping values."""
     for name, delta in reversed(tuple(deltas)):
-        counters[name] -= delta
+        counters[name] = counters.get(name, counter_value(counters, name)) - delta
 
 
 def commit_step(

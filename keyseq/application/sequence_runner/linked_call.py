@@ -16,8 +16,9 @@ class LinkedCallMixin:
     def _rollback_linked_press(self, ctx: CallContext) -> None:
         deltas = [delta for values in ctx.deltas_by_key.values() for delta in values]
         with self.state.lock:
+            removable = ctx.added_counter_names.removable_names(self.state.counters)
             undo_counter_deltas(self.state.counters, deltas)
-            for name in ctx.added_counter_names:
+            for name in removable:
                 self.state.counters.pop(name, None)
             for snapshot in ctx.before.values():
                 trigger_set_id, key = snapshot.trigger_set_id, snapshot.key

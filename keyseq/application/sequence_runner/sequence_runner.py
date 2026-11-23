@@ -4,7 +4,7 @@ from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable
 
-from keyseq.application.call_context import CallContext, track_counter_additions
+from keyseq.application.call_context import CallContext, CounterAdditionRecords, track_counter_additions
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import (
@@ -80,7 +80,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._control_source: str | None = None
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
-        self._run_to_end_added_counter_names: set[str] = set()
+        self._run_to_end_added_counter_names = CounterAdditionRecords()
         self._run_to_end_wait_position: int | None = None
         self._run_to_end_sent = False
         self._run_to_end_generation = 0
@@ -410,7 +410,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             target = self._control(key, op, target_key) or target
         try:
             starting_position = self._get_index(key) if position is None else position
-            added_counter_names: set[str] = set()
+            added_counter_names = CounterAdditionRecords()
             # Standalone controls manage their own locking and add no counter names.
             with (nullcontext() if self._is_standalone_control(actions) else
                   track_counter_additions(self.state, self.state.counters, added_counter_names)):

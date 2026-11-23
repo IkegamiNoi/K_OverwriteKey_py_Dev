@@ -4,7 +4,7 @@ from typing import Any
 
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import (
-    CallContext, CallStep, call_step, finish_call_action, message_with_chain,
+    CallContext, CallStep, CounterAdditionRecords, call_step, finish_call_action, message_with_chain,
     start_linked_call, track_counter_additions,
 )
 from keyseq.application.call_chain import chain_from
@@ -29,7 +29,7 @@ class CallWaitMixin:
     def _start_single_call(
         self, key: str, actions: list[dict[str, Any]], outcome: StepOutcome,
         snapshot: StepSnapshot, initial_position: int,
-        *, added_counter_names: set[str],
+        *, added_counter_names: CounterAdditionRecords,
     ) -> None:
         trigger_set_id = self._get_trigger_set_id()
         ancestors, ancestor_depth = self._linked_ancestors(key)

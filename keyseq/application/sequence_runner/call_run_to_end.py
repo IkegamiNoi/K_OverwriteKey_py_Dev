@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.application.call_context import (
-    CallContext,
+    CallContext, CounterAdditionRecords,
     CallStep,
     call_step,
     finish_call_action,
@@ -37,7 +37,7 @@ class CallRunToEndMixin:
     def _begin_run_to_end_call(
         self, key: str, actions: list[dict[str, Any]], index: int,
         outcome: StepOutcome, snapshot: StepSnapshot,
-        *, added_counter_names: set[str],
+        *, added_counter_names: CounterAdditionRecords,
     ) -> None:
         ancestors, depth = self._linked_ancestors(key)
         ctx = start_linked_call(

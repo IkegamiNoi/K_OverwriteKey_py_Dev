@@ -8,6 +8,7 @@ from typing import Any, Literal
 from keyseq.domain import call_graph, sequence_control
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 from keyseq.shared.i18n import tr
+from keyseq.application.counter_values import CounterValues
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.application.sequence_steps import (
     LoopFrame,
@@ -21,6 +22,22 @@ from keyseq.application.sequence_steps import (
     reset_frames,
     settle_after_normal,
 )
+
+
+@dataclass
+class CounterAdditionRecords:
+    writes: dict[str, int | None] = field(default_factory=dict)
+    foreign_writes: set[str] = field(default_factory=set)
+
+    def clear(self) -> None:
+        self.writes.clear()
+        self.foreign_writes.clear()
+
+    def removable_names(self, counters: Mapping[str, int]) -> set[str]:
+        return {name for name, serial in self.writes.items()
+                if name not in self.foreign_writes and
+                (serial is None or (isinstance(counters, CounterValues) and
+                                    counters.write_serial(name) == serial))}
 
 
 @dataclass(frozen=True)
@@ -53,7 +70,7 @@ class CallContext:
     processed_before_action: int = 0
     first_step: bool = False
     before: dict[str, StepSnapshot] = field(default_factory=dict)
-    added_counter_names: set[str] = field(default_factory=set)
+    added_counter_names: CounterAdditionRecords = field(default_factory=CounterAdditionRecords)
     changed_frames: dict[str, CallFrame] = field(default_factory=dict)
     completed: list[str] = field(default_factory=list)
     deltas_by_key: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
@@ -114,15 +131,25 @@ def start_linked_call(
 
 @contextmanager
 def track_counter_additions(
-    state: Any, counters: dict[str, int], added_names: set[str],
+    state: Any, counters: dict[str, int], added_names: CounterAdditionRecords,
 ) -> Iterator[None]:
     """Record names introduced by this write interval, including zero resets."""
     with state.lock:
         before = set(counters)
+        prior = dict(added_names.writes)
+        serials_before = {name: counters.write_serial(name) for name in prior} if isinstance(counters, CounterValues) else {}
+        for name, serial in prior.items():
+            if serials_before.get(name) != serial:
+                added_names.foreign_writes.add(name)
         try:
             yield
         finally:
-            added_names.update(set(counters) - before)
+            for name in set(counters) - before:
+                added_names.writes[name] = counters.write_serial(name) if isinstance(counters, CounterValues) else None
+            for name, serial in prior.items():
+                current = counters.write_serial(name) if isinstance(counters, CounterValues) else None
+                if name not in added_names.foreign_writes and current != serial:
+                    added_names.writes[name] = current
 
 
 def chain_text(chain: tuple[str, ...]) -> str:

@@ -51,7 +51,7 @@
 4. task_04: **完了（2026-11-22・codex-implementer・reviewer 採用）** 表示 — 一覧の書式（§5.3）・実効値と開始値を受ける書式の関数・呼び出し先の表示枠の写し（描き直しの契機は開始値を変える側の task_05）
 5. task_05: **完了（2026-11-22・codex-delegating-implementer〔Sol medium〕・reviewer 採用）** 編集 UI — ダイアログ（増やす量・開始値・名前の変更での入れ替え・`counter_text` の種類の候補）・コントローラでの開始値の確定と未保存・候補の名前・構成セットを置き換える全経路での `AppState` への同期（サンプル設定に戻すを含む）と一覧・呼び出し先の表示枠の描き直し・名称の文言（ja / en）とヘルプ（§5）
 6. task_06: **完了（2026-11-23・deep-reviewer + codex-reviewer・修正 R1〜R3〔codex-delegating-implementer〕・R9〔codex-implementer〕・reviewer 採用・実機目視 OK）** 統合確認 — 標準検証 4 種・受け入れ条件 §7 の照合・実機目視（ユーザー）
-7. task_07: **正本反映済み・フェーズ完了判定のレビュー待ち（2026-11-23・メイン〔文書〕）** 正本反映 — 暫定 58 の昇格（§9）と凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
+7. task_07: **完了（2026-11-23・メイン〔文書〕・deep-reviewer 修正して採用 + codex-adversarial-reviewer needs-attention → C1 を codex-implementer で修正・reviewer 採用）** 正本反映 — 暫定 58 の昇格（§9）と凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`current.md` の完了記載・`/refactor_check`
 
 ## レビュー方針
 

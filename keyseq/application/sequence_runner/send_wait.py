@@ -6,7 +6,7 @@ from contextlib import nullcontext
 from typing import Any
 
 from keyseq.application.app_state import PendingStep
-from keyseq.application.call_context import track_counter_additions
+from keyseq.application.call_context import CounterAdditionRecords, track_counter_additions
 from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import (
     LoopFrame,
@@ -169,7 +169,7 @@ class SendWaitMixin:
         self, key: str, actions: list[dict[str, Any]], position: int,
         frames: list[LoopFrame], processed: int,
         deltas: tuple[tuple[str, int], ...],
-        *, added_counter_names: set[str] | None = None,
+        *, added_counter_names: CounterAdditionRecords | None = None,
     ) -> tuple[tuple[tuple[str, int], ...], int]:
         if position == 0:
             self._save_progress(key, 0, [], ())

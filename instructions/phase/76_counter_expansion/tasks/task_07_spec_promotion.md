@@ -73,3 +73,5 @@ phase 76（カウンター機能の拡張）の最終タスク。暫定 58（v1.
   5. `sequence_history.undo_counter_deltas`: 名前が無い場合は実効値（`counter_value`）から引く（KeyError にしない）。
 - テスト（`tests/test_sequence_runner_call.py` 等・既存テストの途中に差し込まない）: ① T が未使用の n を +1 して待機中に、別の押下が n へ +5 を確定 → T が無視されると n は「開始値 + 5」が残り、その押下を戻すと開始値に戻る（KeyError なし）② 他の押下が書いた後に T が同じ名前へもう一度書いても消さない ③ 他の押下が書いていなければ従来どおり消える（既存の回帰テストが通る）④ `CounterValues` の番号の単体テスト ⑤ `undo_counter_deltas` で名前が無い場合。
 - 含まない: C2・C3（除外）・R4（保留）。
+- C1 の結果（2026-11-23）: codex-implementer（Luna high・3 回）が `CounterValues` の書き込みの通し番号・`CounterAdditionRecords`（`call_context.py`）・巻き戻しの判定・`undo_counter_deltas` の名前なしの扱い + テスト 5 件を実装。reviewer = **採用**（指摘なし）。verifier = compileall clean / tests **2267 pass** / tests_ui **1316 pass** / smoke pass。
+- **task_07 完了**: 確認 1〜4 を満たす（§7 の対応表 = deep-reviewer の報告・旧名の grep は履歴としての記述のみ・deep-reviewer 修正して採用〔低 3 件を修正・1 件は記載しない〕+ codex 敵対的 needs-attention〔C1 採用・C2 / C3 除外〕・refactor_check 不要）。
