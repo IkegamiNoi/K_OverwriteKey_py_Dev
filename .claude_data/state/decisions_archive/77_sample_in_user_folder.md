@@ -21,3 +21,11 @@
 - Codex ② `user/` の固定名 `.tmp` を上書きし得る → **除外**（アプリの全保存が同じ方式・残った `.tmp` は復旧用ファイルではない・範囲外）
 - Codex ③ リンク切れの symlink を `os.path.exists` が「無い」と判定し置き換える → **採用**（task_02a: `os.path.lexists`・テスト 1 件）
 - deep ① preview と書き込みの子の並びの二重記述 → **保留**（current.md「別タスク化候補」へ）/ deep ②〜⑤（except の型・相対の直接検査・混在時の error 文・app.py の直値）→ **除外**
+
+### 【task_03 完了判定前レビュー】deep-reviewer 完了可（低 5）/ codex-adversarial-reviewer needs-attention（medium 4）の採否（2026-11-24・ユーザー承認「案どおりでよい」）
+- Codex 1 構成セット本体がリンク切れだと「無い」とみなし置き換える（`sample_install.py:63` の `os.path.exists`・実測で事実）→ **採用**（task_03a: `lexists`）
+- Codex 3 子の照合で `False == 0`（実測で事実）→ **採用**（task_03a: `json.dumps(sort_keys=True)` の文字列で比較）
+- Codex 2 中身が同じ子のリンクが通常ファイルに置き換わる・親のジャンクション経由で旧 `config/sample/` に書き得る → **除外**（リンクで組んだ構成は想定外。正本に「リンク・ジャンクションを使う構成は扱わない」と明記）。deep 3 も同旨で除外
+- Codex 4 `check_sample_complete` が個別プリセットの参照を辿らない（phase 73 からの判定）→ **除外**（今回変えていない・自作の同名構成セットを開くのは受容済み）。正本の「辿れる全ファイル」を「キーマップ・トリガー一覧・出力シーケンス」と明記して言い過ぎを直す
+- deep 1 凍結後の暫定 59 に未来形の行 → **採用**（削除）/ deep 2 採否前の完了記載 → **採用**（task_03a の後に確定）/ deep 4 警告に英語のパスが並ぶ → **除外** / deep 5 refactor_check の実測記録 → **採用**（下記）
+- refactor_check の実測（verifier・PHASE_BASE b98add5d・keyseq 3 ファイル +52 / -4）: M1 = sample_install.py 142 行 +34・save_plan_execution.py 522 行 +20・app.py 983 行 ±0（600 行超は app.py のみで増分 0）/ M2 = 追加関数 2 つとも約 19 行 / M3 = preview と書き込みの子の並びの 2 か所目（既知の保留）/ M4・M5 = 該当なし / M6 = app.py の直値は既存の重複の値の置き換え → **不要**

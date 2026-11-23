@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T03:00:00
+last_updated: 2026-11-24T03:15:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・4819cdb7 = phase 77 task_01）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77 完了判定前レビュー: deep = 完了可（低 5）・codex-adversarial = needs-attention（medium 4・1/3/4 は実測で事実）。採否案（Codex1/3 採用 → task_03a〔構成セットも lexists・比較を json.dumps(sort_keys=True) の文字列で〕・Codex2/4 除外〔正本にリンク構成は扱わない・「辿れる全ファイル」を 3 種と明記〕・deep1/2/5 採用・3/4 除外）をユーザーへ提示し回答待ち。**
-mode: pending_review
+focus: **phase 77: 完了判定前レビューの採否をユーザー承認（decisions_archive/77 に記録・refactor_check 実測値も）。正本 §5.14 の仕上げ・暫定 59 の古い行削除は済み（未コミット）。task_03a（構成セットも lexists・false と 0 を区別）を codex-implementer へ依頼中 → verifier → reviewer → まとめてコミット → phase 77 完了。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-24T00:30:00
@@ -36,7 +36,7 @@ verified:
   smoke: pass
 
 ## next_action
-- ユーザーが採否案を承認したら: decisions_archive/77 に採否を追記 → task_03a 起票（sample_install.py:63 の exists → lexists・_find_conflicting_children の比較を sort_keys の json 文字列に・テスト 2 件）→ codex-implementer → verifier → reviewer → 正本の 2 行（リンク構成は扱わない・check の対象 3 種）・暫定 59 の 4 行目削除・decisions_archive に refactor_check の M1〜M6 実測値 → コミット → phase 77 完了。
+- task_03a（`tasks/task_03a_keymap_set_link_and_strict_compare.md`）の実装結果を直読み → verifier（compileall・tests.test_sample_install・tests 全体・smoke）→ reviewer → phase.md の task_03a / task_03 を完了に → コミット → phase 77 完了報告。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
