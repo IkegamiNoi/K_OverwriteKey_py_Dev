@@ -37,7 +37,7 @@ verified:
 ## next_action
 - phase 78 は完了。ブランチ `claude/idea-03-ec8eea` の push / merge はユーザー。次フェーズはユーザー判断（`/phase_start`）。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
-- **template の取り込み（実施中・2026-11-23・ブランチ `claude/template-pull-9b0f93`）**: template 7791fa7..ef0d6a8 + 1a99527（fix/hook-state-check・template main 未マージ）を 7 コミットで取込済（skills 移行・save_mode の model コマンド・full_hooks 登録解除・フック修正 ほか）＋ deep-reviewer 推奨 1〜3 反映 + マーカー更新（last_pulled = 1a99527）で**完了**。push / merge はユーザー（template 側の 1a99527 の main マージと、template ブランチ `claude/template-pull-e41259` の 5c41b38・6086db4〔7 スキルに disable-model-invocation〕も）。次のセッションで確認: `/` 補完に skills が出ること・`disable-model-invocation` を付けた 5 つが Claude の Skill 一覧から消えていること・UserPromptSubmit の状態注入が出ること。
+- **template の取り込み（完了・2026-11-23）**: template 7791fa7..1a99527 を取込済（skills 移行・save_mode の model コマンド・full_hooks 登録解除・フック修正 ほか・last_pulled = 1a99527）。template 側は 1a99527・5c41b38・6086db4 とも main にマージ済み（84a48a4）。Operation_check でファイル面の確認済（skills 15 個・5 つに disable-model-invocation・settings.json = auto_save_and_use_task_file・フックのコマンドを手で実行して出力 OK）。**残りの確認（取り込み後のブランチで開いた新しいセッションで）**: `disable-model-invocation` の 5 つが Claude の Skill 一覧から消えていること・UserPromptSubmit の状態注入が会話に出ること・worktree のセッションで SessionStart の branch が worktree 側になること（取り込み前のセッションでは main の handoff が注入された）。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
