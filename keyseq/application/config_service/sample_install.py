@@ -91,7 +91,7 @@ def _find_conflicting_children(service, keymap_set_path, data, config_root, save
         service, keymap_set_path, data, config_root=config_root,
         split_base_dir=split_base_dir, save_plan=save_plan,
     ):
-        if not os.path.exists(child_path):
+        if not os.path.lexists(child_path):
             continue
         try:
             existing = service.repository.load_json(child_path)

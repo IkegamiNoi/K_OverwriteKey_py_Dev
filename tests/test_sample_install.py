@@ -254,6 +254,20 @@ class SampleInstallTest(unittest.TestCase):
         self.assertTrue(all(item["path"].startswith("user/keymaps/")
                             for item in raw["keymaps"]))
 
+    def test_broken_symlink_child_blocks_install_without_writes(self):
+        child = self.root / SAMPLE_DIR / "sequences/copy.json"
+        child.parent.mkdir(parents=True)
+        try:
+            child.symlink_to(child.parent / "missing-target.json")
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"symlink creation is unavailable: {exc}")
+        with patch.object(self.service.repository, "save_json") as save:
+            result = self.install()
+        self.assertEqual(result.status, "incomplete")
+        self.assertIn("user/sequences/copy.json", result.error)
+        save.assert_not_called()
+        self.assertTrue(os.path.islink(child))
+
 
 if __name__ == "__main__":
     unittest.main()

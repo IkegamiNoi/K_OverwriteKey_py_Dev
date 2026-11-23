@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T01:30:00
+last_updated: 2026-11-24T02:00:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・4819cdb7 = phase 77 task_01）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77: レビュー指摘の対応案をユーザー承認（decisions.md 記録・deep① を current.md 別タスク化候補へ）。task_02a（リンク切れ symlink を衝突に）を起票し codex-implementer へ依頼中。その後 verifier → reviewer → コミット → 実機目視（ユーザー）。**
-mode: implementing
+focus: **phase 77 task_02a 完了（reviewer 採用・tests 2276 pass / skip 8・smoke pass）。task_02 の残り = ユーザーの実機目視（task_02 定義の手順）→ OK なら task_03（正本反映）。**
+mode: blocked
 
 ## last_action
 ts: 2026-11-24T00:30:00
@@ -36,7 +36,7 @@ verified:
   smoke: pass
 
 ## next_action
-- task_02a（`tasks/task_02a_broken_symlink_conflict.md` 起票済み・codex-implementer 依頼中。`sample_install._find_conflicting_children` の `os.path.exists` → `os.path.lexists`・リンク切れの symlink が衝突になるテスト 1 件〔symlink を作れない環境は skip〕）→ codex-implementer → verifier → reviewer → コミット → ユーザーの実機目視（task_02 定義の手順）→ task_03（正本反映・Codex① の空フォルダの受容を明記）。
+- ユーザーの実機目視（`tasks/task_02_integration_check.md`「実機目視」）の結果待ち。OK なら task_02 完了を phase.md に記録 → task_03（正本反映: 暫定 59 §6 の昇格・Codex① 空フォルダの受容を明記・凍結・decisions_archive/77・codebase_map・current.md・/refactor_check）。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
