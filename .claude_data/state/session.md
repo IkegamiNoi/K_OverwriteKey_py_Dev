@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T02:30:00
+last_updated: 2026-11-24T03:00:00
 phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・4819cdb7 = phase 77 task_01）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 77: task_02 完了（実機目視 OK）。task_03（正本反映）の文書作業済み = 正本 3 か所 + codebase_map・暫定 59 凍結・decisions_archive/77・decisions.md 索引・current.md 完了記載・refactor_check 不要。完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）実行中・未コミット。**
+focus: **phase 77 完了判定前レビュー: deep = 完了可（低 5）・codex-adversarial = needs-attention（medium 4・1/3/4 は実測で事実）。採否案（Codex1/3 採用 → task_03a〔構成セットも lexists・比較を json.dumps(sort_keys=True) の文字列で〕・Codex2/4 除外〔正本にリンク構成は扱わない・「辿れる全ファイル」を 3 種と明記〕・deep1/2/5 採用・3/4 除外）をユーザーへ提示し回答待ち。**
 mode: pending_review
 
 ## last_action
@@ -36,7 +36,7 @@ verified:
   smoke: pass
 
 ## next_action
-- 完了判定前レビュー 2 種の結果を受けて採否をユーザーへ提示 → 修正があれば反映 → task_03 をコミット → phase 77 完了。
+- ユーザーが採否案を承認したら: decisions_archive/77 に採否を追記 → task_03a 起票（sample_install.py:63 の exists → lexists・_find_conflicting_children の比較を sort_keys の json 文字列に・テスト 2 件）→ codex-implementer → verifier → reviewer → 正本の 2 行（リンク構成は扱わない・check の対象 3 種）・暫定 59 の 4 行目削除・decisions_archive に refactor_check の M1〜M6 実測値 → コミット → phase 77 完了。
 - 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
