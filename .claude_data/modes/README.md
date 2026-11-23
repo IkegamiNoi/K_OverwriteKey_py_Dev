@@ -39,7 +39,7 @@ save_mode の軸は **「有効な hook の組合せ」だけ**。prompt hook �
 モデル名は検証されないので、打ち間違えると全変種へ同じ誤名が入る（`check` は一致を報告し続ける）。
 
 管理対象**でない**もの（モードに関係なく共通）: `.claude/agents/{reviewer,deep-reviewer,verifier}.md` /
-`.claude/commands/` / `agent_selection.md` 以外の `.claude/rules/` / `CLAUDE.md`。
+`.claude/skills/` / `agent_selection.md` 以外の `.claude/rules/` / `CLAUDE.md`。
 
 ---
 

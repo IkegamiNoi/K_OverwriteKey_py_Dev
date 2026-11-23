@@ -57,7 +57,7 @@
 
 ## ■ ユーザー判断後
 
-- **(A) 仕様書更新** → `/spec_update`（`.claude/commands/spec_update.md`）で影響範囲提示 →
+- **(A) 仕様書更新** → `/spec_update`（`.claude/skills/spec_update/SKILL.md`）で影響範囲提示 →
   正本更新 → decisions.md 記録 → タスク更新 →（必要なら）再検証タスク起票。手順詳細は rules_detail
 - **(B) 実装修正** → 仕様書は無修正。`task_execution.md` に従い実装エージェントへ修正依頼
   （既定エージェントは `.claude/rules/agent_selection.md`）。decisions.md 記録は重要判断のみ任意

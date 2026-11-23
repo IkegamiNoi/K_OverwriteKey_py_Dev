@@ -217,7 +217,7 @@
   **27 = phase 70 由来・保留**（2026-10-29 ユーザー判断）〔`app.py` の「呼んで失敗をログに残す」同型の try/except 5 個を 1 関数へ〕
   **28 = phase 75 由来・実施済＝phase 75 task_15**（2026-11-22）〔`macos/backend.py` を 1 クラス 1 ファイルへ・`modal.install_minimize_grab_custody` の入れ子の関数を外へ〕
   次採番は **`29_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
-  規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
+  規範は `.claude/skills/spec_split/SKILL.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
 
@@ -420,7 +420,7 @@ Claude は作業開始時に、このファイルで指定された参照先の 
 ## フェーズ完了時の指示
 
 - 正本反映タスクの完了後、フェーズを完了扱いにする前に `/refactor_check`
-  （`.claude/commands/refactor_check.md`）を実行し、リファクタ要否の判定結果を完了報告に含めること。
+  （`.claude/skills/refactor_check/SKILL.md`）を実行し、リファクタ要否の判定結果を完了報告に含めること。
 - フェーズ完了時は本ファイルの「現在の参照先」を差し替える。**完了フェーズはリンクのみを残し、
   要約は書かない**（要約は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正）。
   代わりに「**直近の一連の作業が扱っている領域**」を数行で置き、**いま何の続きを見ているのか**と
@@ -434,7 +434,7 @@ Claude は作業開始時に、このファイルで指定された参照先の 
 
 新しいフェーズ用フォルダを作成した場合は、`## 現在の参照先` を新フェーズの `phase.md` に更新してください。
 フォルダ名は `instructions/phase/` 直下で**連番プレフィックス付き**（`NN_<topic>`）にしてください。
-起票手順は `/phase_start`（`.claude/commands/phase_start.md`）に従うこと。
+起票手順は `/phase_start`（`.claude/skills/phase_start/SKILL.md`）に従うこと。
 
 ## 注意
 

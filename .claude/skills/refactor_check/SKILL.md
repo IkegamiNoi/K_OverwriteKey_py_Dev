@@ -1,4 +1,5 @@
 ---
+name: refactor_check
 description: フェーズ完了時にリファクタ要否をメトリクスで判定し、必要なら小規模な提案書を起票する
 ---
 

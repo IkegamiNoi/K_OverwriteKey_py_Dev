@@ -1,4 +1,5 @@
 ---
+name: save_handoff
 description: session.md から handoff.md を再生成する
 ---
 
@@ -7,7 +8,7 @@ description: session.md から handoff.md を再生成する
 
 ## 前提（厳守）: 生成前に session.md を最新化する
 handoff.md は session.md を唯一の入力にするため、**生成前に session.md が現在の作業状態を反映していること**を必ず確認する。
-- `phase` / `current.focus` / `last_action` / `next_action` が、直近の会話・コミット状態・現フェーズ（`instructions/phase/current.md`）と食い違う、または古いフェーズのままなら、**先に `save_state.md` の手順（更新 + 肥大化防止ルール）に従って session.md を最新化してから** handoff.md を生成する。
+- `phase` / `current.focus` / `last_action` / `next_action` が、直近の会話・コミット状態・現フェーズ（`instructions/phase/current.md`）と食い違う、または古いフェーズのままなら、**先に `/save_state`（`.claude/skills/save_state/SKILL.md`）の手順（更新 + 肥大化防止ルール）に従って session.md を最新化してから** handoff.md を生成する。
 - stale（陳腐化）と bloat（肥大化）は同じ扱い: どちらも「先に session.md を正す → それから handoff を作る」。
 - **stale な session.md からは絶対に handoff を生成しない**（古いフェーズ情報が次セッションへ伝播し事故になる）。
 
@@ -46,7 +47,7 @@ handoff.md はセッション開始フックで毎回全文注入される固定
 - session.md の最新化（stale / bloat の是正）は冒頭「## 前提（厳守）」に統合。入力が現状を反映していることを必ず先に担保する
 
 ## プロジェクト固有指示の連携
-プロジェクト固有の確認コマンドや注意事項は `.claude/commands/save_handoff.project.md`（任意ファイル）に書く運用を想定。
+プロジェクト固有の確認コマンドや注意事項は `.claude/skills/save_handoff/project.md`（任意ファイル）に書く運用を想定。
 存在すればそれを優先する。
 
 ## 推奨タイミング

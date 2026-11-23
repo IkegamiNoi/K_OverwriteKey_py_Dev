@@ -305,11 +305,11 @@ Global Shared
 （例: `spec_detail/key_input.md`〔INDEX〕 + `spec_detail/key_input/5_13_move_mode.md`）。
 ルール本文の「非推奨構成」（親がフォルダ外）に該当するが、正本は凍結文書から
 「ファイル名 + 節番号」で参照されており、親のパス安定が発見性より優先するため例外とする。
-分割の判定・手順は `/spec_split`（`.claude/commands/spec_split.md`）に従う。
+分割の判定・手順は `/spec_split`（`.claude/skills/spec_split/SKILL.md`）に従う。
 
 ## 「肥大化したら」の数値解釈
 
-判定の数値閾値は `/refactor_check`（`.claude/commands/refactor_check.md`）の
+判定の数値閾値は `/refactor_check`（`.claude/skills/refactor_check/SKILL.md`）の
 M1〜M6（ファイル 600 行超 + フェーズで +100 行 / 関数 80 行超 / 同型ブロック 3 箇所 等）を
 用いる。本ルールは「どこへ置くか」、/refactor_check は「いつ直すか」を担当する。
 実装時の予防目安（関数 30 行超で抽出検討・新規ファイル 300 行以内）は

@@ -1,4 +1,5 @@
 ---
+name: save_state
 description: 直前のやりとりから .claude_data/state/session.md を更新する
 ---
 
@@ -65,7 +66,7 @@ description: 直前のやりとりから .claude_data/state/session.md を更新
 > `python -m mypy src` / `python -m pytest -q`
 
 ## プロジェクト固有指示の連携
-プロジェクト固有の補足指示は `.claude/commands/save_state.project.md`（任意ファイル）に書く運用。
+プロジェクト固有の補足指示は `.claude/skills/save_state/project.md`（任意ファイル）に書く運用。
 存在すれば併せて参照し、`decisions.md` / `instructions/phase/current.md` などへの連動更新を行う。
 
 タスク完了時は以下も更新すること。

@@ -1,4 +1,5 @@
 ---
+name: template_pull
 description: template リポジトリで育った運用ルール・インフラをこのプロジェクトへ取り込む（逆同期。差分抽出 → 分類表で確認 → 適合化して反映）
 ---
 
@@ -30,10 +31,13 @@ description: template リポジトリで育った運用ルール・インフラ�
 ### 1. 範囲の決定
 
 1. `.claude/template_pull_state.md` を読む（template のパス / `last_pulled` / 対応関係 / 除外メモ /
-   意図的に差分にした箇所）
+   意図的に差分にした箇所）。**表の path が実在しない・プレースホルダのままなら**その旨を報告して
+   中断し、ユーザーに実パスを確認する（推測したパスを `git -C` に渡さない）
 2. `git -C <template> rev-parse --show-toplevel` で git リポジトリであることを確認する
 3. 範囲 = `<last_pulled>..HEAD`（引数があればそれを優先）。
-   **`last_pulled` が空なら初回モード**（手順 2b）
+   **`last_pulled` が空なら初回モード**（手順 2b）。初回モードには range もコミット列も無いので、
+   手順 4 の表と手順 9 のコミットは**許可リストのグループ単位**（agents / skills / rules /
+   modes / docs）で分ける
 4. `git -C <template> log --oneline <range>` で**コミット単位のタイトルを先に把握する**
    （手順 9 のコミット分割の単位になる）
 5. 対象 0 件ならその旨だけ報告して終了（マーカーの日付のみ更新してよい）
@@ -106,7 +110,7 @@ git diff --no-index --stat <template>/<path> ./<path>
 
 - 表は **template のコミットごとに分ける**（手順 9 のコミット分割と対応させる）
 - 「適合化」欄には、プロジェクト固有へ書き換える必要があるかを書く
-- 候補が 15 件を超える場合はグループ（agents / commands / rules / modes / docs）ごとに承認を取る
+- 候補が 15 件を超える場合はグループ（agents / skills / rules / modes / docs）ごとに承認を取る
 - この分類作業をサブエージェントへ委任しない（許可リストで既に絞れているため。
   `.claude/rules/output_style.md` の委任量抑制）
 
@@ -147,7 +151,7 @@ git diff --no-index --stat <template>/<path> ./<path>
 - **実測**: python は `.venv`（`.claude/rules/python_rules.md`）。`compileall` と、モードを
   触った場合は `switch_*.py` の `check` を実行する。**自己申告で済ませない**
 
-### 8. レビュー
+### 8. レビュー（手順 9 のコミット前に行う）
 
 複数コミットを跨ぐ差分になるため `deep-reviewer` を 1 回かける。観点に
 「旧パス参照の残存」「適合化の漏れ（汎用文言のまま取り込んでいないか）」「取込不要判定の妥当性」
@@ -158,7 +162,7 @@ git diff --no-index --stat <template>/<path> ./<path>
 ### 9. マーカー更新とコミット
 
 - `.claude/template_pull_state.md` を更新する
-  - `last_pulled` = 今回の範囲の終端コミット / `date` = 実行日
+  - `last_pulled` = 今回の範囲の終端コミット（初回モードは template の現 HEAD）/ `date` = 実行日
   - 恒常的に「取込不要」となる**節**（ファイル単位で切ると template 側の改訂を取りこぼす）、
     ファイル対応関係のズレ、**template と意図的に差分にした箇所**を該当節へ追記する
     （意図的差分を記録しないと、template 側の `/template_sync` で毎回候補に出続ける）
@@ -168,14 +172,17 @@ git diff --no-index --stat <template>/<path> ./<path>
   仕様判断に当たるものがあれば `.claude_data/state/decisions.md` へも記録する
 - コミットは template のコミットに 1:1 対応させ、メッセージに元ハッシュを書く
   （例: `モード切替機構を .claude_data/modes/ へ移動（template aa2f827 取込）`）。
-  レビュー指摘の反映は別コミットにする
+  手順 8 の指摘のうち採用したものは、対応するコミットへ含める
+  （コミット後に追加レビューを回した場合のみ、その反映を別コミットにする）
 - フェーズタスクではないので `/task_commit` は使わない。**push はしない**
 
 ---
 
 ## 許可リスト（比較対象）
 
-- `.claude/agents/` / `.claude/commands/` / `.claude/rules/` / `.claude/settings.json`
+- `.claude/agents/` / `.claude/skills/` / `.claude/rules/` / `.claude/settings.json`
+  （template 側が旧構成 `.claude/commands/<名前>.md` の範囲は `.claude/skills/<名前>/SKILL.md` と
+  同一物として突き合わせる。frontmatter の `name:` 行の有無は差分に数えない）
 - `CLAUDE.md` / `.gitignore`
 - `.claude_data/modes/`（モード切替インフラ）
 - `instructions/common/rules_detail/`
@@ -183,9 +190,9 @@ git diff --no-index --stat <template>/<path> ./<path>
 
 ## 除外（読まない・比較しない）
 
-- template 専用: `.claude/commands/template_sync.md` / `.claude/template_sync_state.md` /
+- template 専用: `.claude/skills/template_sync/SKILL.md` / `.claude/template_sync_state.md` /
   template ルートの `README.md`（構造説明の要点が必要なら、こちら側の適切な場所へ書き下ろす。
-  同文取込はしない）/ `init_project.md` の削除対象記述
+  同文取込はしない）/ `init_project/SKILL.md` の削除対象記述
 - 他言語・他構成向けのルール（マーカーの除外メモを参照）
 - `instructions/phase/**` / `backlog/**` / `history/**` / `common/spec_detail/` / `app_overview.md`
 - アプリ本体のソース・テスト・生成物 / `settings.local.json` / `.claude/worktrees/`

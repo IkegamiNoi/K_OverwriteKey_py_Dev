@@ -1,6 +1,6 @@
 # template_pull 同期状態
 
-`/template_pull`（`.claude/commands/template_pull.md`）が参照・更新するマーカー。
+`/template_pull`（`.claude/skills/template_pull/SKILL.md`）が参照・更新するマーカー。
 方向は **template → このプロジェクト**（逆同期）。
 
 - `last_pulled` = template 側で取り込み判定済みの最終コミット。次回はここから `HEAD` までが対象
@@ -20,7 +20,7 @@
 |---|---|---|
 | `.claude/rules/implementation.md` | `.claude/rules/implementation_py.md` | `/init_project` で python 版を採用し tkinter へ具体化。template の `implementation.md` は flutter 版なので**対応先ではない** |
 | （無し） | `.claude/rules/flutter_rules.md` | 他言語向け。取り込まない |
-| （無し） | `.claude/commands/template_sync.md` / `.claude/template_sync_state.md` | template 専用（`/init_project` で削除される側） |
+| （無し） | `.claude/skills/template_sync/SKILL.md` / `.claude/template_sync_state.md` | template 専用（`/init_project` で削除される側） |
 
 ## ■ 除外メモ
 
@@ -53,9 +53,9 @@ template を直すか差分のままにするかは別途判断する。
   → git 実測ヘッダ（branch / worktree_root）付き
 - **Codex 使用量の削減（2026-09-17）**: `.claude/agents/codex-implementer.md`（稼働側 + `switch_files/{codex,codex_medium}`）の
   転送文 = 規約は `implementation` / `python_rules` / `anti_patterns` の 3 つのみ・読む範囲を指定 /
-  `.claude/commands/task_new.md` の「読むファイル」節（7 節構成）/ `.claude/rules/implementation.md` の実装前手順 1
+  `.claude/skills/task_new/SKILL.md` の「読むファイル」節（7 節構成）/ `.claude/rules/implementation.md` の実装前手順 1
   （codebase_map は対象節のみ。ファイル単位除外済みだが記録として残す）
-- `.claude/commands/template_pull.md` / 本ファイル — こちらで新設（逆同期用）。
+- `.claude/skills/template_pull/SKILL.md` / 本ファイル — こちらで新設（逆同期用）。
   順方向で template へ取り込むかは template 側の判断
 
 **意図的差分ではないもの**: `.claude/rules/output_style.md:42` と

@@ -1,4 +1,5 @@
 ---
+name: idea
 description: 改善ネタ (idea) を instructions/backlog/ へ起票し INDEX.md を更新する
 ---
 

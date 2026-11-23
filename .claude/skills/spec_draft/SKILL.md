@@ -1,4 +1,5 @@
 ---
+name: spec_draft
 description: 暫定仕様書を instructions/history/ へ起票する（暫定仕様先行モードの主入力）
 ---
 

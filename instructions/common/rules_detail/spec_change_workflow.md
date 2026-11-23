@@ -83,7 +83,7 @@
 
 ユーザーが (A) 仕様書更新を選んだ場合:
 
-`/spec_update` コマンド（`.claude/commands/spec_update.md`）を呼び出して以下の手順を実行する。
+`/spec_update` コマンド（`.claude/skills/spec_update/SKILL.md`）を呼び出して以下の手順を実行する。
 
 1. 影響範囲の特定と提示（ユーザー確認を取る）
 2. 仕様書本体（`instructions/common/spec_detail/*.md`）の更新
@@ -97,7 +97,7 @@
    - 命名: `task_NN_NN_<topic>_recheck.md`（例: `task_01_01_domain_scope_recheck.md`）
 7. `instructions/phase/current.md` の更新
 
-詳細手順は `.claude/commands/spec_update.md` を参照。
+詳細手順は `.claude/skills/spec_update/SKILL.md` を参照。
 
 ユーザーが (B) 実装修正を選んだ場合:
 

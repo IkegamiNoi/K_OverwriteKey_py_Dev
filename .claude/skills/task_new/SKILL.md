@@ -1,4 +1,5 @@
 ---
+name: task_new
 description: タスク定義ファイルを instructions/phase/NN_<topic>/tasks/ へ起票する
 ---
 

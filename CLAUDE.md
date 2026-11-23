@@ -29,27 +29,27 @@
 
 フェーズ / タスクの進捗記録は `instructions/phase/current.md` へ一本化する。
 
-詳細は `.claude/commands/save_state.md` / `save_handoff.md` 参照。
+詳細は `.claude/skills/save_state/SKILL.md` / `.claude/skills/save_handoff/SKILL.md` 参照。
 
-タスク完了時のコミットは `/task_commit`（`.claude/commands/task_commit.md`）で行う。
+タスク完了時のコミットは `/task_commit`（`.claude/skills/task_commit/SKILL.md`）で行う。
 自動保存モード（`.claude_data/modes/save_mode/` の auto_save 系設定）では、Stop hook がタスク完了を
 検知した際に `/save_state` に続けて実行を促す（手動保存モードでは任意実行）。
 
-フェーズ完了時は `/refactor_check`（`.claude/commands/refactor_check.md`）でリファクタ要否を
+フェーズ完了時は `/refactor_check`（`.claude/skills/refactor_check/SKILL.md`）でリファクタ要否を
 判定する（判定と提案書起票のみ。実施はユーザー承認後）。
 
 正本仕様書（`instructions/common/spec_detail/`）が肥大化した場合の分割は `/spec_split`
-（`.claude/commands/spec_split.md`）に従う（節番号保持の INDEX 分割・ユーザー承認必須）。
+（`.claude/skills/spec_split/SKILL.md`）に従う（節番号保持の INDEX 分割・ユーザー承認必須）。
 
 起票系の定型作業はスキルに従う: idea 起票 = `/idea` / 暫定仕様書の起票 = `/spec_draft` /
 新フェーズの起票 = `/phase_start` / タスク定義の起票 = `/task_new`
-（いずれも `.claude/commands/` 同名ファイル）。
+（いずれも `.claude/skills/<名前>/SKILL.md`）。
 
 ユーザー不在（就寝・外出）の間は `/away [戻る予定時刻]` に従う（判断待ちに当たったら、戻るまで 1 時間以内ならその場で待ち、
 それより先なら `/save_state` + `/save_handoff` で引き継いで終了）。解除は `/back`。状態は `session.md` の `presence` 行。
 
 生成元 template リポジトリで育った運用ルール・インフラの取り込み（逆同期）は
-`/template_pull`（`.claude/commands/template_pull.md`）。同期状態と template との
+`/template_pull`（`.claude/skills/template_pull/SKILL.md`）。同期状態と template との
 意図的な差分は `.claude/template_pull_state.md` に記録する。
 
 ## ■ 実装ルール（常時有効）

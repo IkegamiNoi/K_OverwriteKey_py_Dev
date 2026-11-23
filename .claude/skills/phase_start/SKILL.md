@@ -1,4 +1,5 @@
 ---
+name: phase_start
 description: 新フェーズを instructions/phase/NN_<topic>/ に起票し current.md を更新する
 ---
 
@@ -63,7 +64,7 @@ description: 新フェーズを instructions/phase/NN_<topic>/ に起票し curr
 ```
 
 - タスク定義ファイルは `tasks/task_NN_<topic>.md` に置く（起票時に全部作らず、
-  着手するタスクから順に起票してよい）。書式は `/task_new`（`.claude/commands/task_new.md`）。
+  着手するタスクから順に起票してよい）。書式は `/task_new`（`.claude/skills/task_new/SKILL.md`）。
 
 ## 付随更新（起票と同時・必須）
 

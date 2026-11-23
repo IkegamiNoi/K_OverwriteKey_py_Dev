@@ -1,4 +1,5 @@
 ---
+name: task_commit
 description: 完了したタスクの成果をタスク単位で git コミットする
 ---
 

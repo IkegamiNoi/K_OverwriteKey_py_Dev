@@ -22,7 +22,7 @@ model: sonnet
   確認する。main リポジトリ（worktree 外）を参照・実行しない
 - 実行コマンド（言語ランタイム・テストランナー等）は呼び出し元の指示、
   またはプロジェクトの言語別ルール（`.claude/rules/` 配下）に記載のものを使う
-- `/refactor_check` のメトリクス収集では、`.claude/commands/refactor_check.md` の手順 1〜2
+- `/refactor_check` のメトリクス収集では、`.claude/skills/refactor_check/SKILL.md` の手順 1〜2
   （`git diff --stat` による差分特定と M1〜M6 の測定）を実行する。M3/M4/M6 のような判断を含む
   項目は**該当候補の列挙まで**とし、該当/非該当の確定はしない
 

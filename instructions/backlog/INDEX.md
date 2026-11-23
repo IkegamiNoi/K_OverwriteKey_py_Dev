@@ -4,7 +4,7 @@
 
 このフォルダのファイルは **正式なフェーズ／タスクではない**。
 着手時は `instructions/phase/<phase>/tasks/` へ正式タスクとして起票し直すこと。
-起票手順は `/idea`（`.claude/commands/idea.md`）。
+起票手順は `/idea`（`.claude/skills/idea/SKILL.md`）。
 
 ---
 

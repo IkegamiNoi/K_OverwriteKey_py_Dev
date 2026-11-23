@@ -1,4 +1,5 @@
 ---
+name: init_project
 description: テンプレートからプロジェクトを初期化する（対象ファイルを app_overview.md に合わせて一括修正）
 ---
 
@@ -10,8 +11,8 @@ description: テンプレートからプロジェクトを初期化する（対�
 固定 4 つ:
 
 1. `.claude_data/state/handoff.md`
-2. `.claude/commands/save_state.md`（「チェックコマンド」節）
-3. `.claude/commands/save_handoff.md`（「最初に確認するコマンド」節）
+2. `.claude/skills/save_state/SKILL.md`（「チェックコマンド」節）
+3. `.claude/skills/save_handoff/SKILL.md`（「最初に確認するコマンド」節）
 4. `.claude/rules/implementation.md`（Python プロジェクトでは `implementation_py.md` が実体）
 
 条件付き（該当する場合のみ）:
@@ -80,11 +81,11 @@ description: テンプレートからプロジェクトを初期化する（対�
 - 採用言語に対応する実コマンド（例: `flutter analyze 2>&1 | tail -5` / `flutter test 2>&1 | tail -3`）に置換
 - 「## 現在の作業の 1 行サマリ」の `> session.md.current.focus を参照` はそのまま保持（session.md 更新で自然に埋まる）
 
-#### `.claude/commands/save_state.md`
+#### `.claude/skills/save_state/SKILL.md`
 - 「## チェックコマンド（参考・EDIT REQUIRED）」節の注釈ブロックを、採用言語の実コマンドに置換
 - 残す内容は汎用なのでそれ以外は基本そのまま
 
-#### `.claude/commands/save_handoff.md`
+#### `.claude/skills/save_handoff/SKILL.md`
 - 「## 最初に確認するコマンド（EDIT REQUIRED）」節の注釈ブロックを、採用言語の実コマンドの
   固定テンプレに置換（導入されていないツールは「スキップしてよい」と明記）
 

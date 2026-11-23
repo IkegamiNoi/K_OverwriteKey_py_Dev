@@ -1,4 +1,5 @@
 ---
+name: spec_split
 description: 正本仕様書 (spec_detail) の肥大化を判定し、節番号を保持した INDEX 分割を計画・実施する
 ---
 

@@ -1,4 +1,5 @@
 ---
+name: spec_update
 description: 仕様変更を伴う修正のための仕様書 / タスク / 履歴更新を一括で行う
 ---
 
