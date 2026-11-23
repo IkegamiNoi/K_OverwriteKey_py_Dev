@@ -170,7 +170,7 @@ keyseq/presentation/
       version_dialog.py        # open_version_dialog: バージョン情報のモーダル
       license_window.py        # LicenseWindow / LicenseWindowController: ライセンスの表示と単一性・前面化
       third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込（platforms による OS 絞込）
-      content/                 # help_ja.json / help_en.json（同じ id・phase 72）/ third_party/（third_party.json + ライセンス全文 14 個）
+      content/                 # help_ja.json / help_en.json（同じ id・phase 72）/ third_party/（third_party.json + ライセンス全文 32 個・OS ごとの行は platforms）
     screen_grid/               # カーソルグリッド（phase 56・下の「カーソルグリッド」節）
       screen_grid_controller.py  # ScreenGridController: ScreenGridSession と infrastructure / 窓の配線・sync / handle / 失敗時に畳む・on_font_changed
       grid_overlay_window.py   # GridOverlayWindow: 今の画面に 1 枚の透過・クリック素通しの窓（遅延生成）
@@ -1001,7 +1001,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **`HelpWindow` / `HelpTabView`**: 非モーダル・非 transient。入力欄の FocusIn だけ既存の `app.hook.suspend_hook_for_dialog()` を呼び、FocusOut / Destroy の先着で `resume_hook_after_dialog()` を 1 回だけ呼ぶ。本文の開閉・一致箇所の表示・見えている文字のコピーはタブ側で扱う。
 - **`LicenseWindowController`（`app.license`）/ `LicenseWindow`**: 非モーダルの単一の窓。本体 `LICENSE` → 同梱物一覧 → 各全文を表示する。`version_dialog.open_version_dialog` はフックを止めるモーダルで、版は `keyseq.__version__` を参照する。
 - **App の配線**: 生成時に管理役を作り、`_apply_font_delta` から `help.on_font_changed()`、終了時に両管理役の `close()`。メインの最前面の切替で両窓の `apply_topmost()` 後に `LayoutController.resync_keyboard_topmost()` を呼び、キーボードUIの重なり順を再同期する（見張りの判定条件は不変）。
-- **データ**: `content/help_ja.json` / `help_en.json` は config の対象外（読む順 = 今の言語 → `en` → `ja`・`help_content.py`・phase 72）。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物 14 件の正。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
+- **データ**: `content/help_ja.json` / `help_en.json` は config の対象外（読む順 = 今の言語 → `en` → `ja`・`help_content.py`・phase 72）。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物の正（35 行・C ライブラリの行を含む・行の決め方は features.md「バージョン情報・ライセンス」・phase 79）。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
 - **導線**: `views/menu_bar.py` の「ヘルプ」に「使い方」「よくある質問」・区切り・「バージョン情報」「ライセンス」。各対象ダイアログは `add_help_button` と `help_targets.py` の対応を使う（「?」は下端の左寄せ。キーの記録を持つダイアログは `before_open` に Esc と同じ停止の関数を渡し、開く前に記録を止める）。
 
 ---

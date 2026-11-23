@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59。暫定 60 は phase 79 の主入力で未凍結）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 79 task_01 完了（2026-11-24）。** Windows の配布物に入る C ライブラリ 10 行（bzip2・CPython incorporated software〔license.rst の節 + HACL*〕・expat・libffi・mpdecimal・OpenSSL・xz・zlib・zlib-ng・Zstandard）を第三者ライセンスの表に追加・C ライブラリの版の照合テスト・packaging README の棚卸しの手順・VC++ ランタイムの一文を配布物の README に追記。**次 = task_02（Mac の行）を Mac で起票・実施** → task_03（統合確認・正本反映）。
-worktree = `claude/template-import-idea-65-7e55e5`（template 取り込み〔Operation_check 733ac0f9〕+ phase 79 task_01 までコミット済み・未 push）。push / merge はユーザー。
-直近の実測（Windows・task_01 完了時・2026-11-24）: compile clean / tests 2279 pass（skip 9）/ tests_ui test_help_window 25 pass / smoke pass / 実機目視 OK（ライセンスの窓 25 行）。
+**phase 79 task_02 完了・task_03 は完了判定前レビュー（deep 修正要・Codex needs-attention）の採否待ちで停止（2026-11-24・ユーザー不在中）。** task_02 = Mac の C ライブラリ 5 行（CPython incorporated software〔license.rst + HACL* + BLAKE2〕・libtommath・mpdecimal・OpenSSL・xz）・実機目視 OK（21 行）。PSL（Tcl の cookiejar・MPL 2.0）は Tcl の行で扱う（ユーザー判断）。正本 features.md / codebase_map.md への昇格は下書き済み（レビュー指摘で直す前提）。
+worktree = `claude/windows-handoff-task-8a4d59`（Mac・task_02 完了 + task_03 の下書きまでコミット済み・未 push）。push / merge はユーザー。
+直近の実測（Mac・task_02 後・2026-11-24）: compile clean / tests 2217 pass（skip 33）/ tests_ui test_help_window 25 pass / smoke pass / 実機目視 OK（21 行）。Windows は task_01 時点 = tests 2279（task_02 のテスト変更後は未実行）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -54,7 +54,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **phase 79 task_02（Mac の行）を Mac で起票・実施**: 暫定 60 §4.1 の棚卸しを Mac のビルド（`keyseq.app`）で行い、同梱の dylib と静的に入る物・各版（配布物から読んだ値かビルドの入力で）・拡張モジュールの中の HACL* の有無（あれば表示必須）・libtommath の出所を確かめる。手本 = `instructions/phase/79_bundled_c_library_licenses/tasks/task_01_windows_rows.md`（棚卸しの記録の表）。Mac の行は platforms darwin・Mac の Python の行の直後に大文字小文字を無視した ABC 順・`mac_names` と `_NON_PYPI_NAMES` を更新。task の連続実行はユーザー許可済。
+- **【最初にユーザーへ確認】`instructions/phase/79_bundled_c_library_licenses/task03_review_decisions.md` の A-1〜A-3 の採否と B の了承**（推奨 = A-1(a) Tcl/Tk の全文を OS ごとに分けて libtommath・PSL・NanoSVG の表示を足す〔暫定 60 §7 条件 8〕・A-2(a) VC++ は今の扱いを維持し残存リスクを記録・A-3 記録の置き場所を手順書に・B 4〜9 = xxHash の表示・`otool -tX`・Zstandard の照合を必須に・手順書に Tcl/Tk の静的コード・暫定 60 v0.8 に PSL・正本の下書きの補い）。
+- 推奨どおりなら task_02a（Mac）と task_01a（Windows）を起票・実施 → task_03 を再開（暫定 60 v0.8 で凍結・decisions_archive/79・current.md・idea_65 を INDEX_done へ・refactor_check = 不要の見込み）。task の連続実行はユーザー許可済。
 - **取り込み前の設定の件**: このブランチは取り込み前の設定で起動したセッションで作業した（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が /save_state を繰り返し要求）。メインのリポジトリ（main）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで**、5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・SessionStart の branch が worktree 側になることを確かめる（push / merge はユーザー）。
 - ブランチ `claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59〜64・66 は検討段階。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。

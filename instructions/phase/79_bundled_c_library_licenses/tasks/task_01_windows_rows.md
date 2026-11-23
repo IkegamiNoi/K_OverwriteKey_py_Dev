@@ -114,3 +114,7 @@ OpenSSL = openssl/openssl `openssl-3.5.7` の `LICENSE.txt`（NOTICE は無い�
 - CPython の `python.txt:281-296`: Microsoft Distributable Code を含む物を配るなら、配布者と利用者に Microsoft の要件と同等以上にそれを守る条項への同意を求めよ。
 - **判定: 未解決**。実際の配り方で条件を満たす根拠がまだ無い。**ユーザーの判断と対応が済むまで Windows 版は出荷しない**（暫定 60 §7 の 10）。
 - **ユーザー判断（2026-11-24）: 配布物の README に一文を足す**（CPython と同じ扱い）。`packaging/README_dist.txt`（Windows の配布物の `README.txt`）の日英に「`_internal/` の `VCRUNTIME140*.dll` は Microsoft Visual C++ ランタイムの再頒布可能ファイルで Microsoft のライセンス条項が適用される・本ソフトウェアを再頒布するなら Microsoft の再頒布可能コードの条件（ライセンスの窓の Python の項 = `python.txt:281-296`）に従う」を追記（メイン・2 行）。満たす根拠 = 同梱の条項（`python.txt`）がライセンスの窓で読め、README で配布者・利用者に条件を示している。法律の専門家の確認ではない。これで受け入れ条件 10 を満たした扱いとし、出荷停止を解く。
+
+### 追記（2026-11-24・task_02 後・ユーザー判断）
+
+Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない）。Windows の `_tcl_data` に同じファイルがあるかは未確認（上の表の `_tcl_data` の行に含まれる扱い）。次の Windows の棚卸しで有無を確かめ、あれば同じく Tcl の行に対応づける。

@@ -4,37 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T16:00:00
+last_updated: 2026-11-24T08:45:00
 phase: phase 79 = 同梱の C ライブラリのライセンス（2026-11-24 起票・暫定 60 v0.7 ユーザー確定済・起票元 idea_65）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 78**（アクションの hotkey の保存時の検査と正規化・`decisions_archive/78_action_hotkey_save_validation.md`）
-last_commit_location: `claude/windows-handoff-task-8a4d59`（worktree `windows-handoff-task-8a4d59`・Mac・task_02 の実装 2c788338 まで）。push / merge はユーザー
+last_commit_location: `claude/windows-handoff-task-8a4d59`（worktree `windows-handoff-task-8a4d59`・Mac・task_02 完了 bdcf4cb6 + task_03 の下書き）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 79 task_02（Mac の行）実装・検証済み・実機目視待ち（2026-11-24）。** Mac の C ライブラリ 5 行を追加。目視 OK なら task_02 完了 → task_03。
-mode: pending_review
+focus: **phase 79 task_02 完了・task_03 は完了判定前レビュー（deep 修正要・Codex needs-attention）の採否待ちで停止（2026-11-24）。**
+mode: blocked
+presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-24T16:00:00
+ts: 2026-11-24T08:45:00
 who: main
 summary: |
-  task_02 を起票・実施（Mac）。この worktree で `dist/keyseq.app` をビルドして棚卸し（記録は tasks/task_02_mac_rows.md の末尾）: 同梱 dylib 7 個（OpenSSL 3.6.2・xz 5.8.4・mpdecimal 4.0.1・libtommath 1.3.0〔tcl-tk の依存〕・Tcl/Tk 9.1.0）と Python・拡張 51 個が Homebrew と `otool -t` 一致。zlib/bzip2/expat/libffi/libedit は /usr/lib（同梱なし）。HACL* = _md5/_sha1/_sha2/_sha3・BLAKE2（CC0）= _blake2。
-  third_party.json に 5 行（CPython incorporated software・libtommath・mpdecimal・OpenSSL・xz・darwin）・全文 4 ファイル（メイン配置・openssl.txt は共有）・mac_names・_NON_PYPI_NAMES・README macOS 手順 5（codex-implementer〔Luna high〕・reviewer 採用）。
-  報告事項: Tcl の `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（MPL 2.0・先頭に MPL 表示・ソース形式）を Tcl の行に対応づけ。Windows の Tcl 8.6.15 にも入るはずだが task_01 の記録に無い → ユーザー判断待ち。
+  task_02（Mac の行）完了（実機目視 OK・21 行・bdcf4cb6）。ユーザー判断: PSL（Tcl の cookiejar の Public Suffix List・MPL 2.0）は Tcl の行で扱う（task_01 の記録に追記）。
+  task_03 を起票し、正本 features.md「バージョン情報・ライセンス」と codebase_map.md（件数 32 個 / 35 行）へ昇格の下書き（コミット済み・未レビュー確定）。
+  完了判定前レビュー: deep-reviewer 修正要（条件 8 = Tcl/Tk の行の全文に libtommath・PSL・NanoSVG の表示が無い・Mac の Tk に NanoSVG・手順書に Tcl/Tk の静的コード無し ほか）/ codex-adversarial needs-attention（xxHash の表示漏れ・VC++ の停止解除の根拠・otool -t の手順・Zstandard の照合が黙って外れる）。主張はメインが実測で確認。採否の一覧 = phase 79 の task03_review_decisions.md。
 result_files:
-  - keyseq/presentation/help/content/third_party/third_party.json（+ cpython_incorporated_macos.txt・libtommath.txt・mpdecimal_macos.txt・xz_macos.txt）
-  - tests/test_third_party.py・packaging/README.md
-  - instructions/phase/79_bundled_c_library_licenses/phase.md・tasks/task_02_mac_rows.md
+  - instructions/phase/79_bundled_c_library_licenses/task03_review_decisions.md（採否の一覧）
+  - instructions/common/spec_detail/features.md・instructions/common/codebase_map.md（昇格の下書き）
+  - instructions/phase/79_bundled_c_library_licenses/tasks/task_03_integration_and_promotion.md・task_01_windows_rows.md（PSL の追記）
 verified:
   compile: clean
-  tests: pass 2217（skip 33・Mac）
+  tests: pass 2217（Mac・task_02 後）
   tests_ui: pass 25（test_help_window のみ）
   smoke: pass
-  visual: not_run（ユーザーの実機目視待ち・一覧 21 行）
+  visual: OK（Mac 21 行）
 
 ## next_action
-- **ユーザーの実機目視**（`dist/keyseq.app` のライセンスの窓・21 行・各全文）。OK なら task_02 の記録と phase.md を「完了」にしてコミット → **task_03**（統合確認〔deep-reviewer + codex-reviewer〕・正本 features.md への昇格〔暫定 60 §9〕・暫定 60 の凍結・decisions_archive/79・current.md・idea_65 を INDEX_done へ・refactor_check）。
-- PSL（MPL 2.0）の扱いをユーザーに確認（Mac は Tcl の行に対応づけ済み・Windows の task_01 の記録への追記の要否）。
+- **【ユーザー判断待ち】`instructions/phase/79_bundled_c_library_licenses/task03_review_decisions.md` の A-1〜A-3 の採否と B の了承**（推奨 = A-1(a) Tcl/Tk の全文を OS ごとに分けて表示を足す・A-2(a) VC++ は今の扱いを維持して残存リスクを記録・A-3 記録の置き場所を手順書に書く・B 4〜9 は採用）。
+- 推奨どおりなら task_02a（Mac: tcl_macos.txt / tk_macos.txt・NanoSVG の記録・手順書の otool -tX と Tcl/Tk の静的コード）と task_01a（Windows: zstandard.txt に xxHash・Zstandard の照合を必須に・libtommath の表示・PSL の有無・テストの流し直しと目視）を起票 → task_03 を再開（暫定 60 v0.8・凍結・decisions_archive/79・current.md・idea_65 を INDEX_done へ・refactor_check = 不要の見込み〔phase 79 の Python の変更は tests/test_third_party.py の +42 行だけ〕）。
 - task の連続実行はユーザー許可済（2026-11-24・phase 79）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
 - ブランチ `claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
