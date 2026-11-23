@@ -55,6 +55,8 @@ description: 直前のやりとりから .claude_data/state/session.md を更新
   例〔Python の場合〕: `compile` / `ruff` / `mypy` / `pytest`、
   値: `clean` | `<N> issues` | `pass <N>` | `fail <N>` | `not_run` | `not_configured`）
 - `resume_hints`（次セッション再開時に役立つメモ。例: 「類似実装は `src/presentation/painters.py` を参照」）
+- `current.presence`（`/away` 中のみ。`presence: away（戻る予定 YYYY-MM-DDTHH:MM / 未定）` の 1 行。
+  **書き直し時も消さずに保持する**〔会話要約後に不在モードを思い出す唯一の手掛かり〕。削除は `/back` か新セッションでの再開時）
 
 ## チェックコマンド（参考・EDIT REQUIRED）
 > プロジェクト初期化時に、状態更新の根拠とするチェックコマンドをここに記載する。
