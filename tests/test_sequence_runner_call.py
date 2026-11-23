@@ -3,9 +3,10 @@ from unittest.mock import patch
 
 from keyseq.application.app_state import AppState
 from keyseq.application.call_context import CallStep
+from keyseq.application.sequence_history import snapshot_for
 from keyseq.application.sequence_runner import call_wait
 from keyseq.application.sequence_runner import SequenceRunner
-from keyseq.application.sequence_steps import LoopFrame
+from keyseq.application.sequence_steps import LoopFrame, StepResume
 
 
 from keyseq.shared.i18n import fix_language
@@ -2497,6 +2498,76 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 self.state.set_counter_starts({"n": 10})
                 self.runner.handle_key("f2")
                 self.assertEqual(self.state.counters["n"], 11)
+
+    def test_run_to_end_rollback_keeps_counter_addition_across_wait_snapshot(self):
+        self.state.set_counter_starts({"n": 6})
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f1", [call("busy")], run_to_end=True)
+        self.trigger("f2", [system("counter_inc", counter="n")])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+
+        # Model a prior run-to-end interval that wrote n before a wait. The
+        # retained snapshot, resume deltas, and owned name span the next interval.
+        actions = self._find_trigger("f1")["actions"]
+        snapshot = snapshot_for(self.state, "set", "f1")
+        self.state.run_to_end_key = "f1"
+        self.state.counters["n"] = 7
+        self.runner._run_to_end_snapshot = snapshot
+        self.runner._run_to_end_resume = StepResume(
+            initial_position=0, wrapped=False, processed=1,
+            counter_deltas=(("n", 1),),
+        )
+        self.runner._run_to_end_added_counter_names.add("n")
+
+        self.runner._perform_run_to_end_step("f1", actions, 0)
+        self.assertIs(self.runner._run_to_end_snapshot, snapshot)
+        self.scheduler.run_one()
+
+        self.assertNotIn("n", self.state.counters)
+        self.state.set_counter_starts({"n": 10})
+        self.runner.handle_key("f2")
+        self.assertEqual(self.state.counters["n"], 11)
+
+    def test_ignored_call_rollback_keeps_another_trigger_counter_addition(self):
+        self.state.set_counter_starts({"owned": 3, "foreign": 8})
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f1", [system("counter_inc", counter="owned"), call("busy")])
+        self.trigger("f2", [system("counter_inc", counter="foreign")])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+
+        self.runner.handle_key("f1")
+        # f1 has reserved its callback; model an unrelated accepted trigger write
+        # before that callback discovers the busy callee and rolls f1 back.
+        self.runner._run_single_action("f2", self._find_trigger("f2")["actions"])
+        self.scheduler.run_one()
+
+        self.assertNotIn("owned", self.state.counters)
+        self.assertEqual(self.state.counters["foreign"], 9)
+
+    def test_call_root_stop_settle_counter_addition_is_removed_on_rollback(self):
+        self.trigger("f5", [system("wait", ms=1000), text("A")])
+        trigger = self.trigger("f1", [call("f5"), system("stop"),
+                                      system("counter_inc", counter="new")], run_to_end=True)
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        ctx = self.runner._run_to_end_call
+        self.assertIsNotNone(ctx)
+        self.assertNotIn("new", self.state.counters)
+
+        # Settle the interrupted call's root before the press is committed.
+        position, stopped, waiting = self.runner._settle_run_to_end_call_root(
+            ctx, trigger["actions"], 1, [], False,
+        )
+        self.assertEqual((position, stopped, waiting), (0, True, None))
+        self.assertEqual(self.state.counters["new"], 1)
+        self.assertIn("new", ctx.added_counter_names)
+
+        self.runner._rollback_linked_press(ctx)
+
+        self.assertNotIn("new", self.state.counters)
+        self.assertEqual(self.index("f1"), 0)
 
     def test_continuous_batch_call_uses_counter_start_in_callee(self):
         self.state.set_counter_starts({"n": 3})

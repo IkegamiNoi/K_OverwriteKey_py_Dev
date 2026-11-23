@@ -751,6 +751,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `sequence_control.OP_CALL` / `MAX_CALL_DEPTH`、`format_control_value` は呼び出し先の解決関数 `resolve_call` を引数で受ける（`action_list_rendering` が配線）。
   - `application/call_context.py`: 連動の実行（`CallContext` = 一覧 ID・呼び出し元・実状態への参照・スタック〔`CallFrame`〕）と「文脈の 1 ステップ」`call_step` / `finish_call_action`
     （戻り値 `CallStep` の kind = action / wait / next / done / error・連鎖・差分・間隔）。単発・連続実行の両経路で共有し、UI・タイマーに依存しない。
+    巻き戻し前の settle と保留カウンター適用は `track_counter_additions` で新規名を文脈へ記録する。連続呼び出しの停止後は `send_wait._settle_after_stopped_sequence` に `added_counter_names` を渡し、保存・表示通知をロック外に保つ。
   - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/
     `call_run_to_end.py`（`CallRunToEndMixin` = 連続実行の呼び出し）/ `input_acceptance.py`（`InputAcceptanceMixin` = 押下の受け付けの判定・単発の呼び出しの一時停止 / 再開・
     `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）/

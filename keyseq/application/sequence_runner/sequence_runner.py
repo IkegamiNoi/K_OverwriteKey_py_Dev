@@ -4,7 +4,7 @@ from collections.abc import Iterable, Sequence
 from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable
 
-from keyseq.application.call_context import CallContext
+from keyseq.application.call_context import CallContext, track_counter_additions
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import (
@@ -80,6 +80,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._control_source: str | None = None
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
+        self._run_to_end_added_counter_names: set[str] = set()
         self._run_to_end_wait_position: int | None = None
         self._run_to_end_sent = False
         self._run_to_end_generation = 0
@@ -310,6 +311,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             self._discard_run_to_end_call()
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
+            self._run_to_end_added_counter_names.clear()
             self._run_to_end_wait_position = None
         self.state.forget_trigger(self._get_trigger_set_id(), key)
         trigger = self._find_trigger(key)
@@ -408,14 +410,16 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             target = self._control(key, op, target_key) or target
         try:
             starting_position = self._get_index(key) if position is None else position
-            with self.state.lock:
-                counter_names_before = set(self.state.counters)
-            outcome = advance(actions, self._get_index(key) if position is None else position,
-                              self._get_frames(key), self.state.counters,
-                              wrap_once=True, resume=resume,
-                              deferred_counters=self.state.deferred_counters_for(
-                                  self._get_trigger_set_id()).get(key, ()),
-                              on_control=on_control)
+            added_counter_names: set[str] = set()
+            # Standalone controls manage their own locking and add no counter names.
+            with (nullcontext() if self._is_standalone_control(actions) else
+                  track_counter_additions(self.state, self.state.counters, added_counter_names)):
+                outcome = advance(actions, self._get_index(key) if position is None else position,
+                                  self._get_frames(key), self.state.counters,
+                                  wrap_once=True, resume=resume,
+                                  deferred_counters=self.state.deferred_counters_for(
+                                      self._get_trigger_set_id()).get(key, ()),
+                                  on_control=on_control)
             self._save_progress(key, outcome.position, outcome.frames)
             if outcome.reached_end or outcome.wrapped:
                 self._release_owner(key)
@@ -451,7 +455,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 )
                 self._start_single_call(
                     key, actions, outcome, snapshot, initial_position,
-                    counter_names_before=counter_names_before,
+                    added_counter_names=added_counter_names,
                 )
                 waiting = True
                 return

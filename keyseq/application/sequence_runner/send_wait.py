@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from typing import Any
 
 from keyseq.application.app_state import PendingStep
+from keyseq.application.call_context import track_counter_additions
 from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import (
     LoopFrame,
@@ -12,6 +14,7 @@ from keyseq.application.sequence_steps import (
     StepOutcome,
     StepResume,
     after_normal_action,
+    apply_deferred_counters,
     continue_resume,
     settle_after_normal,
 )
@@ -166,20 +169,26 @@ class SendWaitMixin:
         self, key: str, actions: list[dict[str, Any]], position: int,
         frames: list[LoopFrame], processed: int,
         deltas: tuple[tuple[str, int], ...],
+        *, added_counter_names: set[str] | None = None,
     ) -> tuple[tuple[tuple[str, int], ...], int]:
         if position == 0:
             self._save_progress(key, 0, [], ())
             return deltas, 0
-        settled = settle_after_normal(
-            actions, position, frames, self.state.counters,
-            allow_wrap=False, processed=processed, stop_ends_run=False,
-            wait_mode="skip",
-        )
+        with (nullcontext() if added_counter_names is None else
+              track_counter_additions(self.state, self.state.counters, added_counter_names)):
+            settled = settle_after_normal(
+                actions, position, frames, self.state.counters,
+                allow_wrap=False, processed=processed, stop_ends_run=False,
+                wait_mode="skip",
+            )
         position, frames = settled.position, settled.frames
         deltas += settled.counter_deltas
         deferred = settled.deferred_counters
         if position == 0 and deferred:
-            deltas += self._apply_deferred_counters_and_publish(deferred)
+            with (nullcontext() if added_counter_names is None else
+                  track_counter_additions(self.state, self.state.counters, added_counter_names)):
+                deltas += apply_deferred_counters(deferred, self.state.counters)
+            self._publish_call_view()
             deferred = ()
         self._save_progress(key, position, frames, deferred)
         return deltas, position

@@ -120,6 +120,7 @@ class CallViewCompactTest(unittest.TestCase):
         return CallViewSummary(
             path=(key, "f5"), actions=actions, position=position,
             loop_frames=(LoopFrame(start=0, iteration=2),), counters={"score": 4},
+            counter_starts={},
         )
 
     def notify(self, summary):

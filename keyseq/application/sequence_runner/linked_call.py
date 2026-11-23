@@ -17,8 +17,8 @@ class LinkedCallMixin:
         deltas = [delta for values in ctx.deltas_by_key.values() for delta in values]
         with self.state.lock:
             undo_counter_deltas(self.state.counters, deltas)
-            for name in set(self.state.counters) - ctx.counter_names_before:
-                del self.state.counters[name]
+            for name in ctx.added_counter_names:
+                self.state.counters.pop(name, None)
             for snapshot in ctx.before.values():
                 trigger_set_id, key = snapshot.trigger_set_id, snapshot.key
                 self.state.indices_for(trigger_set_id)[key] = snapshot.position
@@ -30,6 +30,7 @@ class LinkedCallMixin:
                     refs.add(key)
                 else:
                     refs.discard(key)
+        ctx.added_counter_names.clear()
         ctx.stack.clear()
         ctx.changed_frames.clear()
         ctx.completed.clear()
@@ -84,6 +85,7 @@ class LinkedCallMixin:
                 self._discard_run_to_end_call()
                 self._run_to_end_resume = None
                 self._run_to_end_snapshot = None
+                self._run_to_end_added_counter_names.clear()
                 self._run_to_end_wait_position = None
                 self.stop_run_to_end()
             for caller in self._ordered_callers():
@@ -120,6 +122,7 @@ class LinkedCallMixin:
                     self._discard_run_to_end_call()
                     self._run_to_end_resume = None
                     self._run_to_end_snapshot = None
+                    self._run_to_end_added_counter_names.clear()
                     self._run_to_end_wait_position = None
                     if position == 0:
                         self.stop_run_to_end()
@@ -142,6 +145,6 @@ class LinkedCallMixin:
         ctx.deltas_by_key.clear()
         ctx.before = {key: snapshot_for(self.state, ctx.trigger_set_id, key)
                       for key in ctx.before}
-        ctx.counter_names_before = set(self.state.counters)
+        ctx.added_counter_names.clear()
         self._refresh_actions()
         self._update_status()

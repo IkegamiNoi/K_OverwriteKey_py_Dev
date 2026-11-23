@@ -109,6 +109,7 @@ class CallViewFrameTest(unittest.TestCase):
             position=position,
             loop_frames=(LoopFrame(start=0, iteration=2),),
             counters={"score": 4},
+            counter_starts={},
         )
 
     def notify(self, summary):
@@ -121,7 +122,7 @@ class CallViewFrameTest(unittest.TestCase):
     def test_selection_switches_between_two_chains_and_unmarked_trigger(self):
         self.notify(self.summary())
         self.notify(CallViewSummary(path=("f2", "f6"), actions=({"type": "text", "value": "other"},),
-                                    position=0, loop_frames=(), counters={}))
+                                    position=0, loop_frames=(), counters={}, counter_starts={}))
         self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先　f1 › f5")
         self.selected_key = "f2"
         self.controller.on_selection_changed()
@@ -426,7 +427,7 @@ class CallViewFrameTest(unittest.TestCase):
         actions = tuple({"type": "text", "value": f"row {index}"} for index in range(30))
         summary = CallViewSummary(
             path=("f1", "f5"), actions=actions, position=24,
-            loop_frames=(), counters={},
+            loop_frames=(), counters={}, counter_starts={},
         )
 
         self.notify(summary)

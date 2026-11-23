@@ -25,7 +25,7 @@ class KeyHoldRenderingTests(unittest.TestCase):
                 {"type": "key_hold", "edge": "down", "button": "right", "label": "保持"},
                 {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
             ],
-            loop_frames=(), counters={}, position=0,
+            loop_frames=(), counters={}, counter_starts={}, position=0,
         )
         CallViewController(app)._render_rows(frame, summary)
         self.assertEqual(frame.action_list.insert.call_args_list[0].args[1], "▶ 01. [press] マウス右: 保持")

@@ -9,7 +9,7 @@ from keyseq.application.call_context import (
     finish_call_action,
     message_with_chain,
     top_interval,
-    start_linked_call,
+    start_linked_call, track_counter_additions,
 )
 from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import (
@@ -37,7 +37,7 @@ class CallRunToEndMixin:
     def _begin_run_to_end_call(
         self, key: str, actions: list[dict[str, Any]], index: int,
         outcome: StepOutcome, snapshot: StepSnapshot,
-        *, counter_names_before: set[str],
+        *, added_counter_names: set[str],
     ) -> None:
         ancestors, depth = self._linked_ancestors(key)
         ctx = start_linked_call(
@@ -45,7 +45,7 @@ class CallRunToEndMixin:
             self.state, step=is_step_call(actions[index]),
             ancestors=ancestors, ancestor_depth=depth,
         )
-        ctx.counter_names_before = counter_names_before
+        ctx.added_counter_names = added_counter_names
         ctx.before[key] = snapshot
         ctx.press_processed = outcome.processed
         ctx.record_deltas(key, outcome.counter_deltas)
@@ -106,6 +106,7 @@ class CallRunToEndMixin:
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         self.stop_run_to_end()
 
@@ -137,6 +138,7 @@ class CallRunToEndMixin:
                 self._discard_run_to_end_call()
                 self._run_to_end_resume = None
                 self._run_to_end_snapshot = None
+                self._run_to_end_added_counter_names.clear()
                 self._run_to_end_wait_position = None
                 if sent_before_step:
                     self.state.run_to_end_paused = True
@@ -377,6 +379,7 @@ class CallRunToEndMixin:
         self._run_to_end_wait_position = None
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self.stop_run_to_end()
 
     def _complete_run_to_end_call(
@@ -407,6 +410,7 @@ class CallRunToEndMixin:
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         self._select_trigger(key)
         if position == 0 or stopped or stopped_call:
@@ -426,24 +430,28 @@ class CallRunToEndMixin:
         deferred = self.state.deferred_counters_for(ctx.trigger_set_id).get(ctx.root_key, ())
         stopped, waiting = False, None
         if position != 0:
-            settled = settle_after_normal(
-                actions, position, frames, self.state.counters, allow_wrap=False,
-                stop_ends_run=not stopped_call, deferred_counters=deferred,
-                wait_mode="skip" if stopped_call else "wait",
-            )
+            with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+                settled = settle_after_normal(
+                    actions, position, frames, self.state.counters, allow_wrap=False,
+                    stop_ends_run=not stopped_call, deferred_counters=deferred,
+                    wait_mode="skip" if stopped_call else "wait",
+                )
             position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
             ctx.record_deltas(ctx.root_key, settled.counter_deltas)
             stopped, waiting = settled.stopped, settled.wait_ms
             if stopped:
-                ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
+                with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+                    ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
                 deltas, position = self._settle_after_stopped_sequence(
                     ctx.root_key, actions, position, frames, settled.processed, (),
+                    added_counter_names=ctx.added_counter_names,
                 )
                 ctx.record_deltas(ctx.root_key, deltas)
                 frames = self._get_frames(ctx.root_key)
                 deferred = self.state.deferred_counters_for(ctx.trigger_set_id).get(ctx.root_key, ())
         if position == 0:
-            ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
+            with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+                ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
             deferred = ()
             ctx.completed.append(ctx.root_key)
         ctx.root_continuation = position + 1 if waiting is not None else position
@@ -468,6 +476,7 @@ class CallRunToEndMixin:
             self._discard_run_to_end_call()
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
+            self._run_to_end_added_counter_names.clear()
             self._run_to_end_wait_position = None
             if position == 0 or step.kind == "stopped":
                 self.stop_run_to_end(release_held=position == 0 or step.kind != "stopped")
@@ -490,6 +499,7 @@ class CallRunToEndMixin:
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         if not is_call:
             return False

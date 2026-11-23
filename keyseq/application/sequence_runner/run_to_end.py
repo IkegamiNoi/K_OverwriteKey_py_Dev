@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from typing import Any
 
-from keyseq.application.call_context import CallContext, top_interval
+from keyseq.application.call_context import CallContext, track_counter_additions, top_interval
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, ACTION_TYPE_SYSTEM, OP_CALL, OP_WAIT, system_op
@@ -32,6 +33,7 @@ class RunToEndMixin:
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         self._run_to_end_sent = False
         self._run_to_end_generation += 1
@@ -104,6 +106,7 @@ class RunToEndMixin:
                 self._commit_run_to_end_call(self._run_to_end_call)
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
+            self._run_to_end_added_counter_names.clear()
             self._run_to_end_wait_position = None
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()
@@ -118,6 +121,7 @@ class RunToEndMixin:
         self.state.run_to_end_paused = False
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         self._update_status()
 
@@ -132,6 +136,7 @@ class RunToEndMixin:
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._run_to_end_wait_position = None
         self.stop_run_to_end()
 
@@ -201,19 +206,22 @@ class RunToEndMixin:
         snapshot = self._run_to_end_snapshot or snapshot_for(self.state, self._get_trigger_set_id(), key)
         previous_resume = self._run_to_end_resume
         advance_position = self._get_index(key)
-        with self.state.lock:
-            counter_names_before = set(self.state.counters)
+        if self._run_to_end_snapshot is None:
+            self._run_to_end_added_counter_names.clear()
         target = None
         def on_control(op: str, target_key: str | None) -> None:
             nonlocal target
             target = self._control(key, op, target_key) or target
-        outcome = advance(actions, self._get_index(key), self._get_frames(key),
-                          self.state.counters, wrap_once=False,
-                          resume=self._run_to_end_resume,
-                          deferred_counters=self.state.deferred_counters_for(
-                              self._get_trigger_set_id()).get(key, ()),
-                          on_control=on_control,
-                          stop_ends_run=self._run_to_end_sent)
+        # Standalone controls manage their own locking and add no counter names.
+        with (nullcontext() if self._is_standalone_control(actions) else
+              track_counter_additions(self.state, self.state.counters, self._run_to_end_added_counter_names)):
+            outcome = advance(actions, self._get_index(key), self._get_frames(key),
+                              self.state.counters, wrap_once=False,
+                              resume=self._run_to_end_resume,
+                              deferred_counters=self.state.deferred_counters_for(
+                                  self._get_trigger_set_id()).get(key, ()),
+                              on_control=on_control,
+                              stop_ends_run=self._run_to_end_sent)
         self._save_progress(key, outcome.position, outcome.frames)
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
@@ -244,7 +252,7 @@ class RunToEndMixin:
                   and system_op(action) == OP_CALL):
                 self._begin_run_to_end_call(
                     key, actions, index, outcome, snapshot,
-                    counter_names_before=counter_names_before,
+                    added_counter_names=self._run_to_end_added_counter_names,
                 )
                 self._select_trigger(key)
                 if target is not None:
@@ -274,6 +282,7 @@ class RunToEndMixin:
         else:
             self._schedule_run_to_end_step(key, delay)
         self._run_to_end_snapshot = None
+        self._run_to_end_added_counter_names.clear()
         self._select_trigger(key)
         if target is not None:
             self._select_trigger(target)

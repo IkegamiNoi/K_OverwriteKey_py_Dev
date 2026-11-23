@@ -855,6 +855,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                     "hook_keys_individual": False,
                     "hook_stop_key": "f11",
                     "hook_toggle_key": "f12",
+                    "counter_starts": {},
                 },
             )
             self.assertEqual(self.app.keymap_set_path, "")
@@ -1029,6 +1030,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 "hook_stop_key": "", "hook_toggle_key": "", "keyboard_layout": "jis",
                 "external_keyboard_layouts": [{"path": "user/keylayout/jis.json"}],
                 "keyboard_show_physical_key_labels": True,
+                "counter_starts": {},
             },
         )
         self.assertEqual(set_dirty.call_args.args, (True,))
@@ -1724,7 +1726,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         # 空データフォールバックでも hook キーの全体デフォルトが注入される（phase 07 task_02）。
         self.assertEqual(
             self.app.data,
-            {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": "", "counter_starts": {}},
         )
         self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
@@ -1759,7 +1761,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             # （空データにも hook キーの全体デフォルトが注入される。phase 07 task_02）
             self.assertEqual(
                 self.app.data,
-                {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+                {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": "", "counter_starts": {}},
             )
             # 読込例外時も keymap_set_path は空のまま（受入 4）
             self.assertEqual(self.app.keymap_set_path, "")

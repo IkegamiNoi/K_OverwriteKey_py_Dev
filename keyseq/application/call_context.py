@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -52,7 +53,7 @@ class CallContext:
     processed_before_action: int = 0
     first_step: bool = False
     before: dict[str, StepSnapshot] = field(default_factory=dict)
-    counter_names_before: set[str] = field(default_factory=set)
+    added_counter_names: set[str] = field(default_factory=set)
     changed_frames: dict[str, CallFrame] = field(default_factory=dict)
     completed: list[str] = field(default_factory=list)
     deltas_by_key: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
@@ -106,9 +107,22 @@ def start_linked_call(
     """Build a linked call from live trigger states, without copying actions."""
     ctx = CallContext(trigger_set_id, root_key, target_key, first_step=step,
                       state=state, find_trigger=find_trigger, ancestors=ancestors,
-                      ancestor_depth=ancestor_depth, counter_names_before=set(state.counters))
+                      ancestor_depth=ancestor_depth)
     ctx.before[root_key] = snapshot_for(state, trigger_set_id, root_key)
     return ctx
+
+
+@contextmanager
+def track_counter_additions(
+    state: Any, counters: dict[str, int], added_names: set[str],
+) -> Iterator[None]:
+    """Record names introduced by this write interval, including zero resets."""
+    with state.lock:
+        before = set(counters)
+        try:
+            yield
+        finally:
+            added_names.update(set(counters) - before)
 
 
 def chain_text(chain: tuple[str, ...]) -> str:
@@ -209,7 +223,8 @@ def _pop_frame(ctx: CallContext, counters: dict[str, int]) -> tuple[tuple[str, i
     frame = ctx.stack.pop()
     if ctx.on_call_success is not None:
         ctx.on_call_success()
-    deltas = apply_deferred_counters(frame.deferred, counters)
+    with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+        deltas = apply_deferred_counters(frame.deferred, counters)
     ctx.record_deltas(frame.key, deltas)
     frame.position, frame.frames, frame.deferred = 0, [], []
     ctx.completed.append(frame.key)
@@ -259,11 +274,12 @@ def _advance_frame(
     deferred = () if resume is not None else tuple(frame.deferred)
     if resume is None:
         frame.deferred.clear()
-    outcome = advance(
-        entry.actions, frame.position, frame.frames, counters,
-        wrap_once=False, resume=resume, deferred_counters=deferred,
-        on_control=None, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
-    )
+    with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+        outcome = advance(
+            entry.actions, frame.position, frame.frames, counters,
+            wrap_once=False, resume=resume, deferred_counters=deferred,
+            on_control=None, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
+        )
     processed[0] += max(0, outcome.processed - (resume.processed if resume else 0))
     deltas.extend(_new_deltas(outcome, resume))
     ctx.record_deltas(frame.key, _new_deltas(outcome, resume))
@@ -323,10 +339,11 @@ def _finish_returned_call(
         frame.position, frame.frames = after_normal_action(
             entry.actions, call_index, frame.frames,
         )
-        settled = settle_after_normal(
-            entry.actions, frame.position, frame.frames, counters,
-            allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
-        )
+        with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+            settled = settle_after_normal(
+                entry.actions, frame.position, frame.frames, counters,
+                allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
+            )
         processed[0] += settled.processed
         ctx.press_processed = processed[0]
         frame.position, frame.frames = settled.position, settled.frames
@@ -354,7 +371,8 @@ def _settle_stopped_call(
 ) -> CallStep:
     """Settle past a stop, unwinding completed frames without starting actions."""
     frame = ctx.stack[-1]
-    applied = apply_deferred_counters(frame.deferred, counters)
+    with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+        applied = apply_deferred_counters(frame.deferred, counters)
     deltas.extend(applied)
     ctx.record_deltas(frame.key, applied)
     frame.deferred.clear()
@@ -362,10 +380,11 @@ def _settle_stopped_call(
         frame = ctx.stack[-1]
         entry = ctx.entry_for(frame.key)
         if frame.position != 0:
-            settled = settle_after_normal(
-                entry.actions, frame.position, frame.frames, counters,
-                allow_wrap=False, processed=processed[0], in_call=True, wait_mode="skip",
-            )
+            with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+                settled = settle_after_normal(
+                    entry.actions, frame.position, frame.frames, counters,
+                    allow_wrap=False, processed=processed[0], in_call=True, wait_mode="skip",
+                )
             processed[0] = settled.processed
             frame.position, frame.frames = settled.position, settled.frames
             frame.deferred.extend(settled.deferred_counters)
@@ -435,10 +454,11 @@ def finish_call_action(
     frame.position, frame.frames = after_normal_action(
         entry.actions, frame.position, frame.frames,
     )
-    settled = settle_after_normal(
-        entry.actions, frame.position, frame.frames, counters,
-        allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
-    )
+    with track_counter_additions(ctx.state, counters, ctx.added_counter_names):
+        settled = settle_after_normal(
+            entry.actions, frame.position, frame.frames, counters,
+            allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
+        )
     processed[0] += settled.processed
     ctx.press_processed = processed[0]
     frame.position, frame.frames = settled.position, settled.frames

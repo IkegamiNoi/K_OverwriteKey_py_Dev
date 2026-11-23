@@ -185,7 +185,7 @@ class FullViewPanesTest(unittest.TestCase):
                 try:
                     summary = CallViewSummary(
                         path=("f1", "f5", "f7"), actions=(), position=0,
-                        loop_frames=(), counters={},
+                        loop_frames=(), counters={}, counter_starts={},
                     )
                     with patch.object(self.app.sequence_runner, "call_view_summary_for", return_value=summary), \
                             patch.object(self.app.trigger_panel, "selected_trigger_key", return_value="f1"):

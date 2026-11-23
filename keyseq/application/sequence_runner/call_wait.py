@@ -5,7 +5,7 @@ from typing import Any
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import (
     CallContext, CallStep, call_step, finish_call_action, message_with_chain,
-    start_linked_call,
+    start_linked_call, track_counter_additions,
 )
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
@@ -29,7 +29,7 @@ class CallWaitMixin:
     def _start_single_call(
         self, key: str, actions: list[dict[str, Any]], outcome: StepOutcome,
         snapshot: StepSnapshot, initial_position: int,
-        *, counter_names_before: set[str],
+        *, added_counter_names: set[str],
     ) -> None:
         trigger_set_id = self._get_trigger_set_id()
         ancestors, ancestor_depth = self._linked_ancestors(key)
@@ -39,7 +39,7 @@ class CallWaitMixin:
             step=is_step_call(actions[outcome.normal_index]),
             ancestors=ancestors, ancestor_depth=ancestor_depth,
         )
-        ctx.counter_names_before = counter_names_before
+        ctx.added_counter_names = added_counter_names
         ctx.before[key] = snapshot
         ctx.press_processed = outcome.processed
         ctx.record_deltas(key, outcome.counter_deltas)
@@ -366,10 +366,11 @@ class CallWaitMixin:
             position, frames = ctx.root_continuation, self._get_frames(key)
         deferred = self.state.deferred_counters_for(trigger_set_id).get(key, ())
         if position != 0:
-            settled = settle_after_normal(
-                trigger["actions"], position, frames, self.state.counters,
-                allow_wrap=False, wait_mode="wait", deferred_counters=deferred,
-            )
+            with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+                settled = settle_after_normal(
+                    trigger["actions"], position, frames, self.state.counters,
+                    allow_wrap=False, wait_mode="wait", deferred_counters=deferred,
+                )
             position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
             ctx.record_deltas(key, settled.counter_deltas)
             if settled.wait_ms is not None:
@@ -380,7 +381,8 @@ class CallWaitMixin:
         if position == 0:
             # The pressed trigger's sequence ended; callee completion alone does not release.
             self._release_owner(key)
-            ctx.record_deltas(key, apply_deferred_counters(deferred, self.state.counters))
+            with track_counter_additions(self.state, self.state.counters, ctx.added_counter_names):
+                ctx.record_deltas(key, apply_deferred_counters(deferred, self.state.counters))
             deferred = ()
             ctx.completed.append(key)
         self._save_progress(key, position, frames, deferred)

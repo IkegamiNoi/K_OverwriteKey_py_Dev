@@ -4,20 +4,24 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-22T22:55:00
+last_updated: 2026-11-23T13:44:33
 phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
-last_commit_location: `claude/counter-feature-expansion-a5d3c3`（worktree `counter-feature-expansion-a5d3c3`・task_05 の完了とこの state まで・未 push）。push / merge はユーザー
+last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`・HEAD fa28a7a9 + task_06 定義の未コミット）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76（カウンター機能の拡張）task_01〜05 完了（実装はすべて済み）。次 = task_06（統合確認・実機目視はユーザー）→ task_07（正本反映）。**
+focus: **phase 76 task_06（統合確認）進行中。検証・二次レビュー済み → R1〜R3 採用 → 実装済み・再検証と reviewer 待ち → 後に実機目視（ユーザー）。** 詳細は `instructions/phase/76_counter_expansion/tasks/task_06_integration.md`「結果」「指摘と推奨」
 mode: implementing
 
 ## last_action
-ts: 2026-11-22T22:55:00
+ts: 2026-11-23T12:00:00
 who: main
 summary: |
+  task_06: 定義を起票。verifier = compileall clean / tests 2254 pass / tests_ui 1316 件・失敗 5・エラー 28（主因 = テストが counter_starts に未追従 R1）/ smoke pass。
+  deep-reviewer + codex-reviewer の指摘を裏取りし task_06 に表で整理（R2 = run_to_end.py:205 の名前の取り直し・R3 = linked_call.py:20-21 の集合差での削除）。ユーザーが R1〜R3 採用（R4〜R8 は推奨どおり）。
+  codex-delegating-implementer（Sol medium・Luna high サブエージェント使用）が R1〜R3 を実装（未コミット 13 ファイル・`CallContext.added_counter_names` / `_run_to_end_added_counter_names`）。reviewer = 修正要（R1 採用・R2+R3 は settle_after_normal 系〔call_wait.py:369・call_run_to_end.py:433・call_context.py:342,382,455・linked_call.py:105-114〕の追加名の記録漏れ）→ Codex へ差し戻し済み（settle 系の囲み + 再現テスト + send_wait._settle_after_stopped_sequence + codebase_map 1 行が入った・Codex 完了）→ reviewer 再レビュー = 採用（指摘なし）・verifier 全 pass（tests 2257・tests_ui 1316・smoke）→ 残り = 実機目視（ユーザー）→ 戻ったら verifier + reviewer を再実行。差し戻し前の検証 = tests 2256 pass・tests_ui 対象 6 モジュール 128 pass・smoke pass・test_minimize_grab_custody 単体 29 pass（全体実行時のみの失敗 = 干渉・phase 76 と無関係・R8 解決）。
+  （以下は task_05 時点の記録）
   実施: task_05（編集 UI）を完了してコミット（9242ae4f）。ユーザーの指示で本日はここまで → session.md を整理し handoff.md を再生成。
   phase 76 のここまで: task_01 保存形式 25c123df / task_02 実行 b56a2fc1 / task_03 counter_text 54895e55 / task_04 表示 7af28e7a / task_05 編集 UI 9242ae4f（いずれも reviewer 採用）。
   実装エージェント: task_01・03・04 = codex-implementer（Luna high）/ task_02・05 = codex-delegating-implementer（Sol medium・サブエージェント未使用）。
