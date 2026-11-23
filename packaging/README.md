@@ -10,7 +10,8 @@
    - ファイル名は全体が `<名前>-<版>.tar.gz` か `.zip` であること（例 `MouseInfo-0.1.3.tar.gz`・`pynput-1.8.2.tar.gz`。大文字小文字は問わない。`.sha256` などは数えない）。`.spec` はこの名前で有無を検査し、無ければビルドを止めます。`dist/keyseq/sources/` は毎回空にして、一致したアーカイブだけを入れます。
 3. `python -m PyInstaller packaging/windows/keyseq.spec` を実行します。
 4. `build/keyseq/warn-keyseq.txt` と `build/keyseq/xref-keyseq.html` の収集結果を確認し、同梱依存を `third_party.json` の表と照合します。
-5. 配布する版のタグ `v<版>` を作成し、push します。
+5. 出荷ごとに `dist/keyseq/` を再帰的に棚卸しし、`.dll`・`.pyd`・`.exe` と `_internal/_tcl_data`・`_tk_data`・`tcl8` を一覧にして、各項目を `third_party.json` の行または表示しない理由に対応づけます。対応づけられない項目があれば出荷しません。DLL・pyd は CPython のインストール先（`sys.base_prefix` と `DLLs`）にある同名ファイルとハッシュを比較し、一致する場合は CPython のその版のタグにある `PCbuild/get_externals.bat` を版の根拠にします。OpenSSL・Zstandard・mpdecimal・expat は `tests/test_third_party.py` の照合も通し、表の版と合わなければ出荷しません。Python 本体に組み込まれた第三者コードは、その版の `PCbuild/pythoncore.vcxproj` で確認し、`Doc/license.rst` に記載のないものは `cpython_incorporated.txt` の末尾に表示を追加します。
+6. 配布する版のタグ `v<版>` を作成し、push します。
 
 依存の版を上げる場合は `requirements-build.txt`、`third_party.json`、`sources/` の版を揃えてください。任意の Windows アイコンは `packaging/windows/keyseq.ico` に配置します。
 

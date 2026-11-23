@@ -4,6 +4,7 @@ import importlib.metadata
 import json
 from pathlib import Path
 import platform
+import ssl
 import tkinter
 import unittest
 from contextlib import contextmanager
@@ -11,6 +12,13 @@ import tempfile
 
 from keyseq.presentation import bundled_paths
 from keyseq.presentation.help.third_party import load_license_text, load_third_party
+
+
+_NON_PYPI_NAMES = {
+    "Python", "Tcl", "Tk", "bzip2", "CPython incorporated software",
+    "expat", "libffi", "mpdecimal", "OpenSSL", "xz", "zlib", "zlib-ng",
+    "Zstandard",
+}
 
 
 class ThirdPartyTest(unittest.TestCase):
@@ -22,7 +30,9 @@ class ThirdPartyTest(unittest.TestCase):
         windows_names = [
             "keyboard", "pyautogui", "pynput", "pyscreeze", "pymsgbox",
             "pytweening", "mouseinfo", "pygetwindow", "pyrect", "pyperclip",
-            "six", "Python", "Tcl", "Tk", "PyInstaller",
+            "six", "Python", "bzip2", "CPython incorporated software", "expat",
+            "libffi", "mpdecimal", "OpenSSL", "xz", "zlib", "zlib-ng",
+            "Zstandard", "Tcl", "Tk", "PyInstaller",
         ]
         mac_names = [
             "pyautogui", "pynput", "pyscreeze", "pymsgbox", "pytweening",
@@ -42,7 +52,7 @@ class ThirdPartyTest(unittest.TestCase):
         notices, error = load_third_party()
         self.assertEqual(error, "")
         for notice in notices:
-            if notice.entry.name in {"Python", "Tcl", "Tk"}:
+            if notice.entry.name in _NON_PYPI_NAMES:
                 continue
             with self.subTest(name=notice.entry.name):
                 try:
@@ -71,6 +81,30 @@ class ThirdPartyTest(unittest.TestCase):
         finally:
             root.destroy()
         self.assertEqual(versions["Tk"], tk_patchlevel)
+
+    def test_c_library_versions_match_runtime(self) -> None:
+        import _decimal
+        import pyexpat
+
+        notices, error = load_third_party()
+        self.assertEqual(error, "")
+        versions = {notice.entry.name: notice.entry.version for notice in notices}
+        checks = {
+            "OpenSSL": lambda: ssl.OPENSSL_VERSION.split()[1],
+            "mpdecimal": lambda: _decimal.__libmpdec_version__,
+            "expat": lambda: pyexpat.EXPAT_VERSION.removeprefix("expat_"),
+        }
+        try:
+            from compression.zstd import zstd_version
+        except ImportError:
+            zstd_version = None
+        if zstd_version is not None:
+            checks["Zstandard"] = lambda: zstd_version
+        for name, get_runtime_version in checks.items():
+            with self.subTest(name=name):
+                if name not in versions:
+                    self.skipTest(f"{name} row is not bundled for this platform")
+                self.assertEqual(versions[name], get_runtime_version())
 
     def test_invalid_or_missing_manifest_returns_reason_without_raising(self) -> None:
         with self.subTest("missing directory"):
