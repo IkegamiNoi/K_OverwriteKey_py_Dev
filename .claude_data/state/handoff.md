@@ -15,18 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 78 = アクションの hotkey の保存時の検査と正規化 は 2026-11-23 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 79**〔同梱の C ライブラリのライセンス・2026-11-24 起票・主入力 = 暫定 60 v0.7〕→ `instructions/phase/79_bundled_c_library_licenses/phase.md`）。
+   次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59。暫定 60 は phase 79 の主入力で未凍結）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 78 完了（2026-11-23）。** 出力シーケンスの hotkey アクションを OK で `validate_hotkey` に通し（他方の OS の修飾キーの検査が先・文言不変）、不正なら保存しない・通れば正規化した値を保存。既存の正規化前の値は移行しない・今のレイアウトで通らない既存値はラベルだけの変更でも保存できない。アクティブなフェーズなし・次フェーズはユーザー判断。
-worktree = `claude/idea-03-ec8eea`（phase 78 完了までコミット済み・未 push）。push / main へのマージはユーザー。
-直近の実測（Windows・phase 78 完了時・2026-11-23）: compile clean / tests 2278 pass（skip 9）/ tests_ui 1319 pass / smoke pass / 実機目視 OK。
+**phase 79 task_01 完了（2026-11-24）。** Windows の配布物に入る C ライブラリ 10 行（bzip2・CPython incorporated software〔license.rst の節 + HACL*〕・expat・libffi・mpdecimal・OpenSSL・xz・zlib・zlib-ng・Zstandard）を第三者ライセンスの表に追加・C ライブラリの版の照合テスト・packaging README の棚卸しの手順・VC++ ランタイムの一文を配布物の README に追記。**次 = task_02（Mac の行）を Mac で起票・実施** → task_03（統合確認・正本反映）。
+worktree = `claude/template-import-idea-65-7e55e5`（template 取り込み〔Operation_check 733ac0f9〕+ phase 79 task_01 までコミット済み・未 push）。push / merge はユーザー。
+直近の実測（Windows・task_01 完了時・2026-11-24）: compile clean / tests 2279 pass（skip 9）/ tests_ui test_help_window 25 pass / smoke pass / 実機目視 OK（ライセンスの窓 25 行）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,9 +37,9 @@ worktree = `claude/idea-03-ec8eea`（phase 78 完了までコミット済み・�
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = phase 78 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1319 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = phase 78 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1319 pass** / smoke **pass**（verifier）。phase 79 task_01 で tests **2279**（test_third_party に 1 件）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
-**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78・task_03a の 2 件は統合確認の後に追加〕）。
+**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕→ 2279〔phase 79 task_01〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78・task_03a の 2 件は統合確認の後に追加〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,16 +54,16 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4（呼び出し先の amount 不正を呼び出しの行で通知・既存と同じ扱い）・idea_37（カウンター値による条件分岐）・2 枚目のモニタの目視・中クリック（ユーザー判断）。idea_45（phase 78 で Mac の `option+comma` を追記）・59〜66 は検討段階。
-- ブランチ `claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`（phase 77）・`claude/click-timing-issue-79de93`・`claude/task-06-confirmation-03414b`・`claude/counter-feature-expansion-a5d3c3` の push / merge はユーザー。
+- **phase 79 task_02（Mac の行）を Mac で起票・実施**: 暫定 60 §4.1 の棚卸しを Mac のビルド（`keyseq.app`）で行い、同梱の dylib と静的に入る物・各版（配布物から読んだ値かビルドの入力で）・拡張モジュールの中の HACL* の有無（あれば表示必須）・libtommath の出所を確かめる。手本 = `instructions/phase/79_bundled_c_library_licenses/tasks/task_01_windows_rows.md`（棚卸しの記録の表）。Mac の行は platforms darwin・Mac の Python の行の直後に大文字小文字を無視した ABC 順・`mac_names` と `_NON_PYPI_NAMES` を更新。task の連続実行はユーザー許可済。
+- **取り込み前の設定の件**: このブランチは取り込み前の設定で起動したセッションで作業した（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が /save_state を繰り返し要求）。メインのリポジトリ（main）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで**、5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・SessionStart の branch が worktree 側になることを確かめる（push / merge はユーザー）。
+- ブランチ `claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59〜64・66 は検討段階。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
-- **Stop フックの注意**: 変化の無い短い応答のたびに `/save_state` を求めて繰り返すことがある（判定の見直し候補・フックは未変更）。
 
 ## 運用インフラ
 
 - **モード切替は `.claude_data/modes/`**。エージェント構成は 3 モード（`codex`〔現構成〕/ `codex_medium` / `claude_only`）。
   **`.claude/` 配下または `CLAUDE.md` を編集する前に `.claude_data/modes/README.md` を読む**。
-- **template からの取り込みは `/template_pull`**（マーカー = `.claude/template_pull_state.md`）。
+- **template からの取り込みは `/template_pull`**（マーカー = `.claude/template_pull_state.md`・last_pulled = 1a99527・次回は `1a99527..HEAD`）。コマンドは `.claude/skills/<名前>/SKILL.md`（2026-11-23 に commands から移行）。
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
