@@ -37,7 +37,7 @@ verified:
 ## next_action
 - phase 78 は完了。ブランチ `claude/idea-03-ec8eea` の push / merge はユーザー。次フェーズはユーザー判断（`/phase_start`）。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
-- **template の取り込み（新しいセッションで）**: template（`doc/00_claude_template`）のブランチ `fix/hook-state-check`（1a99527・UserPromptSubmit を command 型の状態注入へ・Stop の再要求ループ止め）を template の main へ、本ブランチ（phase 78）を main へマージした後（どちらもユーザー）、main から切ったブランチで `/template_pull` を実施。skills 移行（template ef0d6a8・commands → skills）も同時に入る。
+- **template の取り込み（実施中・2026-11-23・ブランチ `claude/template-pull-9b0f93`）**: template 7791fa7..ef0d6a8 + 1a99527（fix/hook-state-check・template main 未マージ）を 7 コミットで取込済（skills 移行・save_mode の model コマンド・full_hooks 登録解除・フック修正 ほか）＋ deep-reviewer 推奨 1〜3 反映 + マーカー更新（last_pulled = 1a99527）で**完了**。push / merge はユーザー（template 側の 1a99527 の main マージも）。次のセッションで確認: `/` 補完に skills が出ること・`disable-model-invocation` を付けた 5 つが Claude の Skill 一覧から消えていること・UserPromptSubmit の状態注入が出ること。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
