@@ -4,37 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T12:00:00
+last_updated: 2026-11-24T16:00:00
 phase: phase 79 = 同梱の C ライブラリのライセンス（2026-11-24 起票・暫定 60 v0.7 ユーザー確定済・起票元 idea_65）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 78**（アクションの hotkey の保存時の検査と正規化・`decisions_archive/78_action_hotkey_save_validation.md`）
-last_commit_location: `claude/template-import-idea-65-7e55e5`（worktree `template-import-idea-65-7e55e5`・Operation_check 733ac0f9 から早送り・template 取り込み + phase 79 task_01 完了まで）。push / merge はユーザー
+last_commit_location: `claude/windows-handoff-task-8a4d59`（worktree `windows-handoff-task-8a4d59`・Mac・task_02 の実装 2c788338 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 79 task_01 完了（2026-11-24）。** Windows の C ライブラリ 10 行を第三者ライセンスの表に追加。次 = task_02（Mac の行）を **Mac のセッション**で起票・実施。
-mode: idle
+focus: **phase 79 task_02（Mac の行）実装・検証済み・実機目視待ち（2026-11-24）。** Mac の C ライブラリ 5 行を追加。目視 OK なら task_02 完了 → task_03。
+mode: pending_review
 
 ## last_action
-ts: 2026-11-24T12:00:00
+ts: 2026-11-24T16:00:00
 who: main
 summary: |
-  task_01（Windows の行）完了。third_party.json に 10 行（bzip2・CPython incorporated software〔license.rst の節 + HACL*〕・expat・libffi・mpdecimal・OpenSSL・xz・zlib・zlib-ng・Zstandard・すべて platforms win32）と全文 10 ファイル（上流の各版のライセンスファイルの写し・メインが配置）・tests/test_third_party.py（C ライブラリの版の照合 = OpenSSL / Zstandard / _decimal / expat・PyPI 照合から除外・windows_names）・packaging/README.md の棚卸しの手順（codex-implementer〔Luna high〕・reviewer 採用）。
-  棚卸しの記録は task_01 のタスク定義の末尾（DLL・pyd 26 個が CPython のインストールとハッシュ一致・版の根拠 = CPython v3.14.6 の PCbuild/get_externals.bat / pythoncore.vcxproj）。VC++ ランタイムはユーザー判断で packaging/README_dist.txt（日英）に一文を追記（暫定 60 v0.7）。
+  task_02 を起票・実施（Mac）。この worktree で `dist/keyseq.app` をビルドして棚卸し（記録は tasks/task_02_mac_rows.md の末尾）: 同梱 dylib 7 個（OpenSSL 3.6.2・xz 5.8.4・mpdecimal 4.0.1・libtommath 1.3.0〔tcl-tk の依存〕・Tcl/Tk 9.1.0）と Python・拡張 51 個が Homebrew と `otool -t` 一致。zlib/bzip2/expat/libffi/libedit は /usr/lib（同梱なし）。HACL* = _md5/_sha1/_sha2/_sha3・BLAKE2（CC0）= _blake2。
+  third_party.json に 5 行（CPython incorporated software・libtommath・mpdecimal・OpenSSL・xz・darwin）・全文 4 ファイル（メイン配置・openssl.txt は共有）・mac_names・_NON_PYPI_NAMES・README macOS 手順 5（codex-implementer〔Luna high〕・reviewer 採用）。
+  報告事項: Tcl の `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（MPL 2.0・先頭に MPL 表示・ソース形式）を Tcl の行に対応づけ。Windows の Tcl 8.6.15 にも入るはずだが task_01 の記録に無い → ユーザー判断待ち。
 result_files:
-  - keyseq/presentation/help/content/third_party/third_party.json（+ 全文 10 ファイル）
-  - tests/test_third_party.py
-  - packaging/README.md・packaging/README_dist.txt
-  - instructions/history/60_bundled_c_library_licenses.md（v0.7）
-  - instructions/phase/79_bundled_c_library_licenses/phase.md・tasks/task_01_windows_rows.md
+  - keyseq/presentation/help/content/third_party/third_party.json（+ cpython_incorporated_macos.txt・libtommath.txt・mpdecimal_macos.txt・xz_macos.txt）
+  - tests/test_third_party.py・packaging/README.md
+  - instructions/phase/79_bundled_c_library_licenses/phase.md・tasks/task_02_mac_rows.md
 verified:
   compile: clean
-  tests: pass 2279（skip 9）
+  tests: pass 2217（skip 33・Mac）
   tests_ui: pass 25（test_help_window のみ）
   smoke: pass
-  visual: OK（ライセンスの窓 25 行・ユーザー実機確認・2026-11-24）
+  visual: not_run（ユーザーの実機目視待ち・一覧 21 行）
 
 ## next_action
-- **phase 79 task_02（Mac の行）を Mac で起票・実施**: 暫定 60 §4.1 の棚卸しを Mac のビルド（`keyseq.app`）で行う。確かめること = 同梱の dylib（OpenSSL・liblzma・libmpdec・libtommath ほか）と静的に入る物・各版（配布物から読んだ値かビルドの入力で・`.venv` の値だけを根拠にしない）・拡張モジュール（`_sha2` 等）の中の HACL* の有無（あれば表示必須）・libtommath の出所（Homebrew の tcl-tk の依存か）・tcllib 等の Tcl の拡張。Mac の行（platforms darwin・Mac の Python の行の直後に大文字小文字を無視した ABC 順）・全文・`mac_names`・`_NON_PYPI_NAMES` への Mac の名前の追加・`packaging/README.md` の macOS 節。手本 = Windows の task_01（`tasks/task_01_windows_rows.md` の棚卸しの記録）。→ task_03（統合確認・正本 features.md への昇格・暫定 60 の凍結・decisions_archive/79・current.md・idea_65 を INDEX_done へ・refactor_check）。
+- **ユーザーの実機目視**（`dist/keyseq.app` のライセンスの窓・21 行・各全文）。OK なら task_02 の記録と phase.md を「完了」にしてコミット → **task_03**（統合確認〔deep-reviewer + codex-reviewer〕・正本 features.md への昇格〔暫定 60 §9〕・暫定 60 の凍結・decisions_archive/79・current.md・idea_65 を INDEX_done へ・refactor_check）。
+- PSL（MPL 2.0）の扱いをユーザーに確認（Mac は Tcl の行に対応づけ済み・Windows の task_01 の記録への追記の要否）。
 - task の連続実行はユーザー許可済（2026-11-24・phase 79）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
 - ブランチ `claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
