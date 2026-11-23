@@ -64,7 +64,8 @@ template を直すか差分のままにするかは別途判断する。
   条件分岐へ汎用化しているが、こちらは確定事実で書く。phase 番号・ユーザー判断日の注記もこちら固有
 - `.claude/skills/{away,task_new}/SKILL.md` の文言 — こちら発。template 側は汎用語へ言い換え済み（どちらも同義）
 - **`disable-model-invocation: true`**（2026-11-23）: `.claude/skills/{init_project,template_pull,model_update,away,back}/SKILL.md`。
-  skills 化でモデルが自動起動できるようになったため、ユーザーが意図して起動すべきものに付けた（template 側は未対応）
+  skills 化でモデルが自動起動できるようになったため、ユーザーが意図して起動すべきものに付けた（template も 5c41b38〔ブランチ `claude/template-pull-e41259`〕で同対応。
+  次回 template_pull では「既反映」）
 - **Codex 使用量の削減（2026-09-17）**: `.claude/agents/codex-implementer.md`（稼働側 + `switch_files/{codex,codex_medium}`）の
   転送文 = 規約は `implementation` / `python_rules` / `anti_patterns` の 3 つのみ・読む範囲を指定 /
   `.claude/skills/task_new/SKILL.md` の「読むファイル」節（7 節構成）/ `.claude/rules/implementation.md` の実装前手順 1
