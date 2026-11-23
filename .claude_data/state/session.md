@@ -4,20 +4,21 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T14:51:39
+last_updated: 2026-11-23T15:30:00
 phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
-last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`・HEAD fa28a7a9 + task_06 定義の未コミット）。push / merge はユーザー
+last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 task_06（統合確認）進行中。検証・二次レビュー済み → R1〜R3 採用 → 実装済み・再検証と reviewer 待ち → 後に実機目視（ユーザー）。** 詳細は `instructions/phase/76_counter_expansion/tasks/task_06_integration.md`「結果」「指摘と推奨」
-mode: implementing
+focus: **phase 76 task_06（統合確認）完了（2026-11-23・R9 の再目視 OK）。次 = task_07（正本反映）。**
+mode: planning
 
 ## last_action
-ts: 2026-11-23T12:00:00
+ts: 2026-11-23T15:30:00
 who: main
 summary: |
+  task_06 完了: R9 の再目視 OK（ユーザー）→ phase.md と task_06 に完了を記載。次 = task_07（正本反映・R6 の注記を含む）。
   task_06: 定義を起票。verifier = compileall clean / tests 2254 pass / tests_ui 1316 件・失敗 5・エラー 28（主因 = テストが counter_starts に未追従 R1）/ smoke pass。
   deep-reviewer + codex-reviewer の指摘を裏取りし task_06 に表で整理（R2 = run_to_end.py:205 の名前の取り直し・R3 = linked_call.py:20-21 の集合差での削除）。ユーザーが R1〜R3 採用（R4〜R8 は推奨どおり）。
   codex-delegating-implementer（Sol medium・Luna high サブエージェント使用）が R1〜R3 を実装（未コミット 13 ファイル・`CallContext.added_counter_names` / `_run_to_end_added_counter_names`）。reviewer = 修正要（R1 採用・R2+R3 は settle_after_normal 系〔call_wait.py:369・call_run_to_end.py:433・call_context.py:342,382,455・linked_call.py:105-114〕の追加名の記録漏れ）→ Codex へ差し戻し済み（settle 系の囲み + 再現テスト + send_wait._settle_after_stopped_sequence + codebase_map 1 行が入った・Codex 完了）→ reviewer 再レビュー = 採用（指摘なし）・verifier 全 pass（tests 2257・tests_ui 1316・smoke）→ 64d519e4 でコミット。実機目視 = 他は OK・**仕様変更フラグ**: (=値) が保留中のカウンター操作を含まず counter_text で表示 22 と入力 25 がずれる（features §4.2.2 L65 どおり）→ ユーザー判断 A（暫定 58 v1.1 §5.3・decisions 記録・32247122）→ R9 を codex-implementer で実装（本体 4 + テスト 2 ファイル・reviewer = 修正して採用〔import 整理・長い式の変数化・未使用 import・changed_frames 分岐のテスト 1 件〕・verifier = tests 2261 pass / tests_ui 12 モジュール errors 2〔スタブに deferred_counters_for 無し〕→ reviewer 完了可・tests 2262 / tests_ui 全 pass〔2 件は単体で確認〕・smoke OK → コミット済み・R9 の再目視（ユーザー）待ち）→ verifier + reviewer → 再目視。保存→読込・サンプル設定の目視は自動テストで代替→ 戻ったら verifier + reviewer を再実行。差し戻し前の検証 = tests 2256 pass・tests_ui 対象 6 モジュール 128 pass・smoke pass・test_minimize_grab_custody 単体 29 pass（全体実行時のみの失敗 = 干渉・phase 76 と無関係・R8 解決）。
@@ -33,10 +34,10 @@ verified:
   tests: pass 2254（失敗 0・skip 7・task_05 後）
   tests_ui: 部分のみ pass（test_action_dialog_control 44 / test_action_dialog_labels 8 / test_trigger_panel_controller_action_edit 22 / test_action_list_rendering 15）・**全体は未実行**
   smoke: pass（task_05 後）
-  visual: not_run（task_06 でユーザー）
+  visual: OK（task_06・R9 の再目視含む）
 
 ## next_action
-- task_06（統合確認）: `/task_new` で `instructions/phase/76_counter_expansion/tasks/task_06_integration.md` を起票 → verifier で標準検証 4 種（compileall / tests 全体 / **tests_ui 全体を 1 本だけ** / smoke）→ 暫定 58 §7 の受け入れ条件 1〜8 と照合 → `deep-reviewer` + `codex-reviewer`（phase 76 の全差分 = `git diff 4129c67b..HEAD`）→ 実機目視の手順をユーザーへ（増やす量 / 開始値の欄・名前の変更での入れ替え・一覧の `[count+3]` / `[count=10]` / `[counter_text] n (=5)`・counter_text の入力・リセットで開始値へ・保存 → 読込で開始値が保たれる・サンプル設定に戻すで開始値が消える・英語表示）。
+- task_06: 完了（2026-11-23）。
 - task_07（正本反映）: 暫定 58 §9 の正本昇格・凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`ui_terms.md`・current.md の完了記載・`/refactor_check`（上の候補を判定）・フェーズ完了前の `deep-reviewer` + `codex-adversarial-reviewer`。
 - ブランチ `claude/counter-feature-expansion-a5d3c3` と前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 

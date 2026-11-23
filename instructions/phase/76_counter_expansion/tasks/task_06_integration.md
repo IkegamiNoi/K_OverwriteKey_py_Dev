@@ -117,3 +117,4 @@ counter_text の入力・リセットで開始値へ戻る・保存 → 読込�
   reviewer 1 回目 = 修正して採用（import 整理・変数化・changed_frames 分岐のテスト・tests_ui スタブに `deferred_counters_for`）→ 2 回目 = **完了可**。
   tests_ui 全体の 2 件: `test_trigger_effective_row_transition` は固定データが古い保留の形（2 要素）→ メインで 1 行修正 / `test_compact_window` は単体で pass（全体実行時のみの揺れ・phase 76 と無関係）。
   実測: compileall clean / tests **2262 pass** / tests_ui 全体 1316 件（上記 2 件を除き pass・2 件は単体で 10 / 8 pass）/ smoke pass。残り = R9 の再目視（ユーザー・描き直しの契機を含む）。
+- R9 の再目視（2026-11-23・ユーザー）: **OK**。→ **task_06 完了**（標準検証 4 種 pass・二次レビュー済み・R1〜R3・R9 は reviewer 採用・実機目視 OK）。R6 の注記は task_07 へ。
