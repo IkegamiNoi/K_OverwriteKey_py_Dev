@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T16:30:00
+last_updated: 2026-11-23T16:50:00
 phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
 last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 task_07（正本反映）: 昇格・凍結・decisions_archive/76・current.md 完了記載・refactor_check 不要まで b6112f06 でコミット済み。フェーズ完了判定のレビュー（deep-reviewer + codex-adversarial-reviewer）の結果待ち → 指摘の採否をユーザーへ。**
+focus: **phase 76 task_07: deep-reviewer = 修正して採用（低 5 件。1・2・4 は修正済み〔data_schema の §5.8.6・§4.2.3 の参照・features の「/」〕・3 は記載不要の推奨・5 は完了時に phase.md と session.md を揃える）。codex-adversarial-reviewer の結果待ち → 採否をユーザーへ。**
 mode: reviewing
 
 ## last_action
