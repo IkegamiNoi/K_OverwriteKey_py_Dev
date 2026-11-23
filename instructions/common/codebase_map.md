@@ -1012,7 +1012,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 - `main.py` → `App(first_launch_welcome=True)`。`app.py` の `_prepare_first_launch`（テーマの後・Welcome の結果の適用とサンプルの書き出し）/ `_finish_first_launch`（読込の後・空で始める・起動設定の書き出し・`deiconify`）
 - `presentation/welcome/`: `welcome_window.py`（`WelcomeWindow`。`reopen` で初回 / 再表示を切り替え・文言は `tr_in`）/ `first_launch.py`（`is_first_launch` / `run_first_launch_welcome` / `open_welcome_again`〔フックの停止・再開〕）/ `welcome_result.py`（`WelcomeResult`・`estimate_layout_id`）
-- `application/config_service/sample_install.py`: `install_sample`（`SampleInstallResult.status` = written / existing / incomplete / failed）/ `check_sample_complete` / `sample_keymap_set_path`。保存は `save_runtime_data(..., write_startup_entry=False)`。`orphan_scan.py` は `config/sample/keymap_sets` を参照元に含める
+- `application/config_service/sample_install.py`: `install_sample`（`SampleInstallResult.status` = written / existing / incomplete / failed）/ `check_sample_complete` / `sample_keymap_set_path`。書き出し先は `config/user/`（`SAMPLE_DIR = "user"`・phase 77）。構成セットが無いときは `_find_conflicting_children` が `save_plan_execution.preview_child_payloads`（書き込みなしで子の `(path, payload)` を書く順に返す）と既存ファイルを照合し、中身の違う子があれば書かずに incomplete。保存は `save_runtime_data(..., write_startup_entry=False)`。`orphan_scan.py` は旧サンプルの `config/sample/keymap_sets` を参照元に含める（残す）
 - `domain/config.py`: `build_base_config(profile)` / `build_sample_config(profile)` / `normalize_identifier`（profile の既定は `WINDOWS_DEFAULT_PROFILE`・`domain/default_profile.py`）。`keymap_set_io.py`: `start_empty`・`restore_default(parent=None)`（配列を保つ）
 
 ## カーソルグリッド（phase 56・57）

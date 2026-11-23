@@ -86,6 +86,7 @@
 | 74_key_symbol_display | [74_key_symbol_display.md](decisions_archive/74_key_symbol_display.md) | 記号キーのキー名の表示（2026-11-09 完了・直接改訂）。表示の表 36 個・キーボードUIの置換先で Shift+¥ / Shift+ろ を `bar` / `underscore` で保存・置換の送信先が Shift の要る文字なら Shift 付きで送る（Ctrl / Alt / Win が押されていれば足さない）。refactor_check: 不要 |
 | 75_mac_support | [75_mac_support.md](decisions_archive/75_mac_support.md) | macOS 対応（2026-11-22 完了・暫定仕様先行モード〔暫定 57 v0.25 凍結〕・JSON スキーマ不変）。os_backend で OS 依存を分離・Mac は CGEventTap・Command / Option は別のキー名で他方の OS の名前を拒否・Mac のフックの受け渡しはキュー版・aqua のメニューの処理の遅延・PyInstaller の配布（exe / .app・ソースの同梱・pynput の差し替え口）・GPL v3 以降。refactor_check: 推奨 = 提案書 28 → phase 75 task_15 で実施済み |
 | 76_counter_expansion | [76_counter_expansion.md](decisions_archive/76_counter_expansion.md) | カウンター機能の拡張（2026-11-23 完了・暫定仕様先行モード〔暫定 58 v1.1 凍結〕・JSON スキーマ = 任意キーの追加〔行の `amount`・構成セットの `counter_starts`〕と種類 `counter_text` の追加）。増やす量（負・0 可）・名前ごとの開始値（リセットはそこへ）・実効値は `counter_values.py` の 1 か所・保留は `(op, name, amount)`・一覧の `(=値)` は保留を反映（v1.1）・無視した押下の巻き戻しはその押下が入れた名前だけ消す。refactor_check: 不要 |
+| 77_sample_in_user_folder | [77_sample_in_user_folder.md](decisions_archive/77_sample_in_user_folder.md) | サンプルを config/user/ へ書き出す（2026-11-24 完了・暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変）。書き出し先 `config/user/`・構成セット `user/keymap_sets/sample.json`・既存 `config/sample/` は移行しない・構成セットが無いとき中身の違う同名の子（リンク切れ含む）があれば何も書かず空で始める（中身が同じなら衝突にしない）・孤児の掃除の経路 5 は旧サンプル用に残す。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -646,14 +647,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 理由: 本体 0 件なのに編集画面は既定 8 件を表示し、編集画面を OK で閉じるまでアクション編集にプリセットが出なかった（ユーザー報告 2026-11-08）。E4 だけ他の経路と違う理由がない。
 - B: 仕様のまま → **除外**（報告された不具合が残る）/ C: 初回起動で共通プリセットのファイルを生成 → **除外**（起動時の書き込みが増え、§5.10.2「読めなければ置き換えない」と関わる）
 - 影響範囲: 共通プリセットが読めないときの E4 のみ。読めて空配列のときは従来どおり空。`tests/test_per_keymap_triggers_load.py` の空データの期待値を更新。
-
-### 【phase 77 起票】サンプルを config/user/ へ書き出す（暫定 59 v0.2・2026-11-23・ユーザー確定）
-- 書き出し先を `config/sample/` → `config/user/` → **採用**（理由: 案内先が今開いているファイルのフォルダ優先のため、サンプルを開くと常に `config/sample/` へ案内された。「サンプル設定に戻す」はコードから作るので別フォルダに置く理由がない）。既存 `config/sample/` は**移行しない**・ファイル名はそのまま（ユーザー判断）
-- Codex 敵対的レビュー（needs-attention・5 件・引用行は実測済み）の採否（ユーザー承認「案どおりでよい」）: 1 同名の子は書き出す全パスを事前照合 → **採用**（別プロセスとの競合は**除外**）/ 2 途中失敗の再試行 → **修正して採用**（中身が同じ子は衝突にしない）/ 3 利用者自作の同名構成セットがサンプルとして開く → **受容**（明記）/ 4 旧フォルダの「読まない」と経路 5 の維持の矛盾 → **採用**（「書かない・移行しない・読込と参照は続ける」）/ 5 旧サンプルの別名保存で子の案内先は移らない → **採用**（明記・受け入れ条件 3 を新規書き出しに限定）
-- 孤児の掃除の参照元 `config/sample/keymap_sets/`（経路 5）は残す（v0.1 起票前の提案「消す」を撤回。旧サンプル経由で参照される `user/` の子の誤退避を防ぐ）
-
-### 【phase 77 task_02 統合確認】deep-reviewer 採用（低・参考 5 件）/ codex-reviewer P2×2・P3×1 の採否（2026-11-24・ユーザー承認「案どおりでよい」）
-- Codex ① preview（`validate_save_plan`）が衝突時も空の標準フォルダ（`user/keymaps/` 等）を作る（実測で事実）→ **受容**（普段の保存でも作る標準フォルダ・ファイルは書かない。task_03 で正本に明記）
-- Codex ② `user/` の固定名 `.tmp` を上書きし得る → **除外**（アプリの全保存が同じ方式・残った `.tmp` は復旧用ファイルではない・範囲外）
-- Codex ③ リンク切れの symlink を `os.path.exists` が「無い」と判定し置き換える → **採用**（task_02a: `os.path.lexists`・テスト 1 件）
-- deep ① preview と書き込みの子の並びの二重記述 → **保留**（current.md「別タスク化候補」へ）/ deep ②〜⑤（except の型・相対の直接検査・混在時の error 文・app.py の直値）→ **除外**
