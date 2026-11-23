@@ -262,6 +262,11 @@ class ActionDialog(tk.Toplevel):
                             tr("capture.error.unknown_key", key=key, error=ValueError(key)),
                         )
                         return
+                err_msg, normalized = self.parent.validate_hotkey(v)
+                if err_msg:
+                    messagebox.showerror(tr("action_dialog.error.input_title"), err_msg)
+                    return
+                v = normalized
             self.parent._dialog_result = {"type": t, "value": v, "label": label}
         elif t == "mouse_click":
             # mouse_click

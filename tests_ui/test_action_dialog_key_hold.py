@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from tkinter import messagebox
 
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
+from keyseq.application.hotkey_service import HotkeyService
 from tests_ui.escape_delivery import acquire_focus
 from keyseq.shared.i18n import fix_language
 
@@ -45,6 +46,9 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         self.root.config_service = Mock()
         self.root.data = {"hotkey_presets": []}
         self.root.input_gateway = FakeInputGateway()
+        self.root.validate_hotkey = HotkeyService(
+            validate_key_name=self.root.input_gateway.validate_key_name
+        ).validate
         self.root._dialog_result = None
         self.showerror_patcher = patch.object(messagebox, "showerror")
         self.showerror = self.showerror_patcher.start()
@@ -302,7 +306,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         self.assertEqual(dialog.value_var.get(), "option+command+esc")
         self.assertFalse(dialog._recording)
 
-    def test_hotkey_rejects_other_os_modifier_but_keeps_unknown_normal_name(self) -> None:
+    def test_hotkey_rejects_other_os_modifier_and_unknown_normal_name(self) -> None:
         self.root.input_gateway.rejected_names.add("left command")
         rejected = self.make_dialog()
         rejected.type_var.set("hotkey")
@@ -312,13 +316,15 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         self.assertTrue(rejected.winfo_exists())
         self.assertIn("不明なキー名", self.showerror.call_args.args[1])
 
-        accepted = self.make_dialog()
-        accepted.type_var.set("hotkey")
-        accepted._sync_capture_ui()
-        accepted.value_var.set("unknown-normal-name+a")
-        accepted.on_ok()
-        self.assertEqual(self.root._dialog_result["type"], "hotkey")
-        self.assertEqual(self.root._dialog_result["value"], "unknown-normal-name+a")
+        self.root.input_gateway.invalid_names.add("unknown-normal-name")
+        unknown = self.make_dialog()
+        unknown.type_var.set("hotkey")
+        unknown._sync_capture_ui()
+        unknown.value_var.set("unknown-normal-name+a")
+        self.root._dialog_result = None
+        unknown.on_ok()
+        self.assertTrue(unknown.winfo_exists())
+        self.assertIsNone(self.root._dialog_result)
 
     def test_key_hold_still_uses_backend_validation_for_unknown_and_other_os_names(self) -> None:
         self.root.input_gateway.rejected_names.add("left command")
@@ -425,6 +431,40 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         mouse.key_hold_fields.sync_target()
         mouse.on_ok()
         self.assertNotIn("repeat", self.root._dialog_result)
+
+    def test_hotkey_is_saved_normalized(self) -> None:
+        dialog = self.make_dialog()
+        dialog.type_var.set("hotkey")
+        dialog._sync_capture_ui()
+        dialog.value_var.set("Ctrl+ A")
+
+        dialog.on_ok()
+
+        self.assertEqual(self.root._dialog_result["value"], "ctrl+a")
+
+    def test_hotkey_rejects_invalid_syntax(self) -> None:
+        for value in ("ctrl++a", "ctrl+ctrl+a"):
+            with self.subTest(value=value):
+                self.root._dialog_result = None
+                dialog = self.make_dialog()
+                dialog.type_var.set("hotkey")
+                dialog._sync_capture_ui()
+                dialog.value_var.set(value)
+
+                dialog.on_ok()
+
+                self.assertTrue(dialog.winfo_exists())
+                self.assertIsNone(self.root._dialog_result)
+
+    def test_text_value_is_not_normalized(self) -> None:
+        dialog = self.make_dialog()
+        dialog.type_var.set("text")
+        dialog._sync_capture_ui()
+        dialog.value_var.set("Ctrl+ A")
+
+        dialog.on_ok()
+
+        self.assertEqual(self.root._dialog_result["value"], "Ctrl+ A")
 
 
 if __name__ == "__main__":

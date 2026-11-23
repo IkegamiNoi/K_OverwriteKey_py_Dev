@@ -4,34 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T12:00:00
-phase: instructions/phase/78_action_hotkey_save_validation（アクティブ・2026-11-23 起票・直接改訂モード・起票元 idea_03）。次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67
+last_updated: 2026-11-23T13:00:00
+phase: instructions/phase/78_action_hotkey_save_validation（アクティブ・直接改訂モード・起票元 idea_03）。次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 77**（サンプルを config/user/ へ書き出す・`decisions_archive/77_sample_in_user_folder.md`）
 last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・b4d714b7 = phase 77 完了）。phase 78 の起票は worktree `idea-03-ec8eea`（branch `claude/idea-03-ec8eea`）で未コミット
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 78 起票済（2026-11-23）・task_01（正本 key_input.md §7.7・§7.9 の改訂）未着手。** アクションの hotkey を OK で validate_hotkey に通し、不正なら拒否・通れば正規化値を保存。
-mode: implementing
+focus: **phase 78 task_01 完了・task_02（ActionDialog.on_ok の hotkey の検査と正規化）実装済・verifier と reviewer の結果待ち。**
+mode: pending_review
 
 ## last_action
-ts: 2026-11-23T12:00:00
+ts: 2026-11-23T13:00:00
 who: main
 summary: |
-  実施: /phase_start で phase 78（action_hotkey_save_validation）を起票。phase.md 新規・current.md の参照先と次採番・backlog INDEX の idea_03 を「着手」へ。
-  ユーザー判断（2026-11-23）: ①OK で validate_hotkey（構文＋各キー validate_key_name）を通し不正なら拒否・正規化値を保存 ②既存 sequences/*.json の生値は移行しない・読込時正規化なし ③直接改訂モード。
-  reviewer（整合確認）: 修正して採用 → current.md L142 の古い次採番を 79 へ・phase.md の task_01〜03 に L232/L346 同時改訂・accepts_key_name を validate_hotkey より前に置く・codebase_map L912 の呼び出し元の追従を明記。
-  日付の訂正: phase 77 の完了日の誤記 2026-11-23 → 2026-11-23（ユーザー指摘）を state・current.md・phase 77 の文書で修正。
+  task_01: 正本 key_input.md §7.7 L232・§7.9 L346 を改訂（OK で validate_hotkey・不正なら保存しない・正規化値を保存・他方 OS の修飾キーの検査を先に・既存値は移行しない）。reviewer 採用。コミット 64f1dc46（起票は 3565b2e5・phase 77 の日付誤記 2026-11-24 → 2026-11-23 訂正を含む）。
+  task_02: codex-implementer（Luna high）が action_dialog.py の hotkey 分岐に validate_hotkey を追加・tests_ui/test_action_dialog_key_hold.py を更新（既存の「不明な通常名は通す」テストを拒否へ書き換え・正規化 / 文法エラー / text 不変の 3 件を末尾に追加）。差分はメインが直読み済。未コミット。
+  reviewer: 修正して採用（実装本体は採用・tests_ui/test_action_dialog_labels.py の fake root に validate_hotkey が無く hotkey の subTest が落ちる）。verifier: compile / tests 2278 / test_action_dialog_control 44 pass・labels の 2 件 fail（同原因）。→ メインが labels の setUp に validate_hotkey を 3 行追加し verifier に再実測を依頼中。
+  ユーザー: task の連続実行を許可（2026-11-23）。
 result_files:
-  - instructions/phase/78_action_hotkey_save_validation/phase.md
-  - instructions/phase/current.md
-  - instructions/backlog/INDEX.md
+  - keyseq/presentation/dialogs/action_dialog.py
+  - tests_ui/test_action_dialog_key_hold.py
+  - tests_ui/test_action_dialog_labels.py
+  - instructions/phase/78_action_hotkey_save_validation/tasks/task_02_action_dialog_hotkey_validation.md
 verified:
-  compile: not_run（文書のみ）
+  compile: not_run（verifier 実行中）
 
 ## next_action
-- ユーザーの回答待ち: task_01 へ進むか / 先にコミットするか。
-- task_01: `/task_new` で `instructions/phase/78_action_hotkey_save_validation/tasks/task_01_spec_key_input.md` を起票 → `key_input.md` L232（§7.7「hotkey のアクションは保存時にキー名を検査しない」）と L346（§7.9 その例外の言い回し）の改訂案をユーザーへ提示して確定 → 正本を編集（メインで可・文書作業）→ reviewer。
+- verifier（task_02 の確認節 4 項目）と reviewer の結果を受け、pass + 採用なら phase.md の task_02 を完了にしてコミット。
+- task_03 を起票して実施: codebase_map.md L912 の更新・統合確認（verifier: compileall / tests / tests_ui / smoke）・実機目視（ユーザー）・decisions_archive/78・current.md 完了記載・idea_03 を INDEX_done へ・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers

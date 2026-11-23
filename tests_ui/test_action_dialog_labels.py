@@ -6,6 +6,7 @@ from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from keyseq.application.hotkey_service import HotkeyService
 from keyseq.domain.config import format_action_list_item
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.shared.i18n import fix_language, tr_in
@@ -28,6 +29,9 @@ class ActionDialogLabelsTest(unittest.TestCase):
         self.root.input_gateway = SimpleNamespace(
             validate_key_name=Mock(), accepts_key_name=Mock(return_value=True),
         )
+        self.root.validate_hotkey = HotkeyService(
+            validate_key_name=self.root.input_gateway.validate_key_name
+        ).validate
         self.root._dialog_result = None
         self.dialogs = []
         self.addCleanup(self.cleanup_windows)
