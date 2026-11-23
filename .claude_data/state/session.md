@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T16:50:00
+last_updated: 2026-11-23T17:10:00
 phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
 last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 task_07: deep-reviewer = 修正して採用（低 5 件。1・2・4 は修正済み〔data_schema の §5.8.6・§4.2.3 の参照・features の「/」〕・3 は記載不要の推奨・5 は完了時に phase.md と session.md を揃える）。codex-adversarial-reviewer の結果待ち → 採否をユーザーへ。**
+focus: **phase 76 task_07: レビュー完了・ユーザー判断待ち。deep-reviewer = 修正して採用（1・2・4 修正済み 48e89762・3 は記載不要の推奨・5 は完了時に揃える）。codex 敵対的 = needs-attention: C1 high〔裏取り済み・事実〕巻き戻し（linked_call.py:19-20）が待機中に他の押下が同じ名前へ書いた値も消す → 後の戻すで KeyError（sequence_history.py:112）→ 推奨 採用（他の押下が書いた名前は消さず差分だけ戻す・features §4.2.9 の文を直す・回帰テスト）/ C2 増やす量 0 で値が入る（sequence_steps.py:186）→ 推奨 除外（§4.1 どおり・§5.11.6 の文言を直す）/ C3 ダイアログで 2.5・true を OK できない → 推奨 除外（count・ms と同じ）。**
 mode: reviewing
 
 ## last_action
