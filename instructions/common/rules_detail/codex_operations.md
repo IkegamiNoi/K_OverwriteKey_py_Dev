@@ -12,7 +12,7 @@
 
 ## §0 前提
 
-- Codex の実装ジョブは `codex-implementer` エージェントが
+- Codex の実装ジョブは `codex-implementer` / `codex-delegating-implementer` エージェントが
   `node "<plugin>/scripts/codex-companion.mjs" task --write ...` で投入する（companion = ランタイム本体）。
 - companion スクリプトのパス:
   `C:\Users\ikega\.claude\plugins\cache\openai-codex\codex\<version>\scripts\codex-companion.mjs`
