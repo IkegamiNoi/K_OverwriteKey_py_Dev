@@ -548,7 +548,7 @@ hotkey の検証エラー・`x` / `y` 不正（§5.11.2）・`to_x` / `to_y` 不
 |---|---|---|
 | `loop_start` | `count` / `infinite` | ループの始まり。`count` = 周回数（1 以上の整数）/ `infinite` = true で無限 |
 | `loop_end` | — | ループの終わり（始まりとの対応は括弧の対応で決める。ID は持たない） |
-| `counter_inc` | `counter` / `amount`（任意・phase 76） | カウンター `counter` に `amount` を足す（既定 1・負は減らす・0 は何もしない）。表示名「カウンター」 |
+| `counter_inc` | `counter` / `amount`（任意・phase 76） | カウンター `counter` に `amount` を足す（既定 1・負は減らす・0 は値を変えない〔反映すると「値が入った」扱いになり、以後の開始値の変更には追従しない・`features.md` §4.2.3〕）。表示名「カウンター」 |
 | `counter_reset` | `counter` | カウンター `counter` を**開始値**（§5.3 `counter_starts`・無ければ 0）にする（phase 76 で「0 にする」から改訂。開始値の無い名前は従来どおり 0）。表示名「カウンターリセット」 |
 | `wait` | `ms` | `ms` ミリ秒（1 以上の整数）待つ |
 | `back` / `rewind` | `target`（任意・phase 46） | `target`（トリガーキー・1 つ）があれば同じトリガー一覧のそのトリガーを、無ければ一覧で選ばれているトリガー（使えなければ直前のトリガー・phase 50）を 1 段戻す / 先頭へ（`features.md` §4.2.6・出力シーケンスにそれ 1 つだけで登録する） |

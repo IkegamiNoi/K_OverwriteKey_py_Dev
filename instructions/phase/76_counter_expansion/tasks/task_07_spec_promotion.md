@@ -59,3 +59,17 @@ phase 76（カウンター機能の拡張）の最終タスク。暫定 58（v1.
 
 - 確認 1〜4 を満たし、**deep-reviewer 採用**（本タスクの必須レビューはフェーズ完了判定の deep-reviewer で兼ねる。reviewer は重ねない。Codex の敵対的レビューの指摘の採否はユーザー）。
 - 実機目視: なし（文書のみ）。
+
+## 追加の修正 C1（2026-11-23・フェーズ完了判定の codex 敵対的レビュー・ユーザー「推奨どおり進めて」）
+
+正本 `features.md` §4.2.9「無視した押下の巻き戻し」（改訂済み）に実装を合わせる。application 限定・スキーマ不変。
+
+- 欠陥: `linked_call.py:19-20` は、押下 T が初めて入れた名前を差分を引いた後にキーごと消す。T の待機中に別の押下 U が同じ名前へ書くと U の値も消え、後で U を戻すと `sequence_history.py:112` の `counters[name] -= delta` が KeyError になる。
+- 修正:
+  1. `application/counter_values.py` の `CounterValues` に、名前ごとの**書き込みの通し番号**（全体で単調増加する 1 つの番号を、書いた名前に記録）を持たせる。`__setitem__` で進める。`state.counters` を変えうる他の dict の操作（`update` / `setdefault` / `pop` / `__delitem__` / `clear` 等）が本番で使われていればそれも番号を進める（使われていなければ足さない）。参照は `write_serial(name) -> int | None` 等の小さなメソッド。
+  2. `call_context.py` の記録（`CallContext.added_counter_names`・`SequenceRunner._run_to_end_added_counter_names`・`sequence_runner.py:413` のローカル）を、`set[str]` から「名前 → その押下が最後に書いたときの通し番号」と「他の押下が書いた印」を持つ小さな型にする（`clear()` と、消してよい名前を返すメソッドを持つ。今の `.clear()` の呼び出し箇所はそのまま使えること）。
+  3. `track_counter_additions`: ロックの下で、区間の**前に**記録済みの名前の今の番号が記録と違えば「他の押下が書いた」印を付ける → 区間を実行 → 区間の**後に**、新しく入った名前と、印の無い記録済みの名前のうち区間内で書いた名前の番号を記録する。
+  4. `_rollback_linked_press`: 差分を引く**前に**消してよい名前（印が無く、今の番号が記録と同じ）を決め、差分を引いた後にそれだけを消す。
+  5. `sequence_history.undo_counter_deltas`: 名前が無い場合は実効値（`counter_value`）から引く（KeyError にしない）。
+- テスト（`tests/test_sequence_runner_call.py` 等・既存テストの途中に差し込まない）: ① T が未使用の n を +1 して待機中に、別の押下が n へ +5 を確定 → T が無視されると n は「開始値 + 5」が残り、その押下を戻すと開始値に戻る（KeyError なし）② 他の押下が書いた後に T が同じ名前へもう一度書いても消さない ③ 他の押下が書いていなければ従来どおり消える（既存の回帰テストが通る）④ `CounterValues` の番号の単体テスト ⑤ `undo_counter_deltas` で名前が無い場合。
+- 含まない: C2・C3（除外）・R4（保留）。
