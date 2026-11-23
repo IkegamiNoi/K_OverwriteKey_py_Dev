@@ -7,10 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 77 = サンプルを config/user/ へ書き出す は 2026-11-24 完了）。次フェーズはユーザー判断で `/phase_start`。
-  **次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 78](78_action_hotkey_save_validation/phase.md)**（2026-11-23 起票・アクションの hotkey の保存時の検査と正規化）。起票元 = [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)。**直接改訂モード**（暫定なし・正本 = `spec_detail/key_input.md` §7.7・§7.9）・JSON スキーマ不変。番号対応: phase 78 / 暫定なし / decisions 78。
+  確定（ユーザー 2026-11-23）: 出力シーケンスの hotkey アクションを OK で `validate_hotkey` に通し、不正なら拒否・通れば正規化した値を保存（プリセット・key_hold と揃える）/ 既存の `sequences/*.json` の正規化前の値は移行しない（読み込み時の正規化も入れない）。
+  **次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
 - 直近の一連の作業の領域 = 初回起動のサンプルの書き出し（phase 77・`application/config_service/sample_install.py`・`save_plan_execution.preview_child_payloads`）。残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）・旧 `config/sample/` の移行はしない方針（利用者が別名保存で移す）。その前のカウンター機能の拡張（phase 76）の残件 = カウンター値による条件分岐（[idea_37](../backlog/idea_37_counter_conditional_branch.md)・後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59〜66）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
-- 直前の完了フェーズ = [phase 77](77_sample_in_user_folder/phase.md)（2026-11-24・サンプルを config/user/ へ書き出す。暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変・判断は [decisions_archive/77](../../.claude_data/state/decisions_archive/77_sample_in_user_folder.md)・refactor_check 不要）。
+- 直前の完了フェーズ = [phase 77](77_sample_in_user_folder/phase.md)（2026-11-23・サンプルを config/user/ へ書き出す。暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変・判断は [decisions_archive/77](../../.claude_data/state/decisions_archive/77_sample_in_user_folder.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 76](76_counter_expansion/phase.md)（2026-11-23・カウンター機能の拡張。判断は [decisions_archive/76](../../.claude_data/state/decisions_archive/76_counter_expansion.md)）。
 - その前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
 - その前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
@@ -137,8 +138,8 @@
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-24 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。次の phase は `78_<topic>`。
-  次フェーズは **`78_<topic>`**・decisions も **78** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 起票**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78）。次の phase は `79_<topic>`。
+  次フェーズは **`79_<topic>`**・decisions も **79** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。

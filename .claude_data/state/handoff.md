@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 77 = サンプルを config/user/ へ書き出す は 2026-11-24 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 77 = サンプルを config/user/ へ書き出す は 2026-11-23 完了〕・次フェーズはユーザー判断で `/phase_start`）。
    次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 77 完了（2026-11-24）。** 初回のサンプルを `config/user/` へ書き出す（構成セット `user/keymap_sets/sample.json`・既存 `config/sample/` は移行しない）・構成セットが無いとき中身の違う同名の子（読めない・リンク切れ・false と 0 の違いを含む）があれば何も書かず警告して空で始める・孤児の掃除の経路 5 は旧サンプル用に残す。アクティブなフェーズなし・次フェーズはユーザー判断。
+**phase 77 完了（2026-11-23）。** 初回のサンプルを `config/user/` へ書き出す（構成セット `user/keymap_sets/sample.json`・既存 `config/sample/` は移行しない）・構成セットが無いとき中身の違う同名の子（読めない・リンク切れ・false と 0 の違いを含む）があれば何も書かず警告して空で始める・孤児の掃除の経路 5 は旧サンプル用に残す。アクティブなフェーズなし・次フェーズはユーザー判断。
 worktree = `claude/sample-folder-save-path-d3cd34`（99d69f70 までコミット済み・未 push）。push / main へのマージはユーザー。
-直近の実測（Windows・task_03a 後・2026-11-24）: compile clean / tests 2278 pass（skip 9）/ tests_ui 1316 pass（task_02 時点の全体）/ smoke pass / 実機目視 OK。
+直近の実測（Windows・task_03a 後・2026-11-23）: compile clean / tests 2278 pass（skip 9）/ tests_ui 1316 pass（task_02 時点の全体）/ smoke pass / 実機目視 OK。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,7 +37,7 @@ worktree = `claude/sample-folder-save-path-d3cd34`（99d69f70 までコミット
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = phase 77 完了時・2026-11-24**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1316 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = phase 77 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1316 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
 **件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
