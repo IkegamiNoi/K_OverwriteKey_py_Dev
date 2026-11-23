@@ -27,6 +27,11 @@
   {"name": "pyobjc", "version": "13.0", "license": "MIT License", "file": "pyobjc.txt", "platforms": ["darwin"]},
   {"name": "rubicon-objc", "version": "0.5.7", "license": "BSD 3-Clause License", "file": "rubicon_objc.txt", "platforms": ["darwin"]},
   {"name": "Python", "version": "3.13.18", "license": "PSF License", "file": "python_macos.txt", "platforms": ["darwin"]},
+  {"name": "CPython incorporated software", "version": "3.13.18", "license": "Various (see text)", "file": "cpython_incorporated_macos.txt", "platforms": ["darwin"]},
+  {"name": "libtommath", "version": "1.3.0", "license": "The Unlicense", "file": "libtommath.txt", "platforms": ["darwin"]},
+  {"name": "mpdecimal", "version": "4.0.1", "license": "BSD 2-Clause License", "file": "mpdecimal_macos.txt", "platforms": ["darwin"]},
+  {"name": "OpenSSL", "version": "3.6.2", "license": "Apache License 2.0", "file": "openssl.txt", "platforms": ["darwin"]},
+  {"name": "xz", "version": "5.8.4", "license": "BSD Zero Clause License", "file": "xz_macos.txt", "platforms": ["darwin"]},
   {"name": "Tcl", "version": "9.1.0", "license": "Tcl/Tk License", "file": "tcl.txt", "platforms": ["darwin"]},
   {"name": "Tk", "version": "9.1.0", "license": "Tcl/Tk License", "file": "tk.txt", "platforms": ["darwin"]}
 ]

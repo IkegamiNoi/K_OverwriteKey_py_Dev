@@ -16,7 +16,7 @@ from keyseq.presentation.help.third_party import load_license_text, load_third_p
 
 _NON_PYPI_NAMES = {
     "Python", "Tcl", "Tk", "bzip2", "CPython incorporated software",
-    "expat", "libffi", "mpdecimal", "OpenSSL", "xz", "zlib", "zlib-ng",
+    "expat", "libffi", "libtommath", "mpdecimal", "OpenSSL", "xz", "zlib", "zlib-ng",
     "Zstandard",
 }
 
@@ -37,7 +37,9 @@ class ThirdPartyTest(unittest.TestCase):
         mac_names = [
             "pyautogui", "pynput", "pyscreeze", "pymsgbox", "pytweening",
             "mouseinfo", "pygetwindow", "pyrect", "pyperclip", "six",
-            "PyInstaller", "pyobjc", "rubicon-objc", "Python", "Tcl", "Tk",
+            "PyInstaller", "pyobjc", "rubicon-objc", "Python",
+            "CPython incorporated software", "libtommath", "mpdecimal", "OpenSSL", "xz",
+            "Tcl", "Tk",
         ]
         for platform_key, expected in (("win32", windows_names), ("darwin", mac_names)):
             with self.subTest(platform=platform_key):
