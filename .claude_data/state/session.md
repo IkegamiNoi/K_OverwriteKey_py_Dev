@@ -11,28 +11,32 @@ last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 78 task_01 完了・task_02（ActionDialog.on_ok の hotkey の検査と正規化）実装済・verifier と reviewer の結果待ち。**
-mode: pending_review
+focus: **phase 78 task_03 実施中: 完了判定前レビューの採否確定（ユーザー 2026-11-23）→ task_03a（テスト補強）を Codex に委任中・統合確認の verifier 実行中。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-23T13:00:00
+ts: 2026-11-23T15:00:00
 who: main
 summary: |
-  task_01: 正本 key_input.md §7.7 L232・§7.9 L346 を改訂（OK で validate_hotkey・不正なら保存しない・正規化値を保存・他方 OS の修飾キーの検査を先に・既存値は移行しない）。reviewer 採用。コミット 64f1dc46（起票は 3565b2e5・phase 77 の日付誤記 2026-11-24 → 2026-11-23 訂正を含む）。
-  task_02: codex-implementer（Luna high）が action_dialog.py の hotkey 分岐に validate_hotkey を追加・tests_ui/test_action_dialog_key_hold.py を更新（既存の「不明な通常名は通す」テストを拒否へ書き換え・正規化 / 文法エラー / text 不変の 3 件を末尾に追加）。差分はメインが直読み済。未コミット。
-  reviewer: 修正して採用（実装本体は採用・tests_ui/test_action_dialog_labels.py の fake root に validate_hotkey が無く hotkey の subTest が落ちる）。verifier: compile / tests 2278 / test_action_dialog_control 44 pass・labels の 2 件 fail（同原因）。→ メインが labels の setUp に validate_hotkey を 3 行追加し verifier に再実測を依頼中。
-  ユーザー: task の連続実行を許可（2026-11-23）。
+  完了判定前レビュー: deep-reviewer 修正要（軽微 7 件）・codex-adversarial-reviewer needs-attention（medium 2 件）。
+  ユーザー判断（2026-11-23）: ①今のレイアウトで通らない既存値はラベルだけの変更でも OK 不可 = A（コード不変・key_input.md L232 に 1 文追加済）②Codex 1（Mac の Option+, 記録が `option+comma` で送信側が解決できず OK で弾かれる・実測で確認）= 除外・idea_45 に追記済 ③deep 2・3・4 のテスト補強 = 採用 → task_03a 起票・codex-implementer へ委任中 / deep 6 = codebase_map L646 を更新済 / deep 5 = 実機目視で代える / deep 7（features.md）= 保留。
+  未コミット: key_input.md・codebase_map.md（L646・L912）・idea_45・task_03 / task_03a 定義・session.md。
 result_files:
-  - keyseq/presentation/dialogs/action_dialog.py
-  - tests_ui/test_action_dialog_key_hold.py
-  - tests_ui/test_action_dialog_labels.py
-  - instructions/phase/78_action_hotkey_save_validation/tasks/task_02_action_dialog_hotkey_validation.md
+  - instructions/common/spec_detail/key_input.md
+  - instructions/common/codebase_map.md
+  - instructions/backlog/idea_45_tk_key_capture_symbol_names.md
+  - instructions/phase/78_action_hotkey_save_validation/tasks/task_03_integration_and_record.md
+  - instructions/phase/78_action_hotkey_save_validation/tasks/task_03a_hotkey_ok_test_coverage.md
 verified:
-  compile: not_run（verifier 実行中）
+  compile: clean
+  tests: pass 2278（skip 9）
+  tests_ui: pass 1319（統合・task_03a 前のテスト）
+  smoke: pass
 
 ## next_action
-- verifier（task_02 の確認節 4 項目）と reviewer の結果を受け、pass + 採用なら phase.md の task_02 を完了にしてコミット。
-- task_03 を起票して実施: codebase_map.md L912 の更新・統合確認（verifier: compileall / tests / tests_ui / smoke）・実機目視（ユーザー）・decisions_archive/78・current.md 完了記載・idea_03 を INDEX_done へ・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）。
+- task_03a: Codex 実装済（差分直読み済・① の文言の強化が抜けていたのでメインが「不明なキー名です」へ 1 語修正）・reviewer 採用 → verifier（統合確認の tests_ui 終了後に実行）（compileall tests_ui + test_action_dialog_key_hold / labels）→ reviewer → コミット。
+- 統合確認（verifier）の結果を確認 → ユーザーに実機目視（task_03 定義の ①〜③）を依頼。
+- 目視 OK の後: decisions_archive/78 作成 + decisions.md 索引・current.md 完了記載（次採番 phase 79 / decisions 79）・idea_03 を INDEX → INDEX_done・/refactor_check・コミット。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers

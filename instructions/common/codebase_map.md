@@ -643,7 +643,7 @@ App から層移設した（挙動不変）。公開契約は `(エラーメッ�
 - **`HotkeyService.validate(hotkey)`** — domain の文法検査を呼び、エラーが無ければ各キーに
   キー名検証を適用する**合成**役。キー名検証は `validate_key_name: Callable` を DI で受け取る
   （`App` が `input_gateway.validate_key_name` を注入）。文法エラー優先の順序を保つ。
-- 呼び出し側: `App.validate_hotkey`（dialogs 経由・薄い委譲）と `ActionExecutor`（実行時・注入経由）。
+- 呼び出し側: `App.validate_hotkey`（dialogs 経由・薄い委譲。プリセット編集の追加・変更と `ActionDialog.on_ok` の hotkey の保存〔phase 78〕）と `ActionExecutor`（実行時・注入経由）。
   **`ActionExecutor` は `App.validate_hotkey` ではなく `HotkeyService.validate` を注入で受け取る**
   （application → presentation の層の逆転を解消済み）。
 
@@ -909,7 +909,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
 - OS 非依存の窓口は `InputGateway`。フック・キー解決・送信・同じキーの判定・Shift 要否・リピート設定は `get_backend().keyboard` → `os_backend/windows/keyboard_backend.py` の `WindowsKeyboardBackend`。拡張キーの表と `_needs_shift`・`_send_numpad_event` も同モジュールにある。
-- キー名の受付（phase 75 task_09f・暫定 57 §5.3.4）: `accepts_key_name` をキーボードUIの `redraw`（禁止の色）/ `_on_canvas_left_click`（編集開始）、`KeymapPanelController.assign_keymap_from_keyboard_ui`（置換元の確定）、`TriggerRowEditFlow.add_trigger` / `rename_trigger`（追加・キー変更）、`ActionDialog.on_ok`（hotkey の各要素の保存）で使用する。hotkey の通常の未知名は保存時には検査しない。置換先・key_hold は既存の `validate_key_name` → `resolve_send`。切替 / 停止 / トグルキーは各記録の `_record_key` で受付を検査する。修飾キー単独の読み飛ばしと hotkey の修飾キー収集は `domain.key_hold.is_modifier_key` に統一（key_hold の記録は左右つきのまま）。置換元の新規確定は `assign_keymap_from_keyboard_ui` の 1 経路（`KeymapEditDialog` は切替キー・ラベル等の編集）。
+- キー名の受付（phase 75 task_09f・暫定 57 §5.3.4）: `accepts_key_name` をキーボードUIの `redraw`（禁止の色）/ `_on_canvas_left_click`（編集開始）、`KeymapPanelController.assign_keymap_from_keyboard_ui`（置換元の確定）、`TriggerRowEditFlow.add_trigger` / `rename_trigger`（追加・キー変更）、`ActionDialog.on_ok`（hotkey の各要素の保存。続けて `App.validate_hotkey` で全キー名を検査し、正規化した値を保存する・phase 78）で使用する。置換先・key_hold は既存の `validate_key_name` → `resolve_send`。切替 / 停止 / トグルキーは各記録の `_record_key` で受付を検査する。修飾キー単独の読み飛ばしと hotkey の修飾キー収集は `domain.key_hold.is_modifier_key` に統一（key_hold の記録は左右つきのまま）。置換元の新規確定は `assign_keymap_from_keyboard_ui` の 1 経路（`KeymapEditDialog` は切替キー・ラベル等の編集）。
 - `KeySend`（不変・kind / values は backend だけが解釈する不透明な値）と `KeyboardBackend` / `MouseBackend` の契約は `os_backend/contracts.py`。`SendInput` の構造体と API は `windows/send_input.py`。`App.__init__` は pyautogui による DPI aware の設定を Tk の最初の窓より前に行うため、`super().__init__()` より前に backend を取得する。
 
 - 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` /キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。

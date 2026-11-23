@@ -48,6 +48,7 @@
 
 - task_01: **完了（2026-11-23・メイン〔文書〕・reviewer 採用）** 正本 `key_input.md` §7.7・§7.9 の改訂（文言をユーザーに提示して確定）。L232 と、それを例外として参照する L346 の言い回しを同時に直す
 - task_02: **完了（2026-11-23・codex-implementer〔Luna high〕・reviewer 修正して採用 → test_action_dialog_labels の fake root に validate_hotkey を追加〔メイン〕・verifier pass）** `ActionDialog.on_ok` の hotkey の保存時の検査と正規化・テスト。他方の OS の修飾キーの検査（`accepts_key_name`）は `validate_hotkey` より前に置き、メッセージを変えない
+- task_03a: **完了（2026-11-23・codex-implementer〔Luna high〕+ メイン 1 語修正・reviewer 採用・verifier pass）** 完了判定前レビュー（deep 2・3・4）採用分のテスト補強（他方 OS の検査が先・既存行の編集で正規化・エラー文の表示）
 - task_03: 統合確認・実機目視・記録（`codebase_map.md`〔L912 の「保存時には検査しない」と `ActionDialog.on_ok` の呼び出し元の記述〕・`decisions_archive/78`・`current.md`・idea_03 の INDEX_done への移動・`/refactor_check`）
 
 ## レビュー方針

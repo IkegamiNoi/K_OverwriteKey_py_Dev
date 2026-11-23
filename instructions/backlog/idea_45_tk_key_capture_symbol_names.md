@@ -41,3 +41,8 @@
   - 単語の名前（`slash` 等）の扱い（読み替え / 拒否）と、既存サンプルの再利用（`sample_install.py`）。
   - 正本 `features.md` §4.6（phase 74 の表示の表）・`key_input.md` の phase 56 / 74・§7.8 との整合。
 - **方針の候補**: 入力用は「物理キー」（Shift なしの文字か特殊キーの名前）、出力用は「出す文字」とし、両者の対応（Shift の要否）を 1 か所で解決する。互換は取らない（ユーザー方針）。両 OS の実測（Shift の付いた割り当て・カンマの送信・テンキーの識別）が要るので、独立したフェーズで扱う。
+
+## 追記（2026-11-23・phase 78 の完了判定前レビュー〔Codex〕・ユーザー判断で除外してここへ）
+
+- macOS で hotkey に Option+, を記録すると `option+comma` になる（`tk_keys.resolve_modified_char_key_name` が記号を `KEY_SYMBOLS` の単語名へ変換）。macOS の送信側 `vk_for_name` は `,` しか持たず（`macos/key_table.py:26`・`_SEND_ALIASES` に別名なし）、見本レイアウトの `,` の行も `scan_code` を持たないため `comma` を解決できない。
+- phase 78 で hotkey の OK に `validate_hotkey` を足したため、以前は実行時に失敗していたこの値が、OK の時点で弾かれるようになった（記録の直後でも保存できず、`,` へ手で直す必要がある）。記録の名前と送信の名前の対応を 1 か所で解決する本 idea の方針で扱う。

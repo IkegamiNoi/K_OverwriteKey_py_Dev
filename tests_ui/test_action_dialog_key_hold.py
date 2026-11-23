@@ -314,7 +314,8 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         rejected.value_var.set("left command+a")
         rejected.on_ok()
         self.assertTrue(rejected.winfo_exists())
-        self.assertIn("不明なキー名", self.showerror.call_args.args[1])
+        self.assertIn("不明なキー名です", self.showerror.call_args.args[1])
+        self.assertEqual(self.root.input_gateway.validated, [])
 
         self.root.input_gateway.invalid_names.add("unknown-normal-name")
         unknown = self.make_dialog()
@@ -465,6 +466,37 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         dialog.on_ok()
 
         self.assertEqual(self.root._dialog_result["value"], "Ctrl+ A")
+
+    def test_existing_hotkey_is_saved_normalized(self) -> None:
+        dialog = ActionDialog(
+            self.root,
+            "Action",
+            initial={"type": "hotkey", "value": "Ctrl+ A"},
+            mode="edit",
+        )
+        self.dialogs.append(dialog)
+
+        dialog.on_ok()
+
+        self.assertEqual(self.root._dialog_result["value"], "ctrl+a")
+
+    def test_hotkey_errors_are_shown(self) -> None:
+        for value, invalid_name in (("ctrl++a", None), ("unknown-normal-name+a", "unknown-normal-name")):
+            with self.subTest(value=value):
+                self.root._dialog_result = None
+                self.showerror.reset_mock()
+                if invalid_name is not None:
+                    self.root.input_gateway.invalid_names.add(invalid_name)
+                dialog = self.make_dialog()
+                dialog.type_var.set("hotkey")
+                dialog._sync_capture_ui()
+                dialog.value_var.set(value)
+
+                expected_message = self.root.validate_hotkey(value)[0]
+                dialog.on_ok()
+
+                self.showerror.assert_called_once()
+                self.assertEqual(self.showerror.call_args.args[1], expected_message)
 
 
 if __name__ == "__main__":
