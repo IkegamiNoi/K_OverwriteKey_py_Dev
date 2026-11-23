@@ -4,7 +4,9 @@
 **`.claude/` 配下または `CLAUDE.md` を編集する前に、本ファイルを読むこと。**
 
 - `agent_mode/` — エージェント構成の切替（`switch_agent_mode.py`）。複数ファイルを一括反映
-- `save_mode/` — state 保存フックの切替（`switch_save_mode.py`）。`.claude/settings.json` 1 枚を差し替え
+- `save_mode/` — state 保存フックの切替（`switch_save_mode.py`）。`.claude/settings.json` 1 枚を差し替え。
+  `switch_files/full_hooks.json` は**モードではなく `scan` の基準ファイル**（全 hook 項目の保管庫）。
+  `modes.json` へ登録しない
 
 `switch_files/` 配下は生成物ではなく、**稼働ファイルのマスターコピー（手で維持する正）**。
 そのため `.claude_data/` を丸ごと Git 除外してはならない（`state/` は追跡方針、`modes/` は正本）。
@@ -27,7 +29,7 @@
 | `.claude/agents/codex-reviewer.md` | codex / codex_medium | なし（同上） |
 | `.claude/agents/codex-adversarial-reviewer.md` | codex / codex_medium | なし（同上） |
 | `.claude/agents/codex-explorer.md` | codex のみ | なし（他 2 モード適用時は削除） |
-| `.claude/settings.json` | save_mode の登録 5 種 | あり（有効な hook の組合せ） |
+| `.claude/settings.json` | save_mode の登録 4 種 | あり（有効な hook の組合せ） |
 
 管理対象**でない**もの（モードに関係なく共通）: `.claude/agents/{reviewer,deep-reviewer,verifier}.md` /
 `.claude/commands/` / `agent_selection.md` 以外の `.claude/rules/` / `CLAUDE.md`。

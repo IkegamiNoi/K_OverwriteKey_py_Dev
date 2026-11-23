@@ -22,11 +22,5 @@
     "name": "自動保存・タスクファイルの読み込み指示",
     "file": "auto_save_and_use_task_file.json",
     "description": "Stop / SubagentStop / PreCompact などで保存する安全重視設定。タスク完了の区切りでは保存後に /task_commit でタスク単位のコミットを作成する。タスク進行の確認を行う"
-  },
-  {
-    "id": 99,
-    "name": "全部入り・基準",
-    "file": "full_hooks.json",
-    "description": "全設定の保管庫。通常は直接適用しない。"
   }
 ]
