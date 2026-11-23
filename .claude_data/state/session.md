@@ -11,8 +11,8 @@ last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 78 task_03 実施中: 完了判定前レビューの採否確定（ユーザー 2026-11-23）→ task_03a（テスト補強）を Codex に委任中・統合確認の verifier 実行中。**
-mode: implementing
+focus: **phase 78 task_01・02・03a 完了・統合確認 pass（コミット 8aab3f01）。task_03 は実機目視（ユーザー）待ち。**
+mode: blocked
 
 ## last_action
 ts: 2026-11-23T15:00:00
@@ -34,8 +34,8 @@ verified:
   smoke: pass
 
 ## next_action
-- task_03a: Codex 実装済（差分直読み済・① の文言の強化が抜けていたのでメインが「不明なキー名です」へ 1 語修正）・reviewer 採用 → verifier（統合確認の tests_ui 終了後に実行）（compileall tests_ui + test_action_dialog_key_hold / labels）→ reviewer → コミット。
-- 統合確認（verifier）の結果を確認 → ユーザーに実機目視（task_03 定義の ①〜③）を依頼。
+- task_03a 完了（reviewer 採用・35 件 pass・コミット 8aab3f01）。
+- 実機目視（task_03 定義の ①〜③）をユーザーへ依頼済・回答待ち。
 - 目視 OK の後: decisions_archive/78 作成 + decisions.md 索引・current.md 完了記載（次採番 phase 79 / decisions 79）・idea_03 を INDEX → INDEX_done・/refactor_check・コミット。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
