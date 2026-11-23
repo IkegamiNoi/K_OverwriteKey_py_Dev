@@ -104,3 +104,12 @@ counter_text の入力・リセットで開始値へ戻る・保存 → 読込�
 - reviewer: 1 回目 = 修正要（settle 系の記録漏れ）→ 差し戻し → 2 回目 = **採用**（指摘なし）。
 - 実測: compileall clean / tests **2257 pass**（skip 7）/ tests_ui **1316 pass**（全体 1 本）/ smoke pass。
 - 残り: 実機目視（ユーザー）。
+
+## 実機目視の結果と追加の修正 R9（2026-11-23）
+
+- 目視: 下記 R9 以外は問題なし（ユーザー）。保存 → 読込・サンプル設定に戻すの目視は自動テスト（`CounterStartsSyncTest` 等）で代える（ユーザー合意）。
+- **R9（ユーザー判断 A・暫定 58 v1.1 §5.3「保留の反映」）**: 一覧・次のアクションの要約・呼び出し先の表示枠の `(=値)` を、実効値に**そのトリガーの保留中のカウンター操作を控えた順に反映した値**にする（表示用の写し・AppState 不変・実行の挙動不変）。
+  - application: `sequence_steps.py` に表示用の関数（例 `preview_counter_values(counters, deferred) -> dict[str, int]`）= `counters` の写し（`CounterValues` なら開始値も写す）へ `apply_deferred_counters` と同じ規則で保留を反映し、`counter_display_values` と同じ形の dict を返す。元の `counters` は変えない
+  - `call_view.py` の `build_call_view_summary` に `deferred` を受ける引数（既定 `()`）を足し、`counters` の写しをこの関数で作る。`call_view_notice.py` は最上段の保留を渡す（進行中の文脈の段〔`ctx.changed_frames` の `frame.deferred`〕があればそれ、無ければ `state.deferred_counters_for(trigger_set_id).get(top, [])`）
+  - presentation: `trigger_panel_controller.py:299`（一覧）・`:506`（次のアクションの要約）は、選択中のトリガーが有効な行なら `state.deferred_counters_for(trigger_set_id).get(key, [])` を渡した表示用の値を使う（有効でない行は従来どおり）
+  - テスト（tests/）: ① `[count+3] n, counter_text n` で 1 回目の後（保留あり）に表示用の値が 実効値+3 になり、実行で入力される値と一致 ② 保留のリセットは開始値 ③ 元の counters が変わらない ④ 呼び出し先の表示枠の summary が最上段の保留を反映
