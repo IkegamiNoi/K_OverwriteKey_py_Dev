@@ -7,7 +7,7 @@
 last_updated: 2026-11-24T04:20:00
 phase: アクティブなフェーズ = なし（phase 77 = サンプルを config/user/ へ書き出す は 2026-11-24 完了）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 77**（サンプルを config/user/ へ書き出す・`decisions_archive/77_sample_in_user_folder.md`）
-last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・4819cdb7 = phase 77 task_01）。push / merge はユーザー
+last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・b4d714b7 = phase 77 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
