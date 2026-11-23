@@ -4,37 +4,32 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T21:00:00
-phase: アクティブなフェーズ = なし（phase 76 = カウンター機能の拡張は 2026-11-23 完了）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
+last_updated: 2026-11-23T23:00:00
+phase: instructions/phase/77_sample_in_user_folder（サンプルを config/user/ へ書き出す・2026-11-23 起票・主入力 = 暫定 59 v0.2 ユーザー確定済）。次採番 = phase 78 / 暫定 60 / decisions 78 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 76**（カウンター機能の拡張・`decisions_archive/76_counter_expansion.md`）
 last_commit_location: `claude/click-timing-issue-79de93`（worktree `click-timing-issue-79de93`・08568e3e）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ外の不具合修正（Windows のクリックがカーソル移動前に押される）を完了（08568e3e・ユーザー実機確認 OK）。** phase 76 は 2026-11-23 完了・次フェーズはユーザー判断。
-mode: idle
+focus: **phase 77 を起票（暫定 59 v0.2 確定・phase.md・current.md・decisions.md）。phase.md の整合チェック（reviewer）の結果待ち。task_01 は未着手。**
+mode: pending_review
 
 ## last_action
-ts: 2026-11-23T21:00:00
+ts: 2026-11-23T22:30:00
 who: main
 summary: |
-  フェーズ外の不具合修正（ユーザー依頼）: Windows でクリックのアクションの連続実行・実マウスクリック直後の実行で、カーソル移動前に元の位置が押される。原因 = pyautogui.click が SetCursorPos（即時）と座標なしの mouse_event を別々に送り、入力ストリーム上で順序保証されない。
-  修正 = `WindowsMouseBackend.click_mouse` を override し、絶対移動（MOVE|ABSOLUTE|VIRTUALDESK・仮想デスクトップ基準）+ clicks 回の DOWN/UP を 1 回の SendInput で送る（`_build_click_inputs` / `_virtual_screen`）。infrastructure 層のみ。Mac は対象外（元から座標付き CGEvent）。
-  codex-implementer（Luna high）実装・reviewer 採用（参考: ダブルクリック認識とマルチモニタ負座標は実機未確認）。codebase_map.md の該当行を追従。
+  ユーザー要望: サンプルを `config/sample/` に置くと別名保存・読込が `config/sample/` へ案内され不便 → `config/user/` へ書き出す（案 A）。ユーザー確定 = 既存 `config/sample/` は移行しない・ファイル名はそのまま・暫定仕様先行。
+  `instructions/history/59_sample_in_user_folder.md` v0.1 を起票（§4 確認事項 = ①同名の子があれば書かず空で始める〔案 A 推奨〕②孤児の掃除の参照元 `config/sample/keymap_sets/` は残す〔案 A 推奨〕）。
+  codex-adversarial-reviewer 指摘 5 件（引用行は実測済み）→ 対応案: 1 採用（全パス事前確認・別プロセスの競合は除外）/ 2 修正して採用（中身が同じファイルは衝突にしない = 途中失敗の再試行を保つ）/ 3 受容を明記（利用者自作の user/keymap_sets/sample.json がサンプルとして開く）/ 4 採用（「書かない・移行しない・読込と参照は続ける」へ文言修正）/ 5 採用（旧サンプルの別名保存で子の案内先は移らない旨・受け入れ条件 3 を新規書き出しに限定）。
+  ユーザーが対応案を承認（2026-11-23）→ v0.2 へ反映（§3.1〜3.5・受け入れ条件 8 項目）。
 result_files:
-  - keyseq/infrastructure/os_backend/windows/mouse_backend.py
-  - tests/test_input_gateway_scroll.py
-  - instructions/common/codebase_map.md
+  - instructions/history/59_sample_in_user_folder.md
 verified:
-  compile: clean
-  tests: pass 2270（失敗 0・skip 7）
-  tests_ui: not_run（変更範囲外）
-  smoke: pass
-  visual: OK（ユーザー実機確認・2026-11-23）
+  compile: not_run（文書のみ）
 
 ## next_action
-- クリック不具合修正は完了（08568e3e）。ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。
-- 次フェーズはユーザー判断（`/phase_start`）。保留中: R4・idea_37。前ブランチ群の push / merge・2 枚目のモニタの目視・中クリックはユーザー判断。
+- reviewer の phase.md 整合チェックの結果を反映 → `/task_new` で `instructions/phase/77_sample_in_user_folder/tasks/task_01_*.md` を起票 → codex-implementer（Luna high）へ実装依頼（`sample_install.py`・`app.py:405`・テスト 3 ファイル・「既存テストの途中に差し込まない」「apply_patch で編集」を明記）→ verifier → reviewer。
+- 別件: ブランチ `claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
