@@ -14,13 +14,10 @@
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "task_\\d{2}",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "次のユーザープロンプトを見て、task_XX_xxxx の実装に着手しようとしている場合のみチェックを行ってください。該当しない場合は必ず {\"ok\": true} を返してください。\n\n該当する場合は以下を確認してください:\n- instructions/phase/current.md を読む指示がされているか、または既に読んでいるか\n- 対象タスクファイルが特定されているか\n- 実装スコープ（対象・非対象）が明確か\n- 前タスクが完了しているか\n\n全て満たしている場合は {\"ok\": true} を返してください。\n不足がある場合は {\"ok\": false, \"reason\": \"不足内容\"} を返してください。",
-            "timeout": 15
+            "type": "command",
+            "command": "echo '## セッション状態（UserPromptSubmit で毎回注入）'; grep -E '^(phase|focus|mode|presence):' .claude_data/state/session.md 2>/dev/null | head -4; echo 'next_action:'; awk '/^## next_action/{f=1;next} /^## /{f=0} f' .claude_data/state/session.md 2>/dev/null | head -6; echo '---'; echo 'このプロンプトがタスクへの着手・継続なら、上の現在地を前提に instructions/phase/current.md・対象のタスク定義・前タスクの完了を確かめてから進める（この会話で確かめ済みなら読み直さない）。食い違いや不足があれば止まってユーザーに確認する。それ以外のプロンプトではこの節を無視してよい。'"
           }
         ]
       }

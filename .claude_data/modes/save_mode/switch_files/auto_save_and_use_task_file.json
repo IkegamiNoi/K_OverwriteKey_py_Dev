@@ -40,7 +40,7 @@
           {
             "type": "prompt",
             "model": "haiku",
-            "prompt": "直前の Claude の応答を見て、以下のいずれかに該当するか判定してください:\n- タスク区切り（タスクの完了報告など）\n- 重要な判断（採用/修正採用/保留/除外）\n- 大きな実装ブロックの完了\n- ユーザーが「ここで一区切り」を示唆した\n\n該当しない場合は必ず {\"ok\": true} を返してください。\n\nタスク区切り（タスクの完了報告）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新し、続けて .claude/skills/task_commit/SKILL.md の手順に従って完了タスクをタスク単位で git コミットすることを推奨します。\"} を返してください。\n\nそれ以外（重要な判断・実装ブロックの完了・一区切り）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新することを推奨します。session.md が古いまま中断するとトークン浪費の原因になります。\"} を返してください。",
+            "prompt": "まず次のどれかに当たれば、ほかの判定をせずに必ず {\"ok\": true} を返してください:\n- 入力 JSON の stop_hook_active が true（この Stop フックの指摘を受けて続けた応答）\n- 直前の応答が、ファイルを変更していない説明・質問への回答・提案・確認の質問だけである\n- 直前の応答が、待機中・状態に変化がない旨の報告である\n- 直前の応答が、session.md を更新済み、または更新不要と述べている\n\n直前の Claude の応答を見て、以下のいずれかに該当するか判定してください:\n- タスク区切り（タスクの完了報告など）\n- 重要な判断（採用/修正採用/保留/除外）\n- 大きな実装ブロックの完了\n- ユーザーが「ここで一区切り」を示唆した\n\n該当しない場合は必ず {\"ok\": true} を返してください。\n\nタスク区切り（タスクの完了報告）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新し、続けて .claude/skills/task_commit/SKILL.md の手順に従って完了タスクをタスク単位で git コミットすることを推奨します。\"} を返してください。\n\nそれ以外（重要な判断・実装ブロックの完了・一区切り）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新することを推奨します。session.md が古いまま中断するとトークン浪費の原因になります。\"} を返してください。",
             "timeout": 15
           }
         ]
@@ -48,13 +48,10 @@
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "task_\\d{2}",
         "hooks": [
           {
-            "type": "prompt",
-            "model": "haiku",
-            "prompt": "次のユーザープロンプトを見て、task_XX_xxxx の実装に着手しようとしている場合のみチェックを行ってください。該当しない場合は必ず {\"ok\": true} を返してください。\n\n該当する場合は以下を確認してください:\n- instructions/phase/current.md を読む指示がされているか、または既に読んでいるか\n- 対象タスクファイルが特定されているか\n- 実装スコープ（対象・非対象）が明確か\n- 前タスクが完了しているか\n\n全て満たしている場合は {\"ok\": true} を返してください。\n不足がある場合は {\"ok\": false, \"reason\": \"不足内容\"} を返してください。",
-            "timeout": 15
+            "type": "command",
+            "command": "echo '## セッション状態（UserPromptSubmit で毎回注入）'; grep -E '^(phase|focus|mode|presence):' .claude_data/state/session.md 2>/dev/null | head -4; echo 'next_action:'; awk '/^## next_action/{f=1;next} /^## /{f=0} f' .claude_data/state/session.md 2>/dev/null | head -6; echo '---'; echo 'このプロンプトがタスクへの着手・継続なら、上の現在地を前提に instructions/phase/current.md・対象のタスク定義・前タスクの完了を確かめてから進める（この会話で確かめ済みなら読み直さない）。食い違いや不足があれば止まってユーザーに確認する。それ以外のプロンプトではこの節を無視してよい。'"
           }
         ]
       }
