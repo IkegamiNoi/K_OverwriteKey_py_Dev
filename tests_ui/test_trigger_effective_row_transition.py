@@ -48,7 +48,7 @@ class TriggerEffectiveRowTransitionUiTest(unittest.TestCase):
         identity = self.app._active_trigger_set_id()
         self.history = [object()]
         self.frames = [LoopFrame(start=0, iteration=2)]
-        self.deferred = [("count", "+1")]
+        self.deferred = [("counter_inc", "count", 1)]
         self.app.state.history_for(identity)["f1"] = self.history
         self.app.state.loop_frames_for(identity)["f1"] = self.frames
         self.app.state.deferred_counters_for(identity)["f1"] = self.deferred

@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from keyseq.shared.i18n import tr
-from keyseq.application.counter_values import counter_start, counter_value
+from keyseq.application.counter_values import (
+    CounterValues, counter_display_values, counter_start, counter_starts_of, counter_value,
+)
 
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_CALL, OP_COUNTER_INC, OP_COUNTER_RESET,
@@ -82,6 +84,17 @@ def apply_deferred_counters(
         if error:
             continue
     return tuple(deltas)
+
+
+def preview_counter_values(
+    counters: Mapping[str, int], deferred: Sequence[tuple[str, str, int | None]],
+) -> dict[str, int]:
+    """Return display values after queued operations, without changing runtime counters."""
+    preview = CounterValues()
+    preview.set_starts(counter_starts_of(counters))
+    preview.update(counters)
+    apply_deferred_counters(deferred, preview)
+    return counter_display_values(preview)
 
 
 @dataclass

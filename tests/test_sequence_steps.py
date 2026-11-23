@@ -4,7 +4,7 @@ from keyseq.application.app_state import AppState
 from keyseq.application.counter_values import CounterValues
 from keyseq.application.sequence_steps import (
     LoopFrame, StepResume, advance, after_normal_action,
-    apply_deferred_counters, format_system_error_notification, settle_after_normal,
+    apply_deferred_counters, format_system_error_notification, preview_counter_values, settle_after_normal,
 )
 
 
@@ -21,6 +21,36 @@ NORMAL = {"type": "text", "value": "x"}
 
 
 class SequenceStepsTest(unittest.TestCase):
+    def test_preview_counter_values_reflects_increment_and_matches_deferred_execution(self):
+        counters = CounterValues()
+        deferred = (("counter_inc", "n", 3),)
+
+        preview = preview_counter_values(counters, deferred)
+        executed = CounterValues()
+        apply_deferred_counters(deferred, executed)
+
+        self.assertEqual(preview["n"], executed["n"])
+        self.assertEqual(preview["n"], 3)
+
+    def test_preview_counter_values_reset_uses_start_value(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 12})
+        counters["n"] = 17
+
+        preview = preview_counter_values(counters, (("counter_reset", "n", None),))
+
+        self.assertEqual(preview["n"], 12)
+
+    def test_preview_counter_values_does_not_change_original_counters(self):
+        counters = CounterValues()
+        counters.set_starts({"n": 12, "unused": 4})
+        counters["n"] = 17
+
+        preview_counter_values(counters, (("counter_inc", "n", 3), ("counter_reset", "unused", None)))
+
+        self.assertEqual(dict(counters), {"n": 17})
+        self.assertEqual(counters.starts, {"n": 12, "unused": 4})
+
     def test_counter_amounts_use_unused_start_and_record_nonzero_deltas(self):
         for amount in (3, -2, 0):
             with self.subTest(amount=amount):

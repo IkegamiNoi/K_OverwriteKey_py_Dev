@@ -67,6 +67,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
                 counters={"running": 3},
                 set_counter_starts=Mock(),
                 loop_iterations_for=lambda _trigger_set_id, _key: {},
+                deferred_counters_for=lambda _trigger_set_id: {},
             ),
             _active_trigger_set_id=lambda: "main",
             _selected_trigger_idx=0,

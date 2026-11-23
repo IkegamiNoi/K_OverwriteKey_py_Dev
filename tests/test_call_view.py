@@ -172,6 +172,30 @@ class CallViewQueryTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             summary.counters["n"] = 5
 
+    def test_query_summary_applies_top_trigger_deferred_counter_operations(self):
+        self.state.call_refs_for("set").update(("f1", "f5"))
+        self.state.counters["n"] = 4
+        self.state.deferred_counters_for("set")["f7"] = [("counter_inc", "n", 3)]
+
+        summary = self.runner.call_view_summary_for("f1")
+
+        self.assertEqual(summary.counters["n"], 7)
+        self.assertEqual(self.state.counters["n"], 4)
+
+    def test_query_summary_prefers_in_flight_top_frame_deferred_operations(self):
+        self.state.call_refs_for("set").update(("f1", "f5"))
+        self.state.counters["n"] = 4
+        self.state.deferred_counters_for("set")["f7"] = [("counter_inc", "n", 3)]
+        ctx = CallContext("set", "f1", "f5", self.state, self.triggers.get,
+                          stack=[CallFrame("f5"), CallFrame("f7", deferred=[("counter_inc", "n", 8)])],
+                          started=True)
+        ctx.changed_frames = {frame.key: frame for frame in ctx.stack}
+        self.state.pending_steps[("set", "f1")] = SimpleNamespace(call=ctx, call_paused=False)
+
+        summary = self.runner.call_view_summary_for("f1")
+
+        self.assertEqual(summary.counters["n"], 12)
+
     def test_query_uses_active_trigger_set_only(self):
         self.state.call_refs_for("set").add("f1")
         self.assertIsNotNone(self.runner.call_view_summary_for("f1"))

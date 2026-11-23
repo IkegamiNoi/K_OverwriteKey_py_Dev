@@ -37,8 +37,12 @@ class CallViewMixin:
             return None
         with self.state.lock:
             frames = frames_by_key.get(top, self.state.loop_frames_for(trigger_set_id).get(top, []))
+            deferred = next((frame.deferred for ctx in self._live_call_view_contexts(trigger_set_id)
+                             for frame in ctx.changed_frames.values() if frame.key == top), None)
+            if deferred is None:
+                deferred = self.state.deferred_counters_for(trigger_set_id).get(top, [])
             return build_call_view_summary(path, trigger.get("actions", []),
-                                           positions.get(top, 0), frames, self.state.counters)
+                                           positions.get(top, 0), frames, self.state.counters, tuple(deferred))
 
     def _live_call_view_contexts(self, trigger_set_id: str) -> list[CallContext]:
         # Paused contexts can lag behind another press on the shared callee.

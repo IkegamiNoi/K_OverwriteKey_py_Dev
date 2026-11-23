@@ -82,7 +82,7 @@ class SequenceListOperationsTest(unittest.TestCase):
             focus_get=lambda: self.listbox,
             _active_trigger_set_id=lambda: "main",
             _find_trigger_by_key=lambda key: self.trigger if key == "a" else None,
-            state=SimpleNamespace(loop_iterations_for=Mock(return_value={}), counters={}),
+            state=SimpleNamespace(loop_iterations_for=Mock(return_value={}), deferred_counters_for=Mock(return_value={}), counters={}),
             sequence_runner=SimpleNamespace(
                 reset_loop_frames=Mock(),
                 is_running_chain_callee=Mock(return_value=False),

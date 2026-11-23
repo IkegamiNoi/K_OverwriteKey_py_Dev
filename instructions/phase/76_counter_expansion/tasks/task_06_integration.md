@@ -113,3 +113,7 @@ counter_text の入力・リセットで開始値へ戻る・保存 → 読込�
   - `call_view.py` の `build_call_view_summary` に `deferred` を受ける引数（既定 `()`）を足し、`counters` の写しをこの関数で作る。`call_view_notice.py` は最上段の保留を渡す（進行中の文脈の段〔`ctx.changed_frames` の `frame.deferred`〕があればそれ、無ければ `state.deferred_counters_for(trigger_set_id).get(top, [])`）
   - presentation: `trigger_panel_controller.py:299`（一覧）・`:506`（次のアクションの要約）は、選択中のトリガーが有効な行なら `state.deferred_counters_for(trigger_set_id).get(key, [])` を渡した表示用の値を使う（有効でない行は従来どおり）
   - テスト（tests/）: ① `[count+3] n, counter_text n` で 1 回目の後（保留あり）に表示用の値が 実効値+3 になり、実行で入力される値と一致 ② 保留のリセットは開始値 ③ 元の counters が変わらない ④ 呼び出し先の表示枠の summary が最上段の保留を反映
+- R9 の結果: codex-implementer（Luna high）が `preview_counter_values`（`sequence_steps.py`）・`build_call_view_summary(deferred=)`・`call_view_notice`（進行中の段の保留を優先）・一覧 / 次のアクションの要約を実装 + tests 4 件。
+  reviewer 1 回目 = 修正して採用（import 整理・変数化・changed_frames 分岐のテスト・tests_ui スタブに `deferred_counters_for`）→ 2 回目 = **完了可**。
+  tests_ui 全体の 2 件: `test_trigger_effective_row_transition` は固定データが古い保留の形（2 要素）→ メインで 1 行修正 / `test_compact_window` は単体で pass（全体実行時のみの揺れ・phase 76 と無関係）。
+  実測: compileall clean / tests **2262 pass** / tests_ui 全体 1316 件（上記 2 件を除き pass・2 件は単体で 10 / 8 pass）/ smoke pass。残り = R9 の再目視（ユーザー・描き直しの契機を含む）。

@@ -221,7 +221,7 @@ class ActionListRenderingTest(unittest.TestCase):
         app._selected_trigger_idx = 0
         app._indices = {"a": 0}
         app.state = SimpleNamespace(
-            loop_iterations_for=Mock(return_value={}), counters={}
+            loop_iterations_for=Mock(return_value={}), deferred_counters_for=Mock(return_value={}), counters={}
         )
         app._active_trigger_set_id = Mock(return_value="active")
         action_list = _Listbox()
@@ -250,7 +250,7 @@ class ActionListRenderingTest(unittest.TestCase):
         app._find_trigger_by_key = Mock(return_value={"actions": [actions[0]]})
         app._indices = {"z9": 0}
         app.state = SimpleNamespace(
-            loop_iterations_for=Mock(return_value={}), counters={}
+            loop_iterations_for=Mock(return_value={}), deferred_counters_for=Mock(return_value={}), counters={}
         )
         app._active_trigger_set_id = Mock(return_value="active")
         self.assertEqual(

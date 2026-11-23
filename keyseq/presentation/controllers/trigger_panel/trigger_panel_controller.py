@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import tkinter as tk
-from keyseq.application.counter_values import counter_display_values, counter_starts_of
+from keyseq.application.counter_values import counter_starts_of
+from keyseq.application.sequence_steps import preview_counter_values
 
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.trigger_duplicates import is_effective_trigger, shadowed_duplicate_indices
@@ -293,10 +294,12 @@ class TriggerPanelController:
         trigger_set_id = self._app._active_trigger_set_id()
         loop_iterations = self._app.state.loop_iterations_for(trigger_set_id, key) if effective else {}
         counters = self._app.state.counters
+        deferred = self._app.state.deferred_counters_for(trigger_set_id).get(key, []) if effective else ()
+        display_counters = preview_counter_values(counters, deferred)
         rows = build_action_rows(
             actions,
             loop_iterations=loop_iterations,
-            counters=counter_display_values(counters),
+            counters=display_counters,
             counter_starts=counter_starts_of(counters),
             resolve_call=self._resolve_call_target,
         )
@@ -496,14 +499,15 @@ class TriggerPanelController:
         if not isinstance(a, dict):
             return tr("common.none")
 
-        loop_iterations = self._app.state.loop_iterations_for(
-            self._app._active_trigger_set_id(), key
-        )
+        trigger_set_id = self._app._active_trigger_set_id()
+        loop_iterations = self._app.state.loop_iterations_for(trigger_set_id, key)
+        deferred = self._app.state.deferred_counters_for(trigger_set_id).get(key, [])
+        display_counters = preview_counter_values(self._app.state.counters, deferred)
         return format_next_action_summary(
             idx,
             a,
             loop_iterations=loop_iterations,
-            counters=counter_display_values(self._app.state.counters),
+            counters=display_counters,
             counter_starts=counter_starts_of(self._app.state.counters),
             resolve_call=self._resolve_call_target,
         )
