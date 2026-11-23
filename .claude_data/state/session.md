@@ -4,39 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T13:00:00
-phase: instructions/phase/78_action_hotkey_save_validation（アクティブ・直接改訂モード・起票元 idea_03）。次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67
-直前の完了フェーズ = **phase 77**（サンプルを config/user/ へ書き出す・`decisions_archive/77_sample_in_user_folder.md`）
-last_commit_location: `claude/sample-folder-save-path-d3cd34`（worktree `sample-folder-save-path-d3cd34`・b4d714b7 = phase 77 完了）。phase 78 の起票は worktree `idea-03-ec8eea`（branch `claude/idea-03-ec8eea`）で未コミット
+last_updated: 2026-11-23T17:00:00
+phase: アクティブなフェーズ = なし（phase 78 = アクションの hotkey の保存時の検査と正規化 は 2026-11-23 完了）。次採番 = phase 79 / 暫定 60 / decisions 79 / 提案書 29 / idea 67
+直前の完了フェーズ = **phase 78**（アクションの hotkey の保存時の検査と正規化・`decisions_archive/78_action_hotkey_save_validation.md`）
+last_commit_location: `claude/idea-03-ec8eea`（worktree `idea-03-ec8eea`・phase 78 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 78 task_01・02・03a 完了・統合確認 pass（コミット 8aab3f01）。task_03 は実機目視（ユーザー）待ち。**
-mode: blocked
+focus: **phase 78 完了（2026-11-23）。** アクションの hotkey を OK で validate_hotkey に通し、不正なら拒否・通れば正規化値を保存。次フェーズはユーザー判断。
+mode: idle
 
 ## last_action
-ts: 2026-11-23T15:00:00
+ts: 2026-11-23T17:00:00
 who: main
 summary: |
-  完了判定前レビュー: deep-reviewer 修正要（軽微 7 件）・codex-adversarial-reviewer needs-attention（medium 2 件）。
-  ユーザー判断（2026-11-23）: ①今のレイアウトで通らない既存値はラベルだけの変更でも OK 不可 = A（コード不変・key_input.md L232 に 1 文追加済）②Codex 1（Mac の Option+, 記録が `option+comma` で送信側が解決できず OK で弾かれる・実測で確認）= 除外・idea_45 に追記済 ③deep 2・3・4 のテスト補強 = 採用 → task_03a 起票・codex-implementer へ委任中 / deep 6 = codebase_map L646 を更新済 / deep 5 = 実機目視で代える / deep 7（features.md）= 保留。
-  未コミット: key_input.md・codebase_map.md（L646・L912）・idea_45・task_03 / task_03a 定義・session.md。
+  phase 78 完了。実機目視 OK（ユーザー・Windows）。task_03: decisions_archive/78 作成・decisions.md 索引・current.md 完了記載（次採番 phase 79 / decisions 79）・idea_03 を INDEX → INDEX_done・refactor_check 不要（action_dialog.py 670 行 +5・M2〜M6 該当なし）。
+  完了判定前レビューの採否（ユーザー）: ラベルだけの編集も検査 = A（正本 1 文）・Codex 1（Mac の option+comma）は除外し idea_45 へ・deep 2・3・4 テスト補強 = task_03a・deep 7（features.md）保留。
 result_files:
-  - instructions/common/spec_detail/key_input.md
-  - instructions/common/codebase_map.md
-  - instructions/backlog/idea_45_tk_key_capture_symbol_names.md
-  - instructions/phase/78_action_hotkey_save_validation/tasks/task_03_integration_and_record.md
-  - instructions/phase/78_action_hotkey_save_validation/tasks/task_03a_hotkey_ok_test_coverage.md
+  - .claude_data/state/decisions_archive/78_action_hotkey_save_validation.md
+  - .claude_data/state/decisions.md
+  - instructions/phase/current.md
+  - instructions/backlog/INDEX.md
+  - instructions/backlog/INDEX_done.md
+  - instructions/phase/78_action_hotkey_save_validation/phase.md
 verified:
   compile: clean
   tests: pass 2278（skip 9）
-  tests_ui: pass 1319（統合・task_03a 前のテスト）
+  tests_ui: pass 1319（統合）/ 35（task_03a 後の action_dialog_key_hold + labels）
   smoke: pass
+  visual: OK（ユーザー実機確認・2026-11-23）
 
 ## next_action
-- task_03a 完了（reviewer 採用・35 件 pass・コミット 8aab3f01）。
-- 実機目視（task_03 定義の ①〜③）をユーザーへ依頼済・回答待ち。
-- 目視 OK の後: decisions_archive/78 作成 + decisions.md 索引・current.md 完了記載（次採番 phase 79 / decisions 79）・idea_03 を INDEX → INDEX_done・/refactor_check・コミット。
+- phase 78 は完了。ブランチ `claude/idea-03-ec8eea` の push / merge はユーザー。次フェーズはユーザー判断（`/phase_start`）。
 - 別件: ブランチ `claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
@@ -45,7 +44,7 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **phase 78 の要点**: 現行の hotkey の OK は `action_dialog.py:253-265` で `accepts_key_name`（他方 OS の修飾キーだけ拒否）→ 生値を保存。揃える相手はプリセット `preset_manager.py:318,354` の `self.parent.validate_hotkey`（`App.validate_hotkey` → `HotkeyService.validate`）。
+- **phase 78 の要点**: hotkey のアクションの OK は `action_dialog.py` の `on_ok` で `accepts_key_name`（他方 OS の修飾キー・phase 75 の文言）→ `self.parent.validate_hotkey`（`App.validate_hotkey` → `HotkeyService.validate`）→ 正規化値を保存。tests_ui の fake root で ActionDialog の hotkey の OK を呼ぶなら `root.validate_hotkey` を設定する（`test_action_dialog_key_hold.py` / `labels.py` の setUp）。
 - **phase 77 の要点**: 初回のサンプルは `config/user/`（`sample_install.SAMPLE_DIR = "user"`）。構成セットが無いときは `_find_conflicting_children` が `save_plan_execution.preview_child_payloads` と既存の子を照合（lexists・sort_keys の json 文字列比較）。旧 `config/sample/` は書かない・孤児の掃除の経路 5 で参照だけ残す。symlink のテストは Windows の特権不足で skip（Mac で一度流すと確証）。
 - **phase 76 の要点**: 実効値（値が入った名前は値・それ以外は開始値・それも無ければ 0）は `keyseq/application/counter_values.py`（`CounterValues(dict)`・`counter_value`・`counter_start`・`counter_display_values`・`counter_starts_of`）に 1 か所。保留は `(op, name, amount)`。開始値は構成セットの `counter_starts`（`domain/sequence_control.normalize_counter_starts`）→ `App._sync_control_vars_from_data` で `AppState.set_counter_starts`。ダイアログは開始値を `_dialog_counter_start` で返し、`action_edit._apply_counter_start_result` が行の追加・置換の成立後に書く。新しい種類 `counter_text` は `ActionExecutor.execute` の 1 分岐。
 - **Codex の傾向（phase 76 で実測）**: テストを書き漏らす（task_01・04 は 2 回目の依頼で追加）・既存テストの途中に新しいテストを差し込む（task_01）・タスク定義の一部（通知のラベル）を落とす（task_03）。依頼文に「既存テストの途中に差し込まない」を書き、差分を直読みしてから verifier へ。
