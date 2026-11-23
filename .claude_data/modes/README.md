@@ -31,6 +31,13 @@
 | `.claude/agents/codex-explorer.md` | codex のみ | なし（他 2 モード適用時は削除） |
 | `.claude/settings.json` | save_mode の登録 4 種 | あり（有効な hook の組合せ） |
 
+save_mode の軸は **「有効な hook の組合せ」だけ**。prompt hook の判定モデル
+（`hooks[].model`）は「そのモデルが使える環境か」で決まる**直交した別軸**なので、
+モデル別の登録モードを増やさず `switch_save_mode.py` の `model <名前>` で切り替える
+（稼働 `settings.json` ・ 登録 4 種 ・ `full_hooks.json` を**一括で**書き換えるため、
+下の注意 1 を機械的に満たし、注意 2 の検知漏れが起きない）。現在値の確認は引数なしの `model`。
+モデル名は検証されないので、打ち間違えると全変種へ同じ誤名が入る（`check` は一致を報告し続ける）。
+
 管理対象**でない**もの（モードに関係なく共通）: `.claude/agents/{reviewer,deep-reviewer,verifier}.md` /
 `.claude/commands/` / `agent_selection.md` 以外の `.claude/rules/` / `CLAUDE.md`。
 
@@ -73,8 +80,12 @@
 1. 稼働側（`.claude/`）を編集する
 2. 対応モードの変種へ反映する
 3. 他モードの変種へ、モード固有の差異以外を追随させる
-4. `check`（稼働側との一致）と `diff <id>`（各モードとの差分）で確認する
+4. `switch_*.py` を対話起動し、冒頭に出る `check`（稼働側との一致）と
+   `diff <id>`（各モードとの差分）で確認する（引数付きのコマンド実行には対応していない）
 5. 参照する側の文書を触った場合は、注意 3 に反していないか確認する
+
+prompt hook の判定モデルだけを変えたい場合は、手順 1〜3 の代わりに
+`switch_save_mode.py` の `model <名前>` を使う（全対象を一括更新するため追随漏れが起きない）。
 
 適用（`apply <id>`）は上書き前に管理対象を退避する
 （agent_mode は `agent_mode/backup/<timestamp>/`、save_mode は `save_mode/backup/settings_<timestamp>.json`）。

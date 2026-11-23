@@ -30,7 +30,8 @@ description: エージェントが使うモデルの ID・推論レベルを更�
 
 - 稼働側: `.claude/agents/*.md`（`--model` / `--effort`・`spawn_agent` の `model` / `reasoning_effort`・frontmatter の `model:`）/ `.claude/rules/agent_selection.md`
 - モード変種: `.claude_data/modes/agent_mode/switch_files/<各モード>/.claude/` 配下（存在するモードすべて。一覧は `modes.json`）
-- フックのモデル: `.claude/settings.json` の `"model"` と、その変種 `.claude_data/modes/save_mode/switch_files/*.json`（保存モードの全変種）
+- prompt hook の判定モデル: `.claude/settings.json` の `"model"` と、save_mode の全変種（`.claude_data/modes/save_mode/switch_files/*.json`）。
+  **手で直さず手順 4 の `model <名前>` で一括更新する**ので、ここでは現在値の確認のみ
 - **書き換えない**: 過去の記録（`.claude_data/state/decisions_archive/`・`instructions/phase/<過去フェーズ>/`・`instructions/history/`・`decisions.md` の過去節）。当時の事実なので残す
 
 ### 4. 編集（`.claude_data/modes/README.md` の変更手順に従う）
@@ -39,6 +40,8 @@ description: エージェントが使うモデルの ID・推論レベルを更�
 2. 稼働側を直す
 3. 同じ変更を、そのファイルを持つ**全モードの変種**へ反映する（モード固有の差異は保つ。非稼働モードの変種を直し忘れると、切り替えた瞬間に戻る）
 4. 担当モデルの変更なら、`agent_selection.md` の表・各エージェントの `description` の記述も、全変種で揃える
+5. prompt hook の判定モデルを変える場合は、2〜3 の代わりに `switch_save_mode.py` の `model <名前>` を使う
+   （稼働側 + 全変種を一括更新する。モデル名は検証されないので打ち間違えに注意）
 
 ### 5. 確認
 

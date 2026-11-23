@@ -212,6 +212,108 @@ def parse_path(item_path: str) -> list[str | int]:
     return parts
 
 
+# `model` コマンドで指定されうるモデル名。網羅ではなく打ち間違い検知のための既知リスト。
+KNOWN_HOOK_MODELS = ("haiku", "sonnet", "opus")
+
+
+def iter_hook_models(data: Any) -> list[dict[str, Any]]:
+    """`hooks` 配下で `model` キーを持つ dict をすべて集める。"""
+    found: list[dict[str, Any]] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if "model" in node and isinstance(node.get("model"), str):
+                found.append(node)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(data.get("hooks") if isinstance(data, dict) else None)
+    return found
+
+
+def model_target_paths(modes: list[dict[str, Any]]) -> list[Path]:
+    """モデル書き換えの対象。稼働 settings.json + 登録ファイル全種 + scan 基準ファイル。"""
+    paths = [CLAUDE_SETTINGS]
+    for mode in modes:
+        path = mode_path(mode)
+        if path.exists() and path not in paths:
+            paths.append(path)
+    full_path = full_hooks_path()
+    if full_path.exists() and full_path not in paths:
+        paths.append(full_path)
+    return [p for p in paths if p.exists()]
+
+
+def show_hook_models(modes: list[dict[str, Any]]) -> None:
+    print("\nprompt hook の判定モデル:")
+    for path in model_target_paths(modes):
+        entries = iter_hook_models(load_json(path))
+        if not entries:
+            print(f"  {path.name}: （prompt hook なし）")
+            continue
+        counts: dict[str, int] = {}
+        for entry in entries:
+            counts[entry["model"]] = counts.get(entry["model"], 0) + 1
+        summary = " / ".join(f"{name} x{count}" for name, count in sorted(counts.items()))
+        print(f"  {path.name}: {summary}")
+    print("\n変更するには model <名前> を実行してください。例: model sonnet")
+
+
+def set_hook_model(modes: list[dict[str, Any]], model_name: str) -> None:
+    """稼働 settings.json と全登録ファイルの prompt hook モデルを一括で揃える。
+
+    save_mode の軸は「保存挙動の組合せ」であり、判定モデルは環境側の都合（そのモデルが
+    使えるか）で決まる別軸。登録モードを倍に増やす代わりに、ここで全変種へ同時に書き込む
+    （`.claude_data/modes/README.md` 注意 1「全変種へ追随させる」を機械的に満たす）。
+    """
+    targets = model_target_paths(modes)
+    if not targets:
+        print("対象ファイルが見つかりません。")
+        return
+
+    # 誤名を入れても全変種が一致するため check では検知できない。ここで一度だけ警告する。
+    if model_name not in KNOWN_HOOK_MODELS:
+        print(f"警告: '{model_name}' は既知のモデル名（{', '.join(KNOWN_HOOK_MODELS)}）ではありません。")
+        print("      打ち間違えても全変種が一致するため check では検知できません。")
+
+    plan: list[tuple[Path, Any, int]] = []
+    for path in targets:
+        data = load_json(path)
+        entries = iter_hook_models(data)
+        changed = sum(1 for entry in entries if entry["model"] != model_name)
+        for entry in entries:
+            entry["model"] = model_name
+        plan.append((path, data, changed))
+
+    total = sum(changed for _, _, changed in plan)
+    if total == 0:
+        print(f"すべての prompt hook が既に {model_name} です。変更はありません。")
+        return
+
+    print(f"\nprompt hook の判定モデルを {model_name} に揃えます:")
+    for path, _, changed in plan:
+        mark = f"{changed} 箇所" if changed else "変更なし"
+        print(f"  {path.name}: {mark}")
+
+    answer = input("実行しますか? [y/N] > ").strip().lower()
+    if answer not in {"y", "yes"}:
+        print("中止しました。")
+        return
+
+    backup_path = backup_current_settings()
+    for path, data, changed in plan:
+        if changed:
+            save_json(path, data)
+
+    print(f"\n{total} 箇所を {model_name} に更新しました。")
+    if backup_path:
+        print(f"backup: {backup_path}  （稼働 settings.json のみ）")
+    print("稼働 settings.json を変更した場合、反映には新セッション開始が必要です。")
+
+
 def print_help() -> None:
     print(
         """
@@ -223,6 +325,8 @@ Commands:
   apply <id>, a <id>      指定ファイルを .claude/settings.json に適用
   check, c                現在の settings.json が登録済みか確認
   scan, sc                未登録時、full_hooks.json にない項目を確認
+  model, m                prompt hook の判定モデルを表示
+  model <名前>, m <名前>   判定モデルを稼働 settings.json と全登録ファイルへ一括反映
   quit, q, exit           終了
 
 Examples:
@@ -231,6 +335,8 @@ Examples:
   d 2
   a 1
   scan
+  model
+  model sonnet
 """.strip()
     )
 
@@ -523,6 +629,12 @@ def main() -> None:
         elif command in {"scan", "sc"}:
             scan_unregistered(modes)
             modes = load_modes()
+
+        elif command in {"model", "m"}:
+            if not args:
+                show_hook_models(modes)
+            else:
+                set_hook_model(modes, args[0])
 
         elif command in {"quit", "q", "exit"}:
             print("終了します。")
