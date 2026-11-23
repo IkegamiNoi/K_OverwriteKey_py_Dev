@@ -4,20 +4,21 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-23T15:30:00
+last_updated: 2026-11-23T16:30:00
 phase: instructions/phase/76_counter_expansion（2026-11-22 起票・進行中）。次採番 = phase 77 / 暫定 59 / decisions 77 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 75**（macOS 対応・`decisions_archive/75_mac_support.md`）
 last_commit_location: `claude/task-06-confirmation-03414b`（worktree `task-06-confirmation-03414b`）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 76 task_06（統合確認）完了（2026-11-23・R9 の再目視 OK）。次 = task_07（正本反映）。**
-mode: planning
+focus: **phase 76 task_07（正本反映）: 昇格・凍結・decisions_archive/76・current.md 完了記載・refactor_check 不要まで b6112f06 でコミット済み。フェーズ完了判定のレビュー（deep-reviewer + codex-adversarial-reviewer）の結果待ち → 指摘の採否をユーザーへ。**
+mode: reviewing
 
 ## last_action
-ts: 2026-11-23T15:30:00
+ts: 2026-11-23T16:30:00
 who: main
 summary: |
+  task_07: 暫定 58 v1.1 を data_schema（§5.2・§5.3 counter_starts・§5.11.1・§5.11.5・§5.11.6・§5.11.8・§5.11.11 新設）/ features（§4.2〜§4.2.9・§4.6・巻き戻しは §4.2.9）/ ui_terms / codebase_map へ昇格・凍結・decisions_archive/76・decisions 索引・current.md（アクティブなし・別タスク化候補 1 行）・refactor_check 不要（verifier の M1〜M6）→ b6112f06。phase.md の task_07 は「レビュー待ち」。レビュー 2 本を実行中。
   task_06 完了: R9 の再目視 OK（ユーザー）→ phase.md と task_06 に完了を記載。次 = task_07（正本反映・R6 の注記を含む）。
   task_06: 定義を起票。verifier = compileall clean / tests 2254 pass / tests_ui 1316 件・失敗 5・エラー 28（主因 = テストが counter_starts に未追従 R1）/ smoke pass。
   deep-reviewer + codex-reviewer の指摘を裏取りし task_06 に表で整理（R2 = run_to_end.py:205 の名前の取り直し・R3 = linked_call.py:20-21 の集合差での削除）。ユーザーが R1〜R3 採用（R4〜R8 は推奨どおり）。
@@ -38,7 +39,7 @@ verified:
 
 ## next_action
 - task_06: 完了（2026-11-23）。
-- task_07（正本反映）: 暫定 58 §9 の正本昇格・凍結・`decisions_archive/76_counter_expansion.md`・`codebase_map.md`・`ui_terms.md`・current.md の完了記載・`/refactor_check`（上の候補を判定）・フェーズ完了前の `deep-reviewer` + `codex-adversarial-reviewer`。
+- task_07: レビューの指摘の採否（ユーザー）→ 修正 → phase.md の task_07 とフェーズを完了に → コミット。
 - ブランチ `claude/counter-feature-expansion-a5d3c3` と前ブランチ `claude/task-15-360298` の push / merge はユーザー。保留中: 2 枚目のモニタの目視・中クリック（ユーザー判断）。
 
 ## blockers
