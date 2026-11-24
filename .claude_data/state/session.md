@@ -4,36 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T15:00:00
-phase: phase 79 = 同梱の C ライブラリのライセンス（2026-11-24 起票・暫定 60 v0.9 ユーザー確定済・起票元 idea_65）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
-直前の完了フェーズ = **phase 78**（アクションの hotkey の保存時の検査と正規化・`decisions_archive/78_action_hotkey_save_validation.md`）
-last_commit_location: `claude/license-display-fix-883f07`（worktree `license-display-fix-883f07`・Windows・task_01a 完了まで）。push / merge はユーザー
+last_updated: 2026-11-24T17:00:00
+phase: なし（phase 79 = 同梱の C ライブラリのライセンス は 2026-11-24 完了・`decisions_archive/79_bundled_c_library_licenses.md`）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
+直前の完了フェーズ = **phase 79**（同梱の C ライブラリのライセンス・`decisions_archive/79_bundled_c_library_licenses.md`）
+last_commit_location: `claude/license-display-fix-883f07`（worktree `license-display-fix-883f07`・Windows・phase 79 完了まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 79 task_01a 完了（Windows・2026-11-24）。次 = task_03 の残り（凍結・decisions_archive・current.md 完了記載・idea_65 移動・refactor_check）。**
-mode: implementing
+focus: **phase 79 完了（2026-11-24）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+mode: completed
 
 ## last_action
-ts: 2026-11-24T15:00:00
+ts: 2026-11-24T17:00:00
 who: main
 summary: |
-  task_01a（Windows）: verifier で標準検証 4 種 pass（tests 2279・skip 9 / test_third_party 8 件 skip 0・Zstandard の照合含む / tests_ui 1321 / smoke OK）。worktree で再ビルド（PyInstaller 6.22.3・sdist は既存 worktree から SHA-256 一致で複写・DLL/pyd 26 個）。`cookiejar*/public_suffix*` は配布物に無い（Tcl 8.6.15）→ task_01 の追記を更新。
-  ユーザー目視 OK（21 行・Zstandard の末尾に xxHash・threading・divsufsort）。reviewer 採用。コード変更なし。
+  phase 79 task_03 の仕上げ: 正本 features.md に Windows の Tcl 8.6 に cookiejar が無い旨を 1 句・暫定 60 v0.9 を凍結・decisions_archive/79 と索引・current.md の完了記載（次採番 phase 80 / 暫定 61 / decisions 80）・idea_65 を INDEX_done へ・refactor_check 不要（Python の変更は tests/test_third_party.py のみ）。
+  deep-reviewer 完了可（中 1・低 8）→ 1・2・4〜8 採用（文書のみ）・3・9 保留。その前の task_01a（Windows の再検証・目視 OK 21 行）も完了。
 result_files:
-  - instructions/phase/79_bundled_c_library_licenses/tasks/task_01a_windows_recheck.md・tasks/task_01_windows_rows.md・phase.md
+  - instructions/history/60_bundled_c_library_licenses.md・instructions/common/spec_detail/features.md
+  - .claude_data/state/decisions_archive/79_bundled_c_library_licenses.md・.claude_data/state/decisions.md
+  - instructions/phase/current.md・instructions/backlog/INDEX.md・INDEX_done.md
+  - instructions/phase/79_bundled_c_library_licenses/（phase.md・task03_review_decisions.md・tasks/task_03）
 verified:
   compile: clean
-  tests: pass 2279（skip 9・Windows）
+  tests: pass 2279（skip 9・Windows・task_01a）
   tests_ui: pass 1321
   smoke: pass
-  visual: OK（Windows 21 行）
+  visual: OK（Windows 21 行・Mac 19 行）
 
 ## next_action
-- **task_03 の残り**: 暫定 60 v0.9 の凍結・`decisions_archive/79_bundled_c_library_licenses.md`（判断の経緯 = Q1〜Q5・v0.8 の Tcl/Tk・v0.9 の義務がある物だけ・VC++ の残存リスク〔法律の確認ではない・Microsoft の Distributable Code の条文は未確認〕・Zstandard 以外の静的ライブラリはソースごとの表示まで走査していない）+ decisions.md のアーカイブ索引・current.md の完了記載（次採番）・idea_65 を INDEX_done へ・refactor_check（不要の見込み = phase 79 の Python の変更は tests/test_third_party.py だけ）。
-- task の連続実行はユーザー許可済（2026-11-24・phase 79）。
+- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
-- ブランチ `claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
+- ブランチ `claude/license-display-fix-883f07`（phase 79 の最終・template 取り込みを含む）・`claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79 途中）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

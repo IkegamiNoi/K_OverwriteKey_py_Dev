@@ -9,7 +9,7 @@
 配布物に入る C ライブラリ（DLL / dylib と、拡張モジュール・Python の本体に静的に入る第三者のコード）を、ライセンスの窓の第三者ライセンスの表に載せ、出荷ごとに配布物と表を突き合わせる手順を整える。**変更はデータ（`third_party.json` と全文の `.txt`）・テスト（`tests/test_third_party.py`）・手順書（`packaging/README.md`）にとどめ、コードは変えない見込み。JSON スキーマは変えない。**
 
 - 起票元: [idea_65](../../backlog/idea_65_bundled_c_library_licenses.md)。
-- 主入力（暫定仕様）: [60_bundled_c_library_licenses.md](../../history/60_bundled_c_library_licenses.md)（v0.8・ユーザー確定済）
+- 主入力（暫定仕様）: [60_bundled_c_library_licenses.md](../../history/60_bundled_c_library_licenses.md)（v0.9・凍結 2026-11-24）
 - モード: **暫定仕様先行モード**。番号対応: phase 79 / 暫定 60 / decisions 79。
 
 ## 確定（ユーザー 2026-11-23〜24）
@@ -34,7 +34,7 @@
 
 ### 含まない（後送り）
 
-暫定 60 §8 のとおり（ビルドの手順・`.spec` の変更・配布物を自動検査するテスト・`test_help_window` の変更・Python のパッケージの行の見直し・配布物の README の変更）。
+暫定 60 §8 のとおり（ビルドの手順・`.spec` の変更・配布物を自動検査するテスト・`test_help_window` の変更・Python のパッケージの行の見直し・配布物の README の変更。ただし v0.7 の VC++ の一文〔`packaging/README_dist.txt`〕は例外として task_01 で追記）。
 
 ## このフェーズで読むファイル
 
@@ -53,7 +53,7 @@
 - task_02a: **完了（2026-11-24・Mac）** task_03 のレビューの採否（`task03_review_decisions.md`）の Mac 分 = 暫定 60 v0.8・zstandard.txt に xxHash ほか・Zstandard の照合を必須に・手順書の修正
 - task_02b: **完了（2026-11-24・Mac の目視 OK 19 行）** 窓に載せるのは表示の義務がある物だけ（暫定 60 v0.9）= Windows の bzip2・xz・zlib・zlib-ng、Mac の xz・libtommath の行と BLAKE2 の節を外す
 - task_01a: **完了（2026-11-24・Windows）** 標準検証 4 種 pass（`test_third_party` skip 0）・`_tcl_data` に PSL 無し（Tcl 8.6.15）・ライセンスの窓の目視 OK（21 行・Zstandard の末尾）・reviewer 採用
-- task_03: **統合確認と正本反映**（下書き済み・task_01a の後に再開）。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
+- task_03: **完了（2026-11-24）** **統合確認と正本反映**。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
 
 ## レビュー方針
 

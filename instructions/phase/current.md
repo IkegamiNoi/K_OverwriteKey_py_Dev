@@ -7,10 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 79](79_bundled_c_library_licenses/phase.md)**（2026-11-24 起票・同梱の C ライブラリのライセンス = 配布物に入る C ライブラリ〔DLL / dylib と静的に入る第三者のコード〕を第三者ライセンスの表に OS ごとの行で載せ、出荷ごとに配布物と表を突き合わせる。暫定仕様先行モード〔主入力 [暫定 60](../history/60_bundled_c_library_licenses.md) v0.8・ユーザー確定済〕・JSON スキーマ不変・起票元 [idea_65](../backlog/idea_65_bundled_c_library_licenses.md)・番号対応 phase 79 / 暫定 60 / decisions 79）。
+- **アクティブなフェーズ = なし**（phase 79 = 同梱の C ライブラリのライセンス は 2026-11-24 完了）。次フェーズはユーザー判断で `/phase_start`。
   **次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = 出力シーケンスの hotkey アクションの保存時の検査（phase 78・`presentation/dialogs/action_dialog.py` の `on_ok`・`App.validate_hotkey`）。残件 = macOS で Option+, の記録値 `option+comma` が送信側で解決できず OK で弾かれる（記録と送信の名前の不一致・[idea_45](../backlog/idea_45_tk_key_capture_symbol_names.md) に追記）・features.md に hotkey の OK の検査を書く（保留）。その前の初回起動のサンプルの書き出し（phase 77）の残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）。カウンター機能の拡張（phase 76）の残件 = [idea_37](../backlog/idea_37_counter_conditional_branch.md)（後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59〜66）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
-- 直前の完了フェーズ = [phase 78](78_action_hotkey_save_validation/phase.md)（2026-11-23・アクションの hotkey の保存時の検査と正規化。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)・判断は [decisions_archive/78](../../.claude_data/state/decisions_archive/78_action_hotkey_save_validation.md)・refactor_check 不要）。
+- 直近の一連の作業の領域 = 同梱の C ライブラリのライセンス（phase 79・`keyseq/presentation/help/content/third_party/`・`tests/test_third_party.py`・`packaging/README.md`）。残件 = 出荷ごとの棚卸しの記録 `packaging/inventory/<版>.md` は初回の出荷時に作る・残存リスク（義務の判定は法律の確認ではない・VC++ の Distributable Code の条文は未確認・ソースごとの表示の走査は Zstandard のみ）は decisions_archive/79。その前の hotkey アクションの保存時の検査（phase 78）の残件 = macOS の `option+comma`（[idea_45](../backlog/idea_45_tk_key_capture_symbol_names.md)）・features.md への hotkey の OK の検査（保留）。その前の初回起動のサンプルの書き出し（phase 77）の残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）。カウンター機能の拡張（phase 76）の残件 = [idea_37](../backlog/idea_37_counter_conditional_branch.md)（後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59〜66）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
+- 直前の完了フェーズ = [phase 79](79_bundled_c_library_licenses/phase.md)（2026-11-24・同梱の C ライブラリのライセンス = 表示の義務がある C ライブラリを OS ごとの行で載せ〔Windows 21 行・Mac 19 行〕・出荷ごとに棚卸し。暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・起票元 [idea_65](../backlog/idea_65_bundled_c_library_licenses.md)・判断は [decisions_archive/79](../../.claude_data/state/decisions_archive/79_bundled_c_library_licenses.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 78](78_action_hotkey_save_validation/phase.md)（2026-11-23・アクションの hotkey の保存時の検査と正規化。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)・判断は [decisions_archive/78](../../.claude_data/state/decisions_archive/78_action_hotkey_save_validation.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 77](77_sample_in_user_folder/phase.md)（2026-11-23・サンプルを config/user/ へ書き出す。暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変・判断は [decisions_archive/77](../../.claude_data/state/decisions_archive/77_sample_in_user_folder.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 76](76_counter_expansion/phase.md)（2026-11-23・カウンター機能の拡張。判断は [decisions_archive/76](../../.claude_data/state/decisions_archive/76_counter_expansion.md)）。
 - その前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
@@ -138,7 +139,7 @@
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 完了**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78〔アーカイブ済〕）。**phase 79 は 2026-11-24 起票**（`79_bundled_c_library_licenses` / 暫定 60 / decisions 79）。次の phase は `80_<topic>`。
+  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 完了**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78〔アーカイブ済〕）。**phase 79 は 2026-11-24 完了**（`79_bundled_c_library_licenses` / 暫定 60〔v0.9・凍結〕/ decisions 79〔アーカイブ済〕）。次の phase は `80_<topic>`。
   次フェーズは **`80_<topic>`**・decisions も **80** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -193,7 +194,7 @@
   57 = macOS 対応〔**v0.25・凍結**・phase 75 の主入力〕 /
   58 = カウンター機能の拡張〔**v1.1・凍結**・phase 76 の主入力〕 /
   59 = サンプルを config/user/ へ書き出す〔**v0.2・凍結**・phase 77 の主入力〕 /
-  60 = 同梱の C ライブラリのライセンス〔**v0.8・未凍結**・phase 79 の主入力〕 /
+  60 = 同梱の C ライブラリのライセンス〔**v0.9・凍結**・phase 79 の主入力〕 /
   次採番は **`61_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
