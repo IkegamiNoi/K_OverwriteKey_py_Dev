@@ -32,4 +32,4 @@
 - reviewer: 修正して採用（6 行と BLAKE2 の義務なしの判定は削除前の全文で確認済み・残した 29 行はすべて義務あり。phase.md:21 の旧い Q2 の記述と task_03 の件数を修正）
 - verifier（Mac）: compileall clean / `tests.test_third_party` 8 件 OK（skip 1）/ `tests` 2217 件 OK（skip 33）/ `tests_ui.test_help_window` 25 件 OK / smoke OK / win32 21 行・darwin 19 行・JSON の file 26 件がすべて実在し未参照の全文なし
 - 再ビルドした `dist/keyseq.app` の表は 19 行・全文あり
-- 実機目視（Mac・ユーザー）: 未実施
+- 実機目視（Mac・ユーザー・2026-11-24）: OK（19 行）→ task_02b 完了
