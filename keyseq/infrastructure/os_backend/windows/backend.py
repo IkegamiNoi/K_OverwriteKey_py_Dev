@@ -51,6 +51,9 @@ class WindowsWindowBackend:
     def releases_topmost_during_modal(self) -> bool:
         return False
 
+    def detaches_deep_transients_during_minimize(self) -> bool:
+        return True
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         return True
 

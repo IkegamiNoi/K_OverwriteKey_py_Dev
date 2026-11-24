@@ -1,6 +1,8 @@
 """実 App の結線を通して最小化中の grab 預かりを固定する。"""
 
 from contextlib import ExitStack
+import sys
+import ctypes
 import tkinter as tk
 from tkinter import ttk
 import unittest
@@ -10,6 +12,7 @@ from keyseq.presentation import modal
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -33,6 +36,8 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_custody_window", None)
         self._patch(modal, "_app_minimized", False)
         self._patch(modal, "_hidden_by_minimize", [])
+        self._patch(modal, "_detached_transients", {})
+        self._patch(modal, "_reattach_transients_id", None)
         self._patch(modal, "_minimize_check_id", None)
         self._patch(modal, "_restore_check_id", None)
         self._patch(modal, "_modal_presence_listener", None)
@@ -77,6 +82,68 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         window = self._track_window(PresetManagerDialog(self.app, transient_parent=action))
         self.assertIs(self.app.grab_current(), window)
         return window
+
+    def _preset(self, manager):
+        window = self._track_window(PresetDialog(manager, title="プリセット追加"))
+        self.assertIs(self.app.grab_current(), window)
+        return window
+
+    def _restore_and_wait_for_transients(self):
+        self.app.deiconify()
+        self.app.update()
+        self.app.after(350, self.app.quit)
+        self.app.mainloop()
+        self.app.update()
+
+    def test_deep_transient_detaches_and_returns(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action(); manager = self._manager(action); add = self._preset(manager)
+        self.app.iconify(); self.app.update()
+        self.assertEqual(str(add.wm_transient()), "")
+        self._restore_and_wait_for_transients()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+        self.assertTrue(all(w.winfo_viewable() for w in (action, manager, add)))
+        self.assertIs(self.app.grab_current(), add)
+        if sys.platform == "win32":
+            self.assertTrue(ctypes.windll.user32.IsWindow(add.winfo_id()))
+
+    def test_two_level_transient_stays_attached(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        manager = self._track_window(PresetManagerDialog(self.app)); add = self._preset(manager)
+        self.app.iconify(); self.app.update()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+
+    def test_deep_transient_false_keeps_attachment(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=False)
+        action = self._action(); manager = self._manager(action); add = self._preset(manager)
+        self.app.iconify(); self.app.update()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+
+    def test_closed_detached_window_is_ignored_on_restore(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action(); manager = self._manager(action); add = self._preset(manager)
+        self.app.iconify(); self.app.update(); add.destroy()
+        self._restore_and_wait_for_transients()
+        self.assertIs(self.app.grab_current(), manager)
+        self.assertEqual(modal._detached_transients, {})
+
+    def test_reminimize_cancels_and_reattaches_once(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action(); manager = self._manager(action); add = self._preset(manager)
+        self.app.iconify(); self.app.update(); self.app.deiconify(); self.app.update()
+        self.app.iconify(); self.app.update()
+        self.assertFalse(add.winfo_viewable())
+        self._restore_and_wait_for_transients()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+        self.assertEqual(modal._detached_transients, {})
+
+    def test_deep_windows_keep_inner_hwnd_after_restore(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action(); manager = self._manager(action); add = self._preset(manager)
+        self.app.iconify(); self.app.update(); self._restore_and_wait_for_transients()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+        if sys.platform == "win32":
+            self.assertTrue(ctypes.windll.user32.IsWindow(add.winfo_id()))
 
     def _minimize(self, holder):
         self.app.iconify()

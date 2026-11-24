@@ -44,6 +44,9 @@ class MacWindowBackend:
     def releases_topmost_during_modal(self) -> bool:
         return True
 
+    def detaches_deep_transients_during_minimize(self) -> bool:
+        return False
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         try:
             from keyseq.infrastructure.os_backend.macos.minimize_observer import create_minimize_observer

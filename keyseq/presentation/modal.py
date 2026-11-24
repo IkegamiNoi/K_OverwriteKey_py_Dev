@@ -15,6 +15,9 @@ _minimize_check_id: str | None = None
 _restore_check_id: str | None = None
 _modal_presence_listener: Callable[[], None] | None = None
 _message_boxes: int = 0
+_detached_transients: dict[tk.Toplevel, str] = {}
+_reattach_transients_id: str | None = None
+_REATTACH_DELAY_MS = 300
 
 
 def set_modal_presence_listener(callback: Callable[[], None] | None) -> None:
@@ -97,6 +100,20 @@ def _belongs_to_app(app: tk.Misc, window: tk.Misc) -> bool:
     return False
 
 
+def _transient_depth(app: tk.Misc, window: tk.Misc) -> int | None:
+    try:
+        parent = str(window.wm_transient())
+        for depth in range(1, 33):
+            if not parent:
+                return None
+            if parent == str(app):
+                return depth
+            parent = str(app.nametowidget(parent).wm_transient())
+    except (tk.TclError, KeyError):
+        return None
+    return None
+
+
 def _deferred_check(app: tk.Misc) -> None:
     global _custody_window, _minimize_check_id
     _minimize_check_id = None
@@ -104,6 +121,25 @@ def _deferred_check(app: tk.Misc) -> None:
         return
     if _custody_window is not None:
         return
+    backend = get_backend().window
+    if backend.detaches_deep_transients_during_minimize():
+        for window in tuple(_active_modals):
+            already_detached = window in _detached_transients
+            depth = None if already_detached else _transient_depth(app, window)
+            if not already_detached and (depth is None or depth < 3):
+                continue
+            try:
+                if not window.winfo_exists():
+                    continue
+                if not already_detached:
+                    _detached_transients[window] = str(window.wm_transient())
+                    window.wm_transient("")
+                # 付け直す前の再最小化でも、transient の無い窓は OS が隠さないため自分で隠す。
+                window.withdraw()
+                if window not in _hidden_by_minimize:
+                    _hidden_by_minimize.append(window)
+            except tk.TclError:
+                _detached_transients.pop(window, None)
     hidden_windows: list[tk.Toplevel] = []
     for window in reversed(tuple(_active_modals)):
         try:
@@ -118,6 +154,9 @@ def _deferred_check(app: tk.Misc) -> None:
         except tk.TclError:
             continue
     _hidden_by_minimize.extend(reversed(hidden_windows))
+    # 切り離した深い窓と隠した窓を、開いた順（表示し直す順）に並べる。
+    opened_order = {id(window): index for index, window in enumerate(_active_modals)}
+    _hidden_by_minimize.sort(key=lambda window: opened_order.get(id(window), len(opened_order)))
     try:
         holder = app.grab_current()
     except (tk.TclError, KeyError):
@@ -134,7 +173,7 @@ def _deferred_check(app: tk.Misc) -> None:
 
 
 def _take_custody(app: tk.Misc, event: tk.Event) -> None:
-    global _app_minimized, _minimize_check_id, _restore_check_id
+    global _app_minimized, _minimize_check_id, _restore_check_id, _reattach_transients_id
     if event.widget is not app:
         return
     _app_minimized = True
@@ -144,6 +183,12 @@ def _take_custody(app: tk.Misc, event: tk.Event) -> None:
         except tk.TclError:
             pass
         _restore_check_id = None
+    if _reattach_transients_id is not None:
+        try:
+            app.after_cancel(_reattach_transients_id)
+        except tk.TclError:
+            pass
+        _reattach_transients_id = None
     if _minimize_check_id is None:
         _minimize_check_id = app.after(0, lambda: _deferred_check(app))
 
@@ -164,7 +209,7 @@ def _return_custody(app: tk.Misc, event: tk.Event) -> None:
 
 
 def _deferred_return(app: tk.Misc) -> None:
-    global _restore_check_id
+    global _restore_check_id, _reattach_transients_id
     _restore_check_id = None
     if _app_minimized or app.wm_state() == "iconic":
         return
@@ -178,6 +223,28 @@ def _deferred_return(app: tk.Misc) -> None:
             continue
     _hidden_by_minimize.clear()
     _return_grab(app, shown=tuple(shown))
+    if _detached_transients:
+        _reattach_transients_id = app.after(_REATTACH_DELAY_MS, lambda: _reattach_transients(app))
+
+
+def _reattach_transients(app: tk.Misc) -> None:
+    global _reattach_transients_id
+    _reattach_transients_id = None
+    for window, parent_name in tuple(_detached_transients.items()):
+        try:
+            if not window.winfo_exists():
+                _detached_transients.pop(window, None)
+                continue
+            parent = app.nametowidget(parent_name)
+            if not parent.winfo_exists():
+                _detached_transients.pop(window, None)
+                continue
+            window.wm_transient(parent)
+            if window.wm_state() == "withdrawn":
+                window.deiconify()
+            _detached_transients.pop(window, None)
+        except (tk.TclError, KeyError):
+            _detached_transients.pop(window, None)
 
 
 def install_minimize_grab_custody(app: tk.Misc) -> None:

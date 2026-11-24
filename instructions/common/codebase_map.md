@@ -414,6 +414,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   **初期キーボードフォーカス**・**破棄時の grab 復元**・**最小化中の grab 預かりと復元時のフォーカス復帰**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
   すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
+  - **3 段目以降の transient の切り離し**（phase 80・`features.md` §4.6 の例外（Windows））: `get_backend().window.detaches_deep_transients_during_minimize()` が真（Windows）のとき、
+    `_deferred_check` が `_transient_depth(app, window)`（App の直接の transient = 1）が 3 以上の台帳の窓の transient を外して withdraw し、元の親を `_detached_transients` に記録・`_hidden_by_minimize` へ加える。
+    `_deferred_return` が表示し直して grab を戻した後、`_REATTACH_DELAY_MS`（300）後に `_reattach_transients` が付け直す（withdrawn になったら deiconify・窓か親が消えていれば何もしない）。
+    付け直す前の再最小化は `_take_custody` が予約を取り消し、記録済みの窓も隠し直す。Tk（8.6.15・Windows）は transient 3 段以上の窓の中身の HWND を最小化からの復元で失うため（`instructions/phase/80_win_d_restore_blank_dialog/task01_measurement.md`）
   - `_is_app_foreground(app)` は `get_backend().window.foreground_own_window()` と `window_handle(app)` を比較する。Windows の前面窓取得は `windows/win32_window.py` に委譲する。
   - **`focus` = 初期フォーカス先**（**省略時は窓自身**）。`grab_set()` の直後に `_apply_initial_focus` が
     `focus_set()` する（**`focus_force` / `lift` は呼ばない**・破棄中の `TclError` は握る）。

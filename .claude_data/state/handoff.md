@@ -15,18 +15,20 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 79**〔同梱の C ライブラリのライセンス・2026-11-24 起票・主入力 = 暫定 60 v0.7〕→ `instructions/phase/79_bundled_c_library_licenses/phase.md`）。
-   次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 80**〔Win+D から戻したときに入れ子のダイアログが白いまま・2026-11-24 起票・直接改訂モード・起票元 idea_61〕→ `instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。
+   次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜59。暫定 60 は phase 79 の主入力で未凍結）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜60）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 79 task_02b 完了（Mac・2026-11-24）。次 = task_01a（Windows で最終のコードの検証と目視・21 行）→ task_03 の残り。** 窓に載せるのは表示の義務がある物だけ（暫定 60 v0.9）。窓 = Windows 21 行・Mac 19 行（Mac の目視 OK）。義務の無い物（bzip2・xz・zlib・zlib-ng・libtommath・BLAKE2・NanoSVG・PSL）は task_01 / 02 の記録に義務の判定だけ残す。Zstandard の全文に xxHash・threading・divsufsort を追加・Zstandard の照合は行がある OS で必須。正本 features.md / codebase_map.md は下書き済み。
-worktree = `claude/windows-handoff-task-8a4d59`（Mac で作業・task_02b までコミット済み・未 push）。**Windows で続けるには、このブランチを Windows の作業場所へ取り込む**（push / merge はユーザー）。
-直近の実測（Mac・task_02b 後・2026-11-24）: compile clean / tests 2217 pass（skip 33）/ tests_ui test_help_window 25 pass / smoke pass / 目視 OK（19 行）。Windows は task_01 時点 = tests 2279（その後のテストとデータの変更は未実行）。
+**phase 80 task_02 実装・検証・reviewer 済（2026-11-25）。ユーザーの Windows 目視待ち（不在中・presence away）。**
+原因（task_01）= Tk 8.6.15（Windows）で transient を 3 段以上つないだ窓（アクション → プリセット管理 → プリセット追加 / 上書き確認）が最小化からの復元で中身の HWND を失い白いまま（Win+D 固有でない）。
+対策（案 X・正本 `features.md` §4.6 に Windows の例外を追加）= `modal.py` が最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。
+worktree = `claude/idea-61-e8649d`（Windows・task_02 は目視前でコミット済・未 push）。
+直近の実測（Windows・task_02・2026-11-25）: compile clean / tests 2279 pass（skip 9）/ tests_ui 全体 1327 件（新規 5 件の比較の型だけ失敗 → 修正後 `test_minimize_grab_custody` 35 件 × 3 回・modal を使う 11 モジュール 352 件 pass）/ smoke pass。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -54,8 +56,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **phase 79 task_01a を Windows で実施**（`tasks/task_01a_windows_recheck.md`）: 標準検証 4 種（`tests.test_third_party` は Windows で skip 無し）・`_tcl_data` の PSL の有無を確かめて task_01 の記録を更新・再ビルドした配布物でライセンスの窓の目視（ユーザー・21 行・Zstandard の全文の末尾に xxHash・threading・divsufsort）。
-- その後 task_03 の残り: 暫定 60 v0.9 の凍結・decisions_archive/79（経緯と VC++・静的ライブラリの走査範囲の残存リスク）+ アーカイブ索引・current.md の完了記載・idea_65 を INDEX_done へ・refactor_check（不要の見込み）。task の連続実行はユーザー許可済。
+- **【ユーザーの確認待ち】phase 80 task_02 の Windows 目視**: `..\..\..\.venv\Scripts\python.exe main.py` で起動 → アクションの追加・編集 → 「プリセット編集…」→「追加」を開いたまま ①Win+D → タスクバーのクリック ②Win+D 2 回 ③タイトルバーの最小化 → タスクバー。各回で追加の中身が描かれる・3 枚とも出る・追加に入力でき他は操作できない・少し後に追加が管理の前。上書き確認でも ① を 1 回。
+- OK なら task_02 完了 → `/task_commit` → task_03（`decisions_archive/80` + 索引・current.md の完了記載・idea_61 を INDEX_done・refactor_check・フェーズ完了前に deep-reviewer + Codex 敵対的レビュー）。NG なら症状を聞いて直す。task の連続実行はユーザー許可済。
 - **取り込み前の設定の件**: このブランチは取り込み前の設定で起動したセッションで作業した（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が /save_state を繰り返し要求）。メインのリポジトリ（main）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで**、5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・SessionStart の branch が worktree 側になることを確かめる（push / merge はユーザー）。
 - ブランチ `claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59〜64・66 は検討段階。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
@@ -134,7 +136,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 78_action_hotkey_save_validation / 77_sample_in_user_folder / 76_counter_expansion）。
+  （直近 3 件: 79_bundled_c_library_licenses / 78_action_hotkey_save_validation / 77_sample_in_user_folder）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
