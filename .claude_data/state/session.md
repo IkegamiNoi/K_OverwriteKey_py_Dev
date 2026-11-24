@@ -4,20 +4,22 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T17:00:00
-phase: なし（phase 79 = 同梱の C ライブラリのライセンス は 2026-11-24 完了・`decisions_archive/79_bundled_c_library_licenses.md`）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
+last_updated: 2026-11-24T18:00:00
+phase: phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-24 起票・直接改訂モード・起票元 idea_61・`instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 79**（同梱の C ライブラリのライセンス・`decisions_archive/79_bundled_c_library_licenses.md`）
-last_commit_location: `claude/license-display-fix-883f07`（worktree `license-display-fix-883f07`・Windows・phase 79 完了まで）。push / merge はユーザー
+last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Windows・phase 80 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 79 完了（2026-11-24）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
-mode: completed
+focus: **phase 80 task_01 完了・正本 §4.6 改訂済（2026-11-25）。次 = task_02（3 段目以降の transient を最小化の間だけ外す）の実装。**
+mode: active
 
 ## last_action
-ts: 2026-11-24T17:00:00
+ts: 2026-11-24T18:00:00
 who: main
 summary: |
+  phase 80 を起票（idea_61・直接改訂モード・task_01 実測 → task_02 修正 → task_03 記録）。current.md / INDEX.md を更新・reviewer の整合チェック = 修正して採用（低 3 件を反映）。
+  （以下は直前の phase 79 の完了時）
   phase 79 task_03 の仕上げ: 正本 features.md に Windows の Tcl 8.6 に cookiejar が無い旨を 1 句・暫定 60 v0.9 を凍結・decisions_archive/79 と索引・current.md の完了記載（次採番 phase 80 / 暫定 61 / decisions 80）・idea_65 を INDEX_done へ・refactor_check 不要（Python の変更は tests/test_third_party.py のみ）。
   deep-reviewer 完了可（中 1・低 8）→ 1・2・4〜8 採用（文書のみ）・3・9 保留。その前の task_01a（Windows の再検証・目視 OK 21 行）も完了。
 result_files:
@@ -33,7 +35,7 @@ verified:
   visual: OK（Windows 21 行・Mac 19 行）
 
 ## next_action
-- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- **phase 80 task_02**（`tasks/task_02_detach_deep_transients.md`）: codex-implementer へ委任 → verifier で標準検証 4 種 → reviewer → codebase_map の modal.py の節 → ユーザーの Windows 目視。task_01 は完了（原因 = Tk で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う・案 X 採用・正本 §4.6 に Windows の例外を追加 2026-11-25）。
 - 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
 - ブランチ `claude/license-display-fix-883f07`（phase 79 の最終・template 取り込みを含む）・`claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79 途中）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
