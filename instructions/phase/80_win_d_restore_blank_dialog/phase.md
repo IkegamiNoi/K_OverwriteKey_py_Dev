@@ -50,6 +50,7 @@ Windows で入れ子のダイアログ（プリセット管理 → プリセッ�
 
 - task_01: 再現と原因の実測（Windows）。Win+D を自動で送って再現できるかを試し、各窓の `wm_state()`・`winfo_viewable()`・イベントの順を記録する。他の入れ子のダイアログでも確かめ、原因と直す範囲・修正案（idea の案 A / B ほか）を出してユーザーが選ぶ。コード変更なし（計測用の一時スクリプトは scratchpad）
 - task_02: 修正と tests_ui のテスト（実装 = 既定の実装エージェント）・標準検証・Windows の目視（ユーザー）
+- task_02a: 完了判定前レビューの採用 4 点の修正（4 段目以降の検出・付け直しの予約の取り残し・復元後のフォーカスのテスト・契約テスト・2026-11-25 追加）
 - task_03: 記録（正本の追記が要ればユーザー承認のうえ `features.md`・`codebase_map.md`・`decisions_archive/80`・current.md の完了記載・`instructions/backlog/INDEX.md` の idea_61 の行を完了にして `INDEX_done.md` へ移動・`/refactor_check`）
 
 ## レビュー方針

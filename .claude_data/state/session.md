@@ -5,13 +5,13 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-25T00:30:00
-phase: phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-24 起票・直接改訂モード・起票元 idea_61・`instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 67
+phase: phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-24 起票・直接改訂モード・起票元 idea_61・`instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68
 直前の完了フェーズ = **phase 79**（同梱の C ライブラリのライセンス・`decisions_archive/79_bundled_c_library_licenses.md`）
 last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Windows・phase 80 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 80 task_02 完了（Windows 目視 OK・2026-11-25）。次 = task_03（記録・フェーズ完了）。**
+focus: **phase 80 task_02a 完了（2026-11-25）。次 = task_03（記録・フェーズ完了）。**
 mode: active
 
 ## last_action

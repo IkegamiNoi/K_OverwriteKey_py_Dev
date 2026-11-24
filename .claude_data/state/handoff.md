@@ -16,7 +16,7 @@
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 80**〔Win+D から戻したときに入れ子のダイアログが白いまま・2026-11-24 起票・直接改訂モード・起票元 idea_61〕→ `instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。
-   次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 67（暫定 47 は idea_53 で保留中の番号）
+   次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。

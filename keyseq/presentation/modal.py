@@ -123,23 +123,7 @@ def _deferred_check(app: tk.Misc) -> None:
         return
     backend = get_backend().window
     if backend.detaches_deep_transients_during_minimize():
-        for window in tuple(_active_modals):
-            already_detached = window in _detached_transients
-            depth = None if already_detached else _transient_depth(app, window)
-            if not already_detached and (depth is None or depth < 3):
-                continue
-            try:
-                if not window.winfo_exists():
-                    continue
-                if not already_detached:
-                    _detached_transients[window] = str(window.wm_transient())
-                    window.wm_transient("")
-                # 付け直す前の再最小化でも、transient の無い窓は OS が隠さないため自分で隠す。
-                window.withdraw()
-                if window not in _hidden_by_minimize:
-                    _hidden_by_minimize.append(window)
-            except tk.TclError:
-                _detached_transients.pop(window, None)
+        _detach_deep_transients(app)
     hidden_windows: list[tk.Toplevel] = []
     for window in reversed(tuple(_active_modals)):
         try:
@@ -170,6 +154,34 @@ def _deferred_check(app: tk.Misc) -> None:
     except tk.TclError:
         return
     _custody_window = holder
+
+
+def _detach_deep_transients(app: tk.Misc) -> None:
+    candidates = []
+    for window in tuple(_active_modals):
+        if window in _detached_transients:
+            candidates.append((window, None, True))
+        else:
+            try:
+                parent_name = str(window.wm_transient())
+            except tk.TclError:
+                continue
+            depth = _transient_depth(app, window)
+            candidates.append((window, parent_name, depth is not None and depth >= 3))
+    for window, parent_name, should_detach in candidates:
+        if not should_detach:
+            continue
+        try:
+            if not window.winfo_exists():
+                continue
+            if parent_name is not None:
+                _detached_transients[window] = parent_name
+                window.wm_transient("")
+            window.withdraw()
+            if window not in _hidden_by_minimize:
+                _hidden_by_minimize.append(window)
+        except tk.TclError:
+            _detached_transients.pop(window, None)
 
 
 def _take_custody(app: tk.Misc, event: tk.Event) -> None:
@@ -224,12 +236,19 @@ def _deferred_return(app: tk.Misc) -> None:
     _hidden_by_minimize.clear()
     _return_grab(app, shown=tuple(shown))
     if _detached_transients:
+        if _reattach_transients_id is not None:
+            try:
+                app.after_cancel(_reattach_transients_id)
+            except tk.TclError:
+                pass
         _reattach_transients_id = app.after(_REATTACH_DELAY_MS, lambda: _reattach_transients(app))
 
 
 def _reattach_transients(app: tk.Misc) -> None:
     global _reattach_transients_id
     _reattach_transients_id = None
+    if _app_minimized or app.wm_state() == "iconic":
+        return
     for window, parent_name in tuple(_detached_transients.items()):
         try:
             if not window.winfo_exists():

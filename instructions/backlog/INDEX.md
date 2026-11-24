@@ -52,3 +52,4 @@
 | idea_63 | [idea_63_backslash_display_fullwidth.md](idea_63_backslash_display_fullwidth.md) | キー名の表示で半角の `\` を全角の `＼` に替え、日本語のフォントで ¥ に見えて `ro`・`backslash` と `yen` を見分けられない問題をなくす（保存するキー名は変えない）。 | 未着手（検討段階・2026-11-22 phase 75 task_13 の Windows 実機確認の際の要望）|
 | idea_64 | [idea_64_mac_save_panel_expanded.md](idea_64_mac_save_panel_expanded.md) | Mac の保存パネルを最初から広げた形（一覧で保存場所が見える形）で出す。今はたたんだ形（Where のポップアップ）で出る。 | 未着手（検討段階・2026-11-22 phase 75 task_11g の Mac 目視の際の要望）|
 | idea_66 | [idea_66_mac_input_failure_paths.md](idea_66_mac_input_failure_paths.md) | macOS の入力の失敗経路の弱点 5 件（修飾キーの離しの送信失敗で記録が残る・tap の再有効化で上位の押下状態が残る・キュー版の排出がモーダルで止まる間の期限切れ・2 つ目のマウスボタンで保持の変換が止まる・配布ビルドの版の照合）。 | 未着手（検討段階・2026-11-22 phase 75 完了判定の Codex 敵対的レビュー）|
+| idea_67 | [idea_67_win_d_with_os_file_dialog.md](idea_67_win_d_with_os_file_dialog.md) | Windows で OS 標準のファイルの選択（プリセット管理の保存・上書き確認の前）が前面のとき Win+D で最小化されない。正本の保証の範囲外で修正の必要は低く、確認として残す。 | 未着手（検討段階・低優先・2026-11-25 phase 80 task_02 の Windows 目視）|

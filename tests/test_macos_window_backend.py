@@ -22,6 +22,9 @@ class MacWindowBackendTests(unittest.TestCase):
     def test_releases_topmost_during_modal(self):
         self.assertTrue(self.backend.releases_topmost_during_modal())
 
+    def test_detaches_deep_transients_during_minimize(self):
+        self.assertFalse(self.backend.detaches_deep_transients_during_minimize())
+
     def test_bring_app_to_front_activates_application(self):
         application = Mock()
         appkit = Mock()

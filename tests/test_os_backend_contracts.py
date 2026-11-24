@@ -39,6 +39,16 @@ class OsBackendContractTests(unittest.TestCase):
     def test_releases_topmost_during_modal_contract(self) -> None:
         self.assertEqual(list(inspect.signature(WindowBackend.releases_topmost_during_modal).parameters), ["self"])
 
+    def test_detaches_deep_transients_during_minimize_contract(self) -> None:
+        self.assertEqual(list(inspect.signature(WindowBackend.detaches_deep_transients_during_minimize).parameters), ["self"])
+
+    def test_windows_detaches_deep_transients_during_minimize(self) -> None:
+        if sys.platform != "win32":
+            self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsWindowBackend
+
+        self.assertTrue(WindowsWindowBackend().detaches_deep_transients_during_minimize())
+
     def test_windows_keeps_topmost_during_modal(self) -> None:
         if sys.platform != "win32":
             self.skipTest("Windows implementation")

@@ -201,6 +201,57 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
 
         self._with_confirmation(manager, check)
 
+    def test_four_level_transient_detaches_and_returns(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action()
+        manager = self._manager(action)
+        add = self._preset(manager)
+        fourth = self._track_window(PresetDialog(add, title="追加の子"))
+        self.app.iconify()
+        self.app.update()
+        self.assertEqual(str(add.wm_transient()), "")
+        self.assertEqual(str(fourth.wm_transient()), "")
+        self._restore_and_wait_for_transients()
+        self.assertEqual(str(add.wm_transient()), str(manager))
+        self.assertEqual(str(fourth.wm_transient()), str(add))
+        self.assertTrue(all(w.winfo_viewable() for w in (action, manager, add, fourth)))
+        self.assertIs(self.app.grab_current(), fourth)
+        if sys.platform == "win32":
+            self.assertTrue(ctypes.windll.user32.IsWindow(fourth.winfo_id()))
+
+    def test_repeated_restore_cancels_previous_reattach_reservation(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action()
+        manager = self._manager(action)
+        add = self._preset(manager)
+        self.app.iconify()
+        self.app.update()
+        self.app.deiconify()
+        self.app.update()
+        existing_id = modal._reattach_transients_id
+        self.assertIsNotNone(existing_id)
+        with patch.object(self.app, "after_cancel", wraps=self.app.after_cancel) as cancel:
+            modal._deferred_return(self.app)
+            cancel.assert_called_once_with(existing_id)
+        self.assertIsNotNone(modal._reattach_transients_id)
+        modal._app_minimized = True
+        modal._reattach_transients(self.app)
+        self.assertEqual(str(add.wm_transient()), "")
+        self.assertIn(add, modal._detached_transients)
+        self.assertIsNone(modal._reattach_transients_id)
+
+    def test_deep_transient_restore_focuses_preset_add(self):
+        self._patch(modal.get_backend().window, "detaches_deep_transients_during_minimize", return_value=True)
+        action = self._action()
+        manager = self._manager(action)
+        add = self._preset(manager)
+        self.app.iconify()
+        self.app.update()
+        self._restore_and_wait_for_transients()
+        focus = self.app.focus_get()
+        self.assertIsNotNone(focus)
+        self.assertTrue(str(focus).startswith(str(add)))
+
     def test_a3_destroyed_holder_falls_back_to_innermost(self):
         """A3: 預かり窓の破棄後は生存する最内窓を選ぶ。"""
         action = self._action()
