@@ -99,3 +99,7 @@ OpenSSL = Cellar openssl@3 3.6.2 の `LICENSE.txt`（`openssl.txt` と同一）/
 - reviewer: 採用（全文 4 ファイルを Cellar の原本と diff 一致・dylib 7 個と記録が過不足なく対応）。
 - verifier: compileall clean / `tests.test_third_party` 8 件 OK（skip 1 = expat の subTest・Mac に行が無い）/ `tests` 2217 件 OK（skip 33）/ `tests_ui.test_help_window` 25 件 OK / smoke OK。
 - 実機目視（ユーザー・2026-11-24）: OK（再ビルドした `dist/keyseq.app` のライセンスの窓に 21 行・各全文。最初のビルドは表の変更前だったため再ビルドした）。→ task_02 完了。
+
+### 追記（2026-11-24・暫定 60 v0.9・ユーザー判断「窓に載せるのは表示の義務がある物だけ」）
+
+上の表のうち、次は**行を外し、記録だけにした**（task_02b）。義務の判定: xz 5.8.4（`liblzma.5.dylib`・0BSD = 表示の条件なし）・libtommath 1.3.0（`libtommath.1.dylib`・Unlicense = パブリックドメイン）・BLAKE2（`_blake2`・CC0）→ 義務なし。全文 `xz_macos.txt`・`libtommath.txt` は削除し、`cpython_incorporated_macos.txt` の BLAKE2 の節を外した（HACL* は残す）。Mac の窓は 19 行。

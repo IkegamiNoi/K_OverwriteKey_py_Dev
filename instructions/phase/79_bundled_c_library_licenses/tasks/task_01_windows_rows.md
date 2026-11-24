@@ -118,3 +118,7 @@ OpenSSL = openssl/openssl `openssl-3.5.7` の `LICENSE.txt`（NOTICE は無い�
 ### 追記（2026-11-24・task_02 後・ユーザー判断）
 
 Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない。義務の判定 = MPL 2.0 のソース形式の通知はファイル自身の表示が果たす → `tcl.txt` に足さない・暫定 60 v0.8）。Windows の `_tcl_data` に同じファイルがあるかは未確認（上の表の `_tcl_data` の行に含まれる扱い）。次の Windows の棚卸しで有無を確かめ、あれば同じく Tcl の行に対応づける。
+
+### 追記（2026-11-24・暫定 60 v0.9・ユーザー判断「窓に載せるのは表示の義務がある物だけ」）
+
+上の表のうち、次は**行を外し、記録だけにした**（task_02b）。義務の判定: bzip2（`_bz2.pyd`・bzip2 License = 条件はソースでの表示の保持だけ・謝辞は必須ではない）・xz 5.2.5（`_lzma.pyd`・パブリックドメイン）・zlib 1.3.1（`zlib1.dll`・zlib License = 同上）・zlib-ng 2.2.4（`python314.dll` に静的・zlib License）→ どれもバイナリでの表示の義務なし。全文 `bzip2.txt`・`xz.txt`・`zlib.txt`・`zlib-ng.txt` は削除。Windows の窓は 21 行。

@@ -18,7 +18,7 @@
 
 - 案 A = C ライブラリごとに OS ごとの行（必ず `platforms` 付き）と全文。範囲は静的に取り込まれた物も含める。
 - VC++ ランタイムは行にしないが、入手元と再頒布の条件・満たす根拠を記録する（Q1）。
-- 表示の義務が無い物（xz・libtommath）も載せる（Q2）。Tcl / Tk の DLL に静的に入る物は Tcl / Tk の行で扱い、別のファイルで入る物（`zlib1.dll`）は行を足す（Q3）。
+- 窓に載せるのはバイナリで配るときの表示の義務がある物だけ（v0.9・Q2 を覆す。義務の無い物は別のファイルで入っても行にせず、棚卸しの記録に義務の判定を残す）。Tcl / Tk の DLL・データに入る物は Tcl / Tk の行に対応づけ、義務がある物だけ全文に足す（Q3・v0.8）。
 - Python の本体に組み込まれたコードは OS ごとに 1 行「CPython incorporated software」。全文 = `Doc/license.rst` の該当節 + そこに無い組み込みのコード（Windows の HACL* は必須）（Q5）。
 - 出荷ごとに配布物を棚卸しして表と突き合わせる（§4.1）。版の根拠は配布物そのものか、収集元と同じだと確かめたビルドの入力。合わなければ出荷しない。
 
@@ -51,6 +51,7 @@
 - task_01: **完了（2026-11-24・実機目視 OK〔ライセンスの窓 25 行〕・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2279 / tests_ui test_help_window 25 / smoke pass）。VC++ はユーザー判断で配布物の README に一文を追記済み（暫定 60 v0.7）** **Windows の行**（Windows で実施）。配布物の棚卸し（§4.1）・未実測の版（libffi・zlib-ng・xz）の確定・VC++ の DLL の入手元と条件・実際の配り方で条件を満たす根拠の記録（利用者への対応が要るとわかったら、ユーザー判断と対応が済むまで出荷しない）・Windows の行と全文・「CPython incorporated software」（HACL* 含む）・`tests/test_third_party.py`（照合の追加・除外・一覧の期待値）・`packaging/README.md` の Windows 節。標準検証 4 種とライセンスの窓の目視
 - task_02: **完了（2026-11-24・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2217 / test_help_window 25 / smoke pass）・実機目視 OK〔ライセンスの窓 21 行〕→ 完了** **Mac の行**（Mac で実施）。Mac のビルドで棚卸し（拡張モジュールの中の HACL* の有無を含む）・Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節。Mac のテストとライセンスの窓の目視
 - task_02a: **完了（2026-11-24・Mac）** task_03 のレビューの採否（`task03_review_decisions.md`）の Mac 分 = 暫定 60 v0.8・zstandard.txt に xxHash ほか・Zstandard の照合を必須に・手順書の修正
+- task_02b: **実装・検証済み・Mac の目視待ち（2026-11-24）** 窓に載せるのは表示の義務がある物だけ（暫定 60 v0.9）= Windows の bzip2・xz・zlib・zlib-ng、Mac の xz・libtommath の行と BLAKE2 の節を外す
 - task_01a: **未着手（Windows で実施）** 最終のコードの Windows 検証・`_tcl_data` の PSL の有無・ライセンスの窓の目視（Zstandard の末尾）
 - task_03: **統合確認と正本反映**（下書き済み・task_01a の後に再開）。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
 

@@ -915,20 +915,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-BLAKE2
-------
-
-The hashlib module's builtin BLAKE2 implementation (Modules/_blake2/impl) comes from
-the BLAKE2 reference source code package. This section is not part of
-Doc/license.rst; the notice below is copied from the header of the source files.
-
-Written in 2012 by Samuel Neves <sneves@dei.uc.pt>
-
-To the extent possible under law, the author(s) have dedicated all copyright
-and related and neighboring rights to this software to the public domain
-worldwide. This software is distributed without any warranty.
-
-You should have received a copy of the CC0 Public Domain Dedication along with
-this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
