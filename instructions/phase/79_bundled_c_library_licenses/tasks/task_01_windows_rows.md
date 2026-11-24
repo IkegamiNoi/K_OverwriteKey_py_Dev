@@ -95,10 +95,10 @@ Windows の Python の行（`"name": "Python", "version": "3.14.6"`）の直後�
 | `zlib1.dll` | zlib（`tcl86t.dll` だけが読み込む・Tcl 用） | FileVersion 1.3.1 |
 | `_bz2.pyd` | bzip2（静的） | `get_externals.bat` = bzip2-1.0.8 |
 | `_lzma.pyd` | xz（静的・liblzma 5.2.5 はパブリックドメイン） | `get_externals.bat` = xz-5.2.5 |
-| `_zstd.pyd` | Zstandard（静的） | `get_externals.bat` = zstd-1.5.7・`compression.zstd.zstd_version` |
+| `_zstd.pyd` | Zstandard（静的。`PCbuild/_zstd.vcxproj` が取り込む `lib/` のソースのうち LICENSE〔Meta〕と別の表示を持つ xxHash〔Yann Collet〕・threading〔Tino Reichardt〕・divsufsort〔Yuta Mori・MIT〕の表示を `zstandard.txt` の末尾に追記〔task_03 の Codex 指摘を受けて・2026-11-24・Mac で実施〕） | `get_externals.bat` = zstd-1.5.7・`compression.zstd.zstd_version` |
 | `_decimal.pyd` | mpdecimal（静的） | `get_externals.bat` = mpdecimal-4.0.0・`_decimal.__libmpdec_version__` |
 | `pyexpat.pyd` | expat（静的・`Modules/expat`） | `pyexpat.EXPAT_VERSION` = expat_2.8.1 |
-| `tcl86t.dll`・`_tcl_data`・`tcl8` | Tcl（libtommath 等は Tcl の DLL に静的・Q3）。`_tcl_data/tzdata` は IANA の tz データ（パブリックドメイン） | FileVersion 8.6.15 |
+| `tcl86t.dll`・`_tcl_data`・`tcl8` | Tcl（libtommath は Tcl の DLL に静的・Q3。義務の判定 = Unlicense で表示の義務なし → `tcl.txt` に足さない・暫定 60 v0.8）。`_tcl_data/tzdata` は IANA の tz データ（パブリックドメイン） | FileVersion 8.6.15 |
 | `tk86t.dll`・`_tk_data`・`_tkinter.pyd` | Tk / Python | FileVersion 8.6.15 |
 | `VCRUNTIME140.dll`・`VCRUNTIME140_1.dll` | 行にしない（Q1）。条件は下 | FileVersion 14.42.34438.0 |
 | 他の `.pyd`（`_asyncio`・`_multiprocessing`・`_overlapped`・`_queue`・`_socket`・`_wmi`・`select`・`unicodedata`） | Python（第三者のコードを含まない CPython の標準モジュール） | Python 3.14.6 |
@@ -117,4 +117,4 @@ OpenSSL = openssl/openssl `openssl-3.5.7` の `LICENSE.txt`（NOTICE は無い�
 
 ### 追記（2026-11-24・task_02 後・ユーザー判断）
 
-Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない）。Windows の `_tcl_data` に同じファイルがあるかは未確認（上の表の `_tcl_data` の行に含まれる扱い）。次の Windows の棚卸しで有無を確かめ、あれば同じく Tcl の行に対応づける。
+Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない。義務の判定 = MPL 2.0 のソース形式の通知はファイル自身の表示が果たす → `tcl.txt` に足さない・暫定 60 v0.8）。Windows の `_tcl_data` に同じファイルがあるかは未確認（上の表の `_tcl_data` の行に含まれる扱い）。次の Windows の棚卸しで有無を確かめ、あれば同じく Tcl の行に対応づける。

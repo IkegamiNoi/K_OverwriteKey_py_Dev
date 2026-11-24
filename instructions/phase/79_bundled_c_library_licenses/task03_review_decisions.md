@@ -30,3 +30,8 @@ deep-reviewer = **修正要** / codex-adversarial-reviewer = **needs-attention**
 ## 進め方（推奨どおりの場合）
 
 B の 4〜9 と A-1(a) の全文分割は **Windows と Mac の両方の作業が要る**（Windows: xxHash の目視・Zstandard の照合の検証・PSL の有無・libtommath の表示 / Mac: `tcl_macos.txt` / `tk_macos.txt` の目視）。task_02a（Mac）・task_01a（Windows）として起票し、その後に task_03 を再開する。
+
+## ユーザー判断（2026-11-24）
+
+- A-1 = **(b) の考え方**（表に並べるのは表示の義務がある物・行への対応づけはライセンスを確かめた対象の記録）。3 件はどれも義務が無いか果たされている（libtommath = Unlicense・NanoSVG = zlib License・PSL = MPL 2.0 でファイル自身の表示がソース形式の通知の義務を果たす）→ `tcl.txt` / `tk.txt` は変えず、記録に義務の判定を残す。暫定 60 v0.8 で Q3 と条件 8 を改訂（確定済みの条件を緩める変更をユーザーの指示で行う）。Mac の CPython の全文の BLAKE2（CC0・義務なし）は残す
+- A-2 = (a) 推奨（v0.7 を維持・残存リスクを decisions_archive に記録）/ A-3 = 推奨（`packaging/inventory/<版>.md`）/ B 4〜9 = 採用 / C = 保留（task_01a）

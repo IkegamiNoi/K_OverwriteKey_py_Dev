@@ -96,12 +96,14 @@ class ThirdPartyTest(unittest.TestCase):
             "mpdecimal": lambda: _decimal.__libmpdec_version__,
             "expat": lambda: pyexpat.EXPAT_VERSION.removeprefix("expat_"),
         }
-        try:
-            from compression.zstd import zstd_version
-        except ImportError:
-            zstd_version = None
-        if zstd_version is not None:
-            checks["Zstandard"] = lambda: zstd_version
+        if "Zstandard" in versions:
+            try:
+                from compression.zstd import zstd_version
+            except ImportError as exc:
+                with self.subTest(name="Zstandard"):
+                    self.fail(f"could not import compression.zstd: {exc}")
+            else:
+                checks["Zstandard"] = lambda: zstd_version
         for name, get_runtime_version in checks.items():
             with self.subTest(name=name):
                 if name not in versions:

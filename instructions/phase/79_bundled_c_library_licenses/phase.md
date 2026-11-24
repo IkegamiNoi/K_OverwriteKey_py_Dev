@@ -9,7 +9,7 @@
 配布物に入る C ライブラリ（DLL / dylib と、拡張モジュール・Python の本体に静的に入る第三者のコード）を、ライセンスの窓の第三者ライセンスの表に載せ、出荷ごとに配布物と表を突き合わせる手順を整える。**変更はデータ（`third_party.json` と全文の `.txt`）・テスト（`tests/test_third_party.py`）・手順書（`packaging/README.md`）にとどめ、コードは変えない見込み。JSON スキーマは変えない。**
 
 - 起票元: [idea_65](../../backlog/idea_65_bundled_c_library_licenses.md)。
-- 主入力（暫定仕様）: [60_bundled_c_library_licenses.md](../../history/60_bundled_c_library_licenses.md)（v0.6・ユーザー確定済）
+- 主入力（暫定仕様）: [60_bundled_c_library_licenses.md](../../history/60_bundled_c_library_licenses.md)（v0.8・ユーザー確定済）
 - モード: **暫定仕様先行モード**。番号対応: phase 79 / 暫定 60 / decisions 79。
 
 ## 確定（ユーザー 2026-11-23〜24）
@@ -50,7 +50,9 @@
 
 - task_01: **完了（2026-11-24・実機目視 OK〔ライセンスの窓 25 行〕・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2279 / tests_ui test_help_window 25 / smoke pass）。VC++ はユーザー判断で配布物の README に一文を追記済み（暫定 60 v0.7）** **Windows の行**（Windows で実施）。配布物の棚卸し（§4.1）・未実測の版（libffi・zlib-ng・xz）の確定・VC++ の DLL の入手元と条件・実際の配り方で条件を満たす根拠の記録（利用者への対応が要るとわかったら、ユーザー判断と対応が済むまで出荷しない）・Windows の行と全文・「CPython incorporated software」（HACL* 含む）・`tests/test_third_party.py`（照合の追加・除外・一覧の期待値）・`packaging/README.md` の Windows 節。標準検証 4 種とライセンスの窓の目視
 - task_02: **完了（2026-11-24・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2217 / test_help_window 25 / smoke pass）・実機目視 OK〔ライセンスの窓 21 行〕→ 完了** **Mac の行**（Mac で実施）。Mac のビルドで棚卸し（拡張モジュールの中の HACL* の有無を含む）・Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節。Mac のテストとライセンスの窓の目視
-- task_03: **統合確認と正本反映**。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
+- task_02a: **完了（2026-11-24・Mac）** task_03 のレビューの採否（`task03_review_decisions.md`）の Mac 分 = 暫定 60 v0.8・zstandard.txt に xxHash ほか・Zstandard の照合を必須に・手順書の修正
+- task_01a: **未着手（Windows で実施）** 最終のコードの Windows 検証・`_tcl_data` の PSL の有無・ライセンスの窓の目視（Zstandard の末尾）
+- task_03: **統合確認と正本反映**（下書き済み・task_01a の後に再開）。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
 
 ## レビュー方針
 

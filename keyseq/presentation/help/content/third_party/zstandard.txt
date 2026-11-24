@@ -28,3 +28,61 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+Notices in source files compiled into _zstd
+-------------------------------------------
+
+The following files of Zstandard 1.5.7 that CPython builds into the _zstd
+module carry copyright notices other than the one above. This section is not
+part of the Zstandard LICENSE file; the notices below are copied from the
+headers of the source files.
+
+lib/common/xxhash.c, lib/common/xxhash.h:
+
+xxHash - Extremely Fast Hash algorithm
+Copyright (c) Yann Collet - Meta Platforms, Inc
+
+This source code is licensed under both the BSD-style license (found in the
+LICENSE file in the root directory of this source tree) and the GPLv2 (found
+in the COPYING file in the root directory of this source tree).
+You may select, at your option, one of the above-listed licenses.
+
+lib/common/threading.c, lib/common/threading.h:
+
+Copyright (c) 2016 Tino Reichardt
+All rights reserved.
+
+You can contact the author at:
+- zstdmt source repository: https://github.com/mcmilk/zstdmt
+
+This source code is licensed under both the BSD-style license (found in the
+LICENSE file in the root directory of this source tree) and the GPLv2 (found
+in the COPYING file in the root directory of this source tree).
+You may select, at your option, one of the above-listed licenses.
+
+lib/dictBuilder/divsufsort.c, lib/dictBuilder/divsufsort.h:
+
+divsufsort.c for libdivsufsort-lite
+Copyright (c) 2003-2008 Yuta Mori All Rights Reserved.
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.

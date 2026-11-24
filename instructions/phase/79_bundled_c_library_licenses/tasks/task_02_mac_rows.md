@@ -80,9 +80,9 @@ Mac の Python の行（`"name": "Python", "version": "3.13.18"`）の直後、M
 | `libcrypto.3.dylib`・`libssl.3.dylib`・`_ssl`・`_hashlib` | OpenSSL | 配布物の文字列 `OpenSSL 3.6.2 7 Apr 2026`・`opt/openssl@3` → Cellar 3.6.2 |
 | `liblzma.5.dylib`・`_lzma` | xz（liblzma は 0BSD） | 配布物の文字列 `5.8.4`・Cellar xz 5.8.4 |
 | `libmpdec.4.dylib`・`_decimal` | mpdecimal（`--with-system-libmpdec` = Homebrew の dylib） | 配布物の文字列 `4.0.1`・`MODULE__DECIMAL_LDFLAGS` = Cellar mpdecimal 4.0.1 |
-| `libtommath.1.dylib` | libtommath（`libtcl9.1.dylib`・`libtcl9tk9.1.dylib` だけが読み込む = Homebrew の tcl-tk の依存・Q3） | tcl-tk の依存 = libtommath・Cellar 1.3.0 |
-| `libtcl9.1.dylib`・`_tcl_data`・`tcl9`（`http`・`msgcat`・`platform`・`tcltest`・`tdbc/sqlite3` の `.tm`） | Tcl（`tcl.txt` は Cellar tcl-tk 9.1.0 の `license.terms` と diff 一致）。`_tcl_data/cookiejar0.2/public_suffix_list.dat.gz` は Mozilla の Public Suffix List（MPL 2.0・ファイルの先頭に MPL の表示があり、ソース形式のまま Tcl の配布物として入る） | 配布物の文字列 `9.1.0` |
-| `libtcl9tk9.1.dylib`・`_tk_data`・`_tkinter` | Tk / Python | 配布物の文字列 `9.1.0` |
+| `libtommath.1.dylib` | libtommath（Unlicense・表示の義務なしだが別のファイルなので行を足す〔Q2・Q3〕。`libtcl9.1.dylib`・`libtcl9tk9.1.dylib` だけが読み込む = Homebrew の tcl-tk の依存・Q3） | tcl-tk の依存 = libtommath・Cellar 1.3.0 |
+| `libtcl9.1.dylib`・`_tcl_data`・`tcl9`（`http`・`msgcat`・`platform`・`tcltest`・`tdbc/sqlite3` の `.tm`） | Tcl（`tcl.txt` は Cellar tcl-tk 9.1.0 の `license.terms` と diff 一致）。`_tcl_data/cookiejar0.2/public_suffix_list.dat.gz` は Mozilla の Public Suffix List（MPL 2.0・ファイルの先頭に MPL の表示があり、ソース形式のまま Tcl の配布物として入る。義務の判定 = 受け取った人に MPL が適用されることを知らせる義務はファイル自身の表示が果たす → `tcl.txt` に足さない・暫定 60 v0.8） | 配布物の文字列 `9.1.0` |
+| `libtcl9tk9.1.dylib`・`_tk_data`・`_tkinter` | Tk / Python。`libtcl9tk9.1.dylib` に NanoSVG（Mikko Mononen・zlib License・SVG の画像の読み込み・`nm` で `nsvg` 63 個）が静的に入る。義務の判定 = zlib License はバイナリでの表示を求めない → `tk.txt` に足さない（暫定 60 v0.8）。task_03 の deep-reviewer の指摘で追記 | 配布物の文字列 `9.1.0` |
 | `_md5`・`_sha1`・`_sha2`・`_sha3` | CPython incorporated software（HACL*。`Makefile` の `-I Modules/_hacl`・`nm` に `Hacl_*`） | Python 3.13.18 |
 | `_blake2` | CPython incorporated software（BLAKE2 の参照実装・CC0。`Modules/_blake2/impl`・`Doc/license.rst` に無い） | Python 3.13.18 |
 | `zlib`・`binascii`・`_bz2`・`pyexpat`・`_ctypes`・`readline`・`_objc`・`MacOS/keyseq` が参照する `/usr/lib` の libz・libbz2・libexpat・libffi・libedit | 行にしない（macOS の物で同梱されない・`otool -L`） | — |
