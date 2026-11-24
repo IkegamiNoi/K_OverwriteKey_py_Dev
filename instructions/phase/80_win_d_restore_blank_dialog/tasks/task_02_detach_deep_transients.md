@@ -80,4 +80,5 @@ Windows で App を最小化して戻すと、transient の連鎖で 3 段目以
 - 実装 = `codex-implementer`（Luna high・単独）。メインの追加修正 2 点: 付け直す前の再最小化で記録済みの窓も隠し直す（transient の無い窓は OS が隠さない）/ `_hidden_by_minimize` を開いた順へ並べ直す（reviewer M1）。テストの `wm_transient()` は Tcl オブジェクトを返すため `str()` で比較
 - verifier: compileall / tests 2279 pass / tests_ui 全体 1327 件（落ちたのは新規 5 件の比較の型だけ → 修正後 `test_minimize_grab_custody` 35 件が 3 回連続 pass・M1 修正後も 35 件 + modal を使う 11 モジュール 352 件 pass）/ smoke pass
 - reviewer = 採用（M1 を修正済）。参考: 4 段はアプリに経路が無い（プリセット追加・上書き確認より深いモーダルは開かない）・最小化の間に開いた深さ 3 以上のモーダルは外さない（正本の保証の範囲外の経路・現状そのように開く経路は無い）
-- **残り = ユーザーの Windows 目視**（上の「確認」の実機目視）
+- **Windows 目視（ユーザー・2026-11-25）= OK**: ① Win+D → タスクバー ② Win+D 2 回 で問題なし。③ タイトルバーの最小化はモーダルの grab 中は押せず実施不可（既存の挙動・phase 16）。
+  上書き確認は、その前の OS 標準のフォルダの選択が前面のとき Win+D で最小化されない（正本 §4.6「保証の範囲外: OS 標準のダイアログ」の範囲・ユーザー判断で修正せず低優先の idea で確認として残す）→ **task_02 完了**

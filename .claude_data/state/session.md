@@ -11,9 +11,8 @@ last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 80 task_02 実装・検証・reviewer 済（2026-11-25）。ユーザーの Windows 目視待ち。**
-mode: blocked
-presence: away（戻る予定 未定）
+focus: **phase 80 task_02 完了（Windows 目視 OK・2026-11-25）。次 = task_03（記録・フェーズ完了）。**
+mode: active
 
 ## last_action
 ts: 2026-11-25T00:30:00
