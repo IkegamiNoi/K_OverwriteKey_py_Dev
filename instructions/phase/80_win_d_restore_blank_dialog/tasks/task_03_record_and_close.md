@@ -36,3 +36,9 @@ phase 80 の記録とフェーズの完了処理（`.claude/rules/task_execution
 
 - 上記確認・**reviewer 採用**（完了判定前レビューは deep-reviewer + Codex 敵対的レビューで実施。文書の整合は reviewer で 1 回）
 - 実機目視なし（task_02 で実施済）
+
+## 結果（2026-11-25 完了）
+
+- 完了判定前レビュー = deep-reviewer 修正要（軽微）/ Codex needs-attention（medium 2）→ 採用 4 点は task_02a・正本の理由の文を修正・記録の補い・保留 4 点は残存リスク（decisions_archive/80）
+- decisions_archive/80 と索引・decisions.md の phase 80 の節を除去・current.md の完了記載（次採番 phase 81 / decisions 81 / idea 68）・idea_61 を INDEX_done へ
+- refactor_check = 不要（M1〜M6 該当なし。対象 4 ファイル）・`_transient_depth` と `_belongs_to_app` の同型を current.md「別タスク化候補」へ 1 行

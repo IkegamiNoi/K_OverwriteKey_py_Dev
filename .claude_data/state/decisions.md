@@ -89,6 +89,7 @@
 | 77_sample_in_user_folder | [77_sample_in_user_folder.md](decisions_archive/77_sample_in_user_folder.md) | サンプルを config/user/ へ書き出す（2026-11-23 完了・暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変）。書き出し先 `config/user/`・構成セット `user/keymap_sets/sample.json`・既存 `config/sample/` は移行しない・構成セットが無いとき中身の違う同名の子（リンク切れ含む）があれば何も書かず空で始める（中身が同じなら衝突にしない）・孤児の掃除の経路 5 は旧サンプル用に残す。refactor_check: 不要 |
 | 78_action_hotkey_save_validation | [78_action_hotkey_save_validation.md](decisions_archive/78_action_hotkey_save_validation.md) | アクションの hotkey の保存時の検査と正規化（2026-11-23 完了・直接改訂モード・JSON スキーマ不変・起票元 idea_03）。OK で他方の OS の修飾キーの検査の後に `validate_hotkey`・不正なら保存しない・正規化した値を保存・既存の値は移行しない・今のレイアウトで通らない既存値はラベルだけの変更でも保存できない。refactor_check: 不要 |
 | 79_bundled_c_library_licenses | [79_bundled_c_library_licenses.md](decisions_archive/79_bundled_c_library_licenses.md) | 同梱の C ライブラリのライセンス（2026-11-24 完了・暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・コード変更なし・起票元 idea_65）。表示の義務がある C ライブラリだけを OS ごとの行で載せる（Windows 21 行・Mac 19 行）・義務の無い物は棚卸しの記録に判定を残す・出荷ごとの棚卸し（`packaging/inventory/<版>.md`）・VC++ は README に一文。refactor_check: 不要 |
+| 80_win_d_restore_blank_dialog | [80_win_d_restore_blank_dialog.md](decisions_archive/80_win_d_restore_blank_dialog.md) | Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-25 完了・直接改訂モード〔正本 features.md §4.6 に例外（Windows）〕・JSON スキーマ不変・起票元 idea_61）。原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。OS 標準のダイアログと Win+D は idea_67（低優先）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -649,25 +650,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 理由: 本体 0 件なのに編集画面は既定 8 件を表示し、編集画面を OK で閉じるまでアクション編集にプリセットが出なかった（ユーザー報告 2026-11-08）。E4 だけ他の経路と違う理由がない。
 - B: 仕様のまま → **除外**（報告された不具合が残る）/ C: 初回起動で共通プリセットのファイルを生成 → **除外**（起動時の書き込みが増え、§5.10.2「読めなければ置き換えない」と関わる）
 - 影響範囲: 共通プリセットが読めないときの E4 のみ。読めて空配列のときは従来どおり空。`tests/test_per_keymap_triggers_load.py` の空データの期待値を更新。
-
-## 2026-11-24〜 (phase 80: Win+D から戻したときに入れ子のダイアログが白いまま・直接改訂モード)
-
-### 【task_01】原因 = Tk（8.6.15・Windows）で transient を 3 段以上つないだ窓が、最小化からの復元で中身の HWND を失う（2026-11-24・実測）
-- Win+D に固有ではない（iconify・タスクバーでも起きる）。2 段では起きない。keyseq の預かり（modal.py）は原因ではない。描き直しでは直らない。記録は `instructions/phase/80_win_d_restore_blank_dialog/task01_measurement.md`
-
-### 【task_01】案 X（最小化の間だけ 3 段目以降の transient を外して隠し、復元で表示し直してから付け直す）→ **採用**（2026-11-24・ユーザー判断）
-- 理由: 白くなる症状が実測で消える（X-4 = 先に表示して grab を戻し、遅らせて付け直し、withdrawn なら表示し直す・12/12）。正本の例外を Windows の 3 段目以降に限れる
-- 案 Y（3 段目以降の transient を App にする）→ **除外**: 前面維持（§4.6・phase 14/16）の退行の恐れ / 案 Z（記録のみ）→ **除外**: 普段の操作で毎回白くなる
-- 影響範囲: `modal.py` の最小化の処理（Windows・OS バックエンド経由）・tests_ui。付け直しで withdrawn になる機構と待ち時間の最小値は未解明（task_02 で確認）
-
-### 【spec_update】features.md §4.6「復元の際、アプリは窓を表示し直さない」に Windows の 3 段目以降の例外を追加（2026-11-25・ユーザー承認）
-- 文言はユーザー承認のとおり（前面維持の指定を戻すまでの短い間は前後が入れ替わりうる・最小化の間に閉じた窓には何もしない）。サンプル・JSON の変更なし
-
-### 【task_02】メインの追加修正 2 点（再最小化で記録済みの窓も隠し直す / 隠した窓を開いた順に並べる = reviewer M1）・Windows 目視 OK（2026-11-25）
-- タイトルバーの最小化は grab 中に押せず実施不可（既存）。上書き確認の前の OS 標準のファイルの選択が前面だと Win+D で隠れない件 → **保留**（正本の保証の範囲外・ユーザー判断で修正せず idea_67 で確認として残す）
-
-### 【task_03 完了判定前レビュー】deep-reviewer 修正要（軽微）/ codex-adversarial-reviewer needs-attention（medium 2）の採否（2026-11-25・ユーザー判断「推奨どおり」）
-- Codex 1（3 段目を外した後に 4 段目の深さが測れない）・deep 3（付け直しの予約の上書きと最小化中の実行）・deep 4（復元後のフォーカスのテスト）・deep 7（契約テスト）→ **採用**（task_02a）
-- deep 1（正本の理由の文「外したままだと」は逆 →「外さないと」）→ **採用**（正本を修正）
-- deep 2・5・6・11（記録の不足）→ **採用**（task_03）
-- Codex 2（付け直し後の表示・grab・フォーカスの再検証）・deep 8（付け直しで withdrawn になる理由の仮説）・deep 9（最小化の間に開いた深い窓）・deep 10（重複の整理）→ **保留**（残存リスクとして記録・deep 10 は refactor_check で判断）

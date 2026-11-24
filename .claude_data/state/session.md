@@ -4,44 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T00:30:00
-phase: phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-24 起票・直接改訂モード・起票元 idea_61・`instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68
-直前の完了フェーズ = **phase 79**（同梱の C ライブラリのライセンス・`decisions_archive/79_bundled_c_library_licenses.md`）
-last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Windows・phase 80 起票）。push / merge はユーザー
+last_updated: 2026-11-25T02:00:00
+phase: なし（phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま は 2026-11-25 完了・`decisions_archive/80_win_d_restore_blank_dialog.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68
+直前の完了フェーズ = **phase 80**（Win+D から戻したときに入れ子のダイアログが白いまま・`decisions_archive/80_win_d_restore_blank_dialog.md`）
+last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Windows・phase 80 完了まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 80 task_02a 完了（2026-11-25）。次 = task_03（記録・フェーズ完了）。**
-mode: active
+focus: **phase 80 完了（2026-11-25）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+mode: completed
 
 ## last_action
-ts: 2026-11-25T00:30:00
+ts: 2026-11-25T02:00:00
 who: main
 summary: |
-  phase 80 task_02 実装（目視前）: Windows で transient 深さ 3 以上のモーダルを最小化の間だけ切り離し、復元で表示し直して grab を戻した 300ms 後に付け直す（modal.py + WindowBackend.detaches_deep_transients_during_minimize）。codex-implementer + メイン修正 2 点・tests 2279 / tests_ui 35+352 / smoke pass・reviewer 採用（M1 修正済）・codebase_map 更新。
-  task_01（2026-11-25 完了・commit 27b48e9d）: 原因 = Tk 8.6.15 で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う・案 X → 正本 features.md §4.6 に Windows の例外。
-  （以下は直前の phase 79 の完了時）
-  phase 79 task_03 の仕上げ: 正本 features.md に Windows の Tcl 8.6 に cookiejar が無い旨を 1 句・暫定 60 v0.9 を凍結・decisions_archive/79 と索引・current.md の完了記載（次採番 phase 80 / 暫定 61 / decisions 80）・idea_65 を INDEX_done へ・refactor_check 不要（Python の変更は tests/test_third_party.py のみ）。
-  deep-reviewer 完了可（中 1・低 8）→ 1・2・4〜8 採用（文書のみ）・3・9 保留。その前の task_01a（Windows の再検証・目視 OK 21 行）も完了。
+  phase 80 task_03: 完了判定前レビュー（deep-reviewer 修正要〔軽微〕/ Codex needs-attention〔medium 2〕）→ 採用 4 点を task_02a で修正・正本の理由の文を「外さないと」に（ユーザー承認）・記録の補い・保留 4 点は残存リスクへ。decisions_archive/80 と索引・current.md の完了記載（次採番 phase 81 / decisions 81 / idea 68）・idea_61 を INDEX_done へ・refactor_check 不要。
+  phase 80 の要点: 原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す。Windows 目視 OK。OS 標準のダイアログと Win+D は idea_67（低優先）。
 result_files:
-  - instructions/history/60_bundled_c_library_licenses.md・instructions/common/spec_detail/features.md
-  - .claude_data/state/decisions_archive/79_bundled_c_library_licenses.md・.claude_data/state/decisions.md
-  - instructions/phase/current.md・instructions/backlog/INDEX.md・INDEX_done.md
-  - instructions/phase/79_bundled_c_library_licenses/（phase.md・task03_review_decisions.md・tasks/task_03）
+  - keyseq/presentation/modal.py・keyseq/infrastructure/os_backend/（contracts.py・windows/backend.py・macos/window_backend.py）
+  - tests_ui/test_minimize_grab_custody.py・tests/test_os_backend_contracts.py・tests/test_macos_window_backend.py
+  - instructions/common/spec_detail/features.md・instructions/common/codebase_map.md
+  - .claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md・.claude_data/state/decisions.md
+  - instructions/phase/current.md・instructions/phase/80_win_d_restore_blank_dialog/・instructions/backlog/（INDEX.md・INDEX_done.md・idea_67）
 verified:
   compile: clean
-  tests: pass 2279（skip 9・Windows・task_01a）
-  tests_ui: pass 1321
+  tests: pass 2282（skip 9・Windows・task_02a）
+  tests_ui: pass 1330
   smoke: pass
-  visual: OK（Windows 21 行・Mac 19 行）
+  visual: OK（Windows・Win+D → タスクバー・Win+D 2 回）
 
 ## next_action
-- **【ユーザーの確認待ち】phase 80 task_02 の Windows 目視**（実装・検証・reviewer 採用まで済）。このブランチ（worktree `idea-61-e8649d`）で `..\..\..\.venv\Scripts\python.exe main.py` を起動し、アクションの追加・編集 → 「プリセット編集…」→「追加」を開いたまま:
-  ①Win+D → タスクバーのクリック ②Win+D 2 回 ③タイトルバーの最小化 → タスクバー。各回で、追加の中身が描かれる（白くない）・3 枚とも出る・追加に入力でき他の窓は操作できない・少し後に追加が管理の前にある。
-  上書き確認（管理で既存と同名で保存して出る確認）でも ① を 1 回。OK なら task_02 完了 → `/task_commit` → task_03（記録・decisions_archive/80・current.md 完了・idea_61 を INDEX_done・refactor_check・フェーズ完了前に deep-reviewer + Codex 敵対的レビュー）。NG なら症状（どの手順・どの窓）を伝える。
+- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
 - 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
-- ブランチ `claude/license-display-fix-883f07`（phase 79 の最終・template 取り込みを含む）・`claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79 途中）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
+- ブランチ `claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79 の最終・template 取り込みを含む）・`claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79 途中）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

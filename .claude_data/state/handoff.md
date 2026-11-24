@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 80**〔Win+D から戻したときに入れ子のダイアログが白いまま・2026-11-24 起票・直接改訂モード・起票元 idea_61〕→ `instructions/phase/80_win_d_restore_blank_dialog/phase.md`）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 80 は 2026-11-25 完了〕。次フェーズはユーザー判断で `/phase_start`）。
    次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -24,11 +24,12 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜60）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 80 task_02 実装・検証・reviewer 済（2026-11-25）。ユーザーの Windows 目視待ち（不在中・presence away）。**
-原因（task_01）= Tk 8.6.15（Windows）で transient を 3 段以上つないだ窓（アクション → プリセット管理 → プリセット追加 / 上書き確認）が最小化からの復元で中身の HWND を失い白いまま（Win+D 固有でない）。
+**phase 80 完了（2026-11-25）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+phase 80 の原因 = Tk 8.6.15（Windows）で transient を 3 段以上つないだ窓（アクション → プリセット管理 → プリセット追加 / 上書き確認）が最小化からの復元で中身の HWND を失い白いまま（Win+D 固有でない）。
 対策（案 X・正本 `features.md` §4.6 に Windows の例外を追加）= `modal.py` が最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。
-worktree = `claude/idea-61-e8649d`（Windows・task_02 は目視前でコミット済・未 push）。
-直近の実測（Windows・task_02・2026-11-25）: compile clean / tests 2279 pass（skip 9）/ tests_ui 全体 1327 件（新規 5 件の比較の型だけ失敗 → 修正後 `test_minimize_grab_custody` 35 件 × 3 回・modal を使う 11 モジュール 352 件 pass）/ smoke pass。
+Windows 目視 OK・完了判定前レビューの採用 4 点は task_02a で修正済・残存リスクは decisions_archive/80。OS 標準のダイアログと Win+D は idea_67（低優先）。
+worktree = `claude/idea-61-e8649d`（Windows・phase 80 完了までコミット済・未 push）。
+直近の実測（Windows・task_02a・2026-11-25）: compile clean / tests 2282 pass（skip 9）/ tests_ui 1330 pass / smoke pass（verifier）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -39,9 +40,9 @@ worktree = `claude/idea-61-e8649d`（Windows・task_02 は目視前でコミッ�
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = phase 78 完了時・2026-11-23**）: compile **clean** / tests **2278 pass**（skip 9）/ tests_ui **1319 pass** / smoke **pass**（verifier）。phase 79 task_01 で tests **2279**（test_third_party に 1 件）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = phase 80 完了時・2026-11-25**）: compile **clean** / tests **2282 pass**（skip 9）/ tests_ui **1330 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
-**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕→ 2279〔phase 79 task_01〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78・task_03a の 2 件は統合確認の後に追加〕）。
+**件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕→ 2279〔phase 79 task_01〕→ 2282〔phase 80〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78〕→ 1330〔phase 80〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -56,10 +57,10 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーの確認待ち】phase 80 task_02 の Windows 目視**: `..\..\..\.venv\Scripts\python.exe main.py` で起動 → アクションの追加・編集 → 「プリセット編集…」→「追加」を開いたまま ①Win+D → タスクバーのクリック ②Win+D 2 回 ③タイトルバーの最小化 → タスクバー。各回で追加の中身が描かれる・3 枚とも出る・追加に入力でき他は操作できない・少し後に追加が管理の前。上書き確認でも ① を 1 回。
-- OK なら task_02 完了 → `/task_commit` → task_03（`decisions_archive/80` + 索引・current.md の完了記載・idea_61 を INDEX_done・refactor_check・フェーズ完了前に deep-reviewer + Codex 敵対的レビュー）。NG なら症状を聞いて直す。task の連続実行はユーザー許可済。
+- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - **取り込み前の設定の件**: このブランチは取り込み前の設定で起動したセッションで作業した（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が /save_state を繰り返し要求）。メインのリポジトリ（main）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで**、5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・SessionStart の branch が worktree 側になることを確かめる（push / merge はユーザー）。
-- ブランチ `claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59〜64・66 は検討段階。
+- ブランチ `claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79）・`claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59・60・62〜64・66・67 は検討段階。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
 
 ## 運用インフラ
@@ -136,7 +137,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 79_bundled_c_library_licenses / 78_action_hotkey_save_validation / 77_sample_in_user_folder）。
+  （直近 3 件: 80_win_d_restore_blank_dialog / 79_bundled_c_library_licenses / 78_action_hotkey_save_validation）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
