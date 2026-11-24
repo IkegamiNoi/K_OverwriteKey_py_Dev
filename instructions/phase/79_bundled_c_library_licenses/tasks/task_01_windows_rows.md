@@ -117,7 +117,7 @@ OpenSSL = openssl/openssl `openssl-3.5.7` の `LICENSE.txt`（NOTICE は無い�
 
 ### 追記（2026-11-24・task_02 後・ユーザー判断）
 
-Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない。義務の判定 = MPL 2.0 のソース形式の通知はファイル自身の表示が果たす → `tcl.txt` に足さない・暫定 60 v0.8）。Windows の `_tcl_data` に同じファイルがあるかは未確認（上の表の `_tcl_data` の行に含まれる扱い）。次の Windows の棚卸しで有無を確かめ、あれば同じく Tcl の行に対応づける。
+Mac の棚卸しで、Tcl のデータ `_tcl_data/cookiejar0.2/public_suffix_list.dat.gz`（Mozilla の Public Suffix List・MPL 2.0・ファイルの先頭に MPL の表示があるソース形式）が見つかった。ユーザー判断で **Tcl の行で扱う**（行は足さない。義務の判定 = MPL 2.0 のソース形式の通知はファイル自身の表示が果たす → `tcl.txt` に足さない・暫定 60 v0.8）。Windows の `_tcl_data` には無い（task_01a・2026-11-24 の再ビルドで `dist/keyseq` 全体に `cookiejar*`・`public_suffix*` が無いことを確認。CPython 3.14.6 の Windows 版に同梱の Tcl 8.6.15 は cookiejar パッケージを持たず、インストール先の `tcl/` にも無い）。Windows では対応づけ不要。
 
 ### 追記（2026-11-24・暫定 60 v0.9・ユーザー判断「窓に載せるのは表示の義務がある物だけ」）
 

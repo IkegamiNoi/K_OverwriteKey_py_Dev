@@ -52,7 +52,7 @@
 - task_02: **完了（2026-11-24・codex-implementer〔Luna high〕+ 全文はメインが配置・reviewer 採用・tests 2217 / test_help_window 25 / smoke pass）・実機目視 OK〔ライセンスの窓 21 行〕→ 完了** **Mac の行**（Mac で実施）。Mac のビルドで棚卸し（拡張モジュールの中の HACL* の有無を含む）・Mac の行と全文・一覧の期待値・`packaging/README.md` の macOS 節。Mac のテストとライセンスの窓の目視
 - task_02a: **完了（2026-11-24・Mac）** task_03 のレビューの採否（`task03_review_decisions.md`）の Mac 分 = 暫定 60 v0.8・zstandard.txt に xxHash ほか・Zstandard の照合を必須に・手順書の修正
 - task_02b: **完了（2026-11-24・Mac の目視 OK 19 行）** 窓に載せるのは表示の義務がある物だけ（暫定 60 v0.9）= Windows の bzip2・xz・zlib・zlib-ng、Mac の xz・libtommath の行と BLAKE2 の節を外す
-- task_01a: **未着手（Windows で実施）** 最終のコードの Windows 検証・`_tcl_data` の PSL の有無・ライセンスの窓の目視（Zstandard の末尾）
+- task_01a: **完了（2026-11-24・Windows）** 標準検証 4 種 pass（`test_third_party` skip 0）・`_tcl_data` に PSL 無し（Tcl 8.6.15）・ライセンスの窓の目視 OK（21 行・Zstandard の末尾）・reviewer 採用
 - task_03: **統合確認と正本反映**（下書き済み・task_01a の後に再開）。暫定 60 の正本への昇格（§9）と凍結・`decisions_archive/79`・`current.md` の完了記載・idea_65 の INDEX_done への移動・`/refactor_check`
 
 ## レビュー方針

@@ -14,3 +14,9 @@ task_02 / task_02a の変更後の最終のコードを Windows で確かめる�
 ## 完了条件
 
 - 上の 1〜3 が済み、結果を本ファイルの末尾に記録した
+
+## 結果（2026-11-24・Windows・worktree `license-display-fix-883f07`・コミット 7c749bbe）
+
+1. 標準検証（verifier・`.venv` = Python 3.14.6）: compileall pass / `tests` 2279 OK（skip 9 = symlink 権限〔WinError 1314〕ほか・`test_third_party` は 8 件 skip 0・Zstandard の照合を含めて pass）/ `tests_ui` 1321 OK / smoke OK
+2. 再ビルド（PyInstaller 6.22.3・sdist は既存 worktree の物を SHA-256 一致で複写）: DLL・pyd 26 個。`cookiejar*/public_suffix_list.dat.gz` は配布物に無い（Tcl 8.6.15 に cookiejar 無し）→ task_01 の追記を更新
+3. 目視（ユーザー・2026-11-24）: OK（21 行・Zstandard の全文の末尾に xxHash・threading・divsufsort）→ task_01a 完了

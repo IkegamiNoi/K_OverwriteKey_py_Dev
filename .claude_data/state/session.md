@@ -4,37 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-24T10:30:00
+last_updated: 2026-11-24T15:00:00
 phase: phase 79 = 同梱の C ライブラリのライセンス（2026-11-24 起票・暫定 60 v0.9 ユーザー確定済・起票元 idea_65）。次採番 = phase 80 / 暫定 61 / decisions 80 / 提案書 29 / idea 67
 直前の完了フェーズ = **phase 78**（アクションの hotkey の保存時の検査と正規化・`decisions_archive/78_action_hotkey_save_validation.md`）
-last_commit_location: `claude/windows-handoff-task-8a4d59`（worktree `windows-handoff-task-8a4d59`・Mac・task_02b 完了まで）。push / merge はユーザー
+last_commit_location: `claude/license-display-fix-883f07`（worktree `license-display-fix-883f07`・Windows・task_01a 完了まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 79 task_02b 完了（Mac・2026-11-24）。次 = task_01a（Windows で最終のコードの検証と目視・21 行）→ task_03 の残り。**
-mode: blocked
-presence: away（戻る予定 未定）
+focus: **phase 79 task_01a 完了（Windows・2026-11-24）。次 = task_03 の残り（凍結・decisions_archive・current.md 完了記載・idea_65 移動・refactor_check）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-24T10:30:00
+ts: 2026-11-24T15:00:00
 who: main
 summary: |
-  ユーザー判断（2026-11-24）: 窓に載せるのは表示の義務がある物だけ（暫定 60 v0.9・11-23 の Q2 を覆す）。task_02b で Windows の bzip2・xz・zlib・zlib-ng、Mac の xz・libtommath の行と全文 6 個・Mac の CPython の全文の BLAKE2 の節を外し、task_01 / 02 の記録に義務の判定を残した。窓 = Windows 21 行・Mac 19 行・JSON 29 行・全文 26 個。
-  codex-implementer（Luna high）・reviewer 修正して採用・Mac の目視 OK（19 行）。その前の task_02a（xxHash ほかの表示・Zstandard の照合を必須に・v0.8）も完了。
+  task_01a（Windows）: verifier で標準検証 4 種 pass（tests 2279・skip 9 / test_third_party 8 件 skip 0・Zstandard の照合含む / tests_ui 1321 / smoke OK）。worktree で再ビルド（PyInstaller 6.22.3・sdist は既存 worktree から SHA-256 一致で複写・DLL/pyd 26 個）。`cookiejar*/public_suffix*` は配布物に無い（Tcl 8.6.15）→ task_01 の追記を更新。
+  ユーザー目視 OK（21 行・Zstandard の末尾に xxHash・threading・divsufsort）。reviewer 採用。コード変更なし。
 result_files:
-  - keyseq/presentation/help/content/third_party/（third_party.json・全文 6 個を削除・cpython_incorporated_macos.txt）・tests/test_third_party.py
-  - instructions/history/60_bundled_c_library_licenses.md（v0.9）・instructions/common/spec_detail/features.md（下書き）・instructions/common/codebase_map.md・packaging/README.md
-  - instructions/phase/79_bundled_c_library_licenses/（phase.md・tasks/task_02b ほか）
+  - instructions/phase/79_bundled_c_library_licenses/tasks/task_01a_windows_recheck.md・tasks/task_01_windows_rows.md・phase.md
 verified:
   compile: clean
-  tests: pass 2217（skip 33・Mac）
-  tests_ui: pass 25（test_help_window のみ）
+  tests: pass 2279（skip 9・Windows）
+  tests_ui: pass 1321
   smoke: pass
-  visual: OK（Mac 19 行）
+  visual: OK（Windows 21 行）
 
 ## next_action
-- **phase 79 task_01a を Windows で実施**（`tasks/task_01a_windows_recheck.md`）: このブランチを Windows の作業場所へ取り込む → 標準検証 4 種（`tests.test_third_party` は Windows で skip 無し・Zstandard の照合が必須）・`dist/keyseq/_internal/_tcl_data` の `cookiejar*/public_suffix_list.dat.gz` の有無を確かめて task_01 の記録の追記を更新・再ビルドした配布物でライセンスの窓の目視（ユーザー・21 行・Zstandard の全文の末尾に xxHash・threading・divsufsort）。
-- その後 **task_03 の残り**: 暫定 60 v0.9 の凍結・`decisions_archive/79_bundled_c_library_licenses.md`（判断の経緯 = Q1〜Q5・v0.8 の Tcl/Tk・v0.9 の義務がある物だけ・VC++ の残存リスク〔法律の確認ではない・Microsoft の Distributable Code の条文は未確認〕・Zstandard 以外の静的ライブラリはソースごとの表示まで走査していない）+ decisions.md のアーカイブ索引・current.md の完了記載（次採番）・idea_65 を INDEX_done へ・refactor_check（不要の見込み = phase 79 の Python の変更は tests/test_third_party.py だけ）。
+- **task_03 の残り**: 暫定 60 v0.9 の凍結・`decisions_archive/79_bundled_c_library_licenses.md`（判断の経緯 = Q1〜Q5・v0.8 の Tcl/Tk・v0.9 の義務がある物だけ・VC++ の残存リスク〔法律の確認ではない・Microsoft の Distributable Code の条文は未確認〕・Zstandard 以外の静的ライブラリはソースごとの表示まで走査していない）+ decisions.md のアーカイブ索引・current.md の完了記載（次採番）・idea_65 を INDEX_done へ・refactor_check（不要の見込み = phase 79 の Python の変更は tests/test_third_party.py だけ）。
 - task の連続実行はユーザー許可済（2026-11-24・phase 79）。
 - **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
 - ブランチ `claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
