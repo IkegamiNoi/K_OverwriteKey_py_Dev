@@ -185,6 +185,10 @@ class MacKeyboardBackend:
         if not self.accepts_key_name(key):
             raise ValueError(f"Unknown key name: {key!r}")
         jis = self._jis
+        if len(key) == 1 and "A" <= key <= "Z":
+            vk = vk_for_name(key.lower(), jis=jis)
+            if vk is not None:
+                return KeySend("mac_shift", (vk,), key)
         shifted = SHIFTED_JIS if jis else SHIFTED_US
         if key in shifted:
             vk = vk_for_name(shifted[key], jis=jis)
@@ -212,6 +216,12 @@ class MacKeyboardBackend:
 
     def _send_flags(self) -> int:
         return modifier_flags(self._sent_modifiers)
+
+    def sent_modifiers_down(self) -> tuple[bool, bool]:
+        flags = self._send_flags()
+        shift = bool(flags & COMMON_FLAGS["shift"])
+        other = bool(flags & (COMMON_FLAGS["control"] | COMMON_FLAGS["option"] | COMMON_FLAGS["command"]))
+        return shift, other
 
     def _sent_modifier_snapshot(self) -> frozenset[int]:
         with self._sent_modifiers_lock:

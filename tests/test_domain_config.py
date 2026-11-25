@@ -494,7 +494,7 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         keymap = config["keymaps"][0]
         self.assertEqual(keymap["id"], "km1")
         self.assertEqual(keymap["label"], "main")
-        self.assertEqual(keymap["mappings"], {"a": "b"})
+        self.assertEqual(keymap["mappings"], {"a": "B"})
         self.assertEqual(config["active_keymap_id"], "km1")
         self.assertEqual(config["keymap_switch_keys"], {"1": "km1"})
 
@@ -723,6 +723,16 @@ class SequenceControlConfigTest(unittest.TestCase):
             format_action_list_item(0, {"type": "mouse_click", "x": 10, "y": 20, "button": "left", "clicks": 2}),
             "01. [click] (10, 20) 左 x2",
         )
+
+
+class MappingTargetNormalizationTest(unittest.TestCase):
+    def test_ascii_uppercase_target_is_preserved_and_other_names_lowercase(self):
+        from keyseq.domain.config import normalize_mapping_target
+        for value, expected in (("A", "A"), (" B ", "B"), ("a", "a"),
+                                ("F1", "f1"), ("Shift", "shift"), ("AB", "ab"),
+                                ("Ä", "ä"), (None, "")):
+            with self.subTest(value=value):
+                self.assertEqual(normalize_mapping_target(value), expected)
 
 
 if __name__ == "__main__":

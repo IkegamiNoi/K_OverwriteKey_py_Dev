@@ -2094,11 +2094,11 @@ class KeymapFileIoTest(unittest.TestCase):
             self.assertFalse(saved["_keymap_dirty"])
 
             payload = JsonRepository().load_json(path)
-            self.assertEqual(payload, {"id": "km1", "trigger_set_path": "", "label": "Main", "mappings": {"a": "b"}})
+            self.assertEqual(payload, {"id": "km1", "trigger_set_path": "", "label": "Main", "mappings": {"a": "B"}})
 
             loaded = service.load_keymap_file(path, used_keymap_ids=set(), imported=True)
             self.assertEqual(loaded["id"], "km1")
-            self.assertEqual(loaded["mappings"], {"a": "b"})
+            self.assertEqual(loaded["mappings"], {"a": "B"})
             self.assertEqual(loaded["_keymap_source_path"], path)
             self.assertTrue(loaded["_keymap_imported"])
 
@@ -2151,6 +2151,14 @@ class KeymapFileIoTest(unittest.TestCase):
                 "enabled": True, "monitors": {},
                 "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")},
             })
+
+    def test_load_keymap_file_preserves_ascii_uppercase_mapping_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = os.path.join(tmp, "map.json")
+            service.repository.save_json(path, {"mappings": {"X": "A", "Y": "b", "Z": "F2"}})
+            loaded = service.load_keymap_file(path, used_keymap_ids=set())
+            self.assertEqual(loaded["mappings"], {"x": "A", "y": "b", "z": "f2"})
 
 
 class SequenceFileIoTest(unittest.TestCase):

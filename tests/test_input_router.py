@@ -279,6 +279,10 @@ class InputRouterTest(unittest.TestCase):
         self.assertEqual(route.actions, (TriggerAction(key="a"),))
         self.assertEqual(route.shadowed, ())
 
+    def test_uppercase_mapping_target_is_preserved_in_send_action(self):
+        route = make_router(keymap_target="A").handle(down("x"))
+        self.assertEqual(route.actions, (SendKeyAction(source_key="x", target_key="A"),))
+
     def test_direct_switch_precedes_replacement_and_trigger(self):
         trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
         runtime = {

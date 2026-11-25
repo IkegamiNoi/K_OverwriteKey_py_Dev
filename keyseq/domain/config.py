@@ -132,6 +132,15 @@ def coerce_key_name(value: Any) -> str:
     return normalize_key_name(value) if isinstance(value, str) else ""
 
 
+def normalize_mapping_target(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    trimmed = value.strip()
+    if len(trimmed) == 1 and "A" <= trimmed <= "Z":
+        return trimmed
+    return normalize_key_name(trimmed)
+
+
 def coerce_label(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
@@ -330,7 +339,7 @@ def _normalize_keymap_mappings(raw_mappings: Any) -> dict[str, str]:
     if isinstance(raw_mappings, dict):
         for raw_source, raw_target in raw_mappings.items():
             source = normalize_key_name(str(raw_source or ""))
-            target = coerce_key_name(raw_target)
+            target = normalize_mapping_target(raw_target)
             if not source or not target:
                 continue
             normalized_mappings[source] = target

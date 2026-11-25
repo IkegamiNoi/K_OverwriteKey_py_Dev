@@ -4,33 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T12:00:00
-phase: instructions/phase/81_uppercase_replacement_target（キー置換の置換先に英字の大文字・暫定 61 v0.3 ユーザー確定済・起票のみ）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 29 / idea 69
+last_updated: 2026-11-25T15:00:00
+phase: instructions/phase/81_uppercase_replacement_target（キー置換の置換先に英字の大文字・暫定 61 v0.3 ユーザー確定済）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 29 / idea 69
 直前の完了フェーズ = **phase 80**（Win+D から戻したときに入れ子のダイアログが白いまま・`decisions_archive/80_win_d_restore_blank_dialog.md`）
-last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 起票）。push / merge はユーザー
+last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 task_01）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 81 起票済（2026-11-25）。次は task_01（置換先の大文字の保存・判定・送信）のタスク定義の起票と実装の委任。**
+focus: **phase 81 task_01 完了（置換先の大文字の保存・判定・送信）。次は task_02（キーボードUI の記録と表示）。タスクの連続実行はユーザー許可済（2026-11-25）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-25T12:00:00
+ts: 2026-11-25T15:00:00
 who: main
 summary: |
-  idea_62 の意図をユーザーと確認 → ねらいは置換先に英字の大文字（phase 74 の記号の延長）。idea_62 を書き直し（ファイル名 `idea_62_uppercase_replacement_target.md`）、置換元の Shift の面は idea_68 へ分離。
-  暫定 61 起票 v0.1 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 5 点 + 表示名 1 点を推奨どおり採用（ユーザー）→ v0.3 確定。
-  /phase_start: phase 81 の phase.md・current.md・INDEX・decisions.md の phase 81 の節。reviewer の整合チェック「修正して採用」（3 点）を反映。
+  task_01: domain に `normalize_mapping_target`（ASCII の大文字 1 文字だけ保つ）・読込 / set_mapping / 置換先の取得 / input_router で使用。Windows は大文字を小文字の名前で解き press/release も小文字・needs_shift は大文字なら真。macOS は大文字を小文字の VK の mac_shift。契約に `sent_modifiers_down`（macOS = 送信済みの修飾・Windows = (False, False)）・send_mapped_key は送信済みの修飾でも Shift を足さない。
+  実装 = codex-implementer（Luna high・3 回。2 回目まではテストを途中で止めた → 小分けの依頼で完了）+ メイン修正 2 点（test_input_router の差し込み位置・test_config_service の期待値 2 か所）。
+  実測: 従来の `_needs_shift('A')` = False（暫定 61 §1 の前提どおり）。reviewer: 実装は採用・テスト不足 2 点は既存の契約の自動照合と Windows のみのモジュールで満たしていると確認。
 result_files:
-  - instructions/history/61_uppercase_replacement_target.md・instructions/phase/81_uppercase_replacement_target/phase.md・instructions/phase/current.md
-  - instructions/backlog/（INDEX.md・idea_62_uppercase_replacement_target.md・idea_68_shift_layer_replacement_source.md）・.claude_data/state/decisions.md
+  - keyseq/domain/config.py・keyseq/application/（keymap_service.py・input_router.py）・keyseq/infrastructure/input_gateway.py・keyseq/infrastructure/os_backend/（contracts.py・windows/keyboard_backend.py・macos/keyboard_backend.py）
+  - tests/（test_domain_config.py・test_config_service.py・test_keymap_service.py・test_input_router.py・test_input_gateway_send.py・test_macos_keyboard_backend.py）
+  - instructions/phase/81_uppercase_replacement_target/tasks/task_01_uppercase_target_save_and_send.md
 verified:
-  docs_only: コード変更なし（tests 未実行）
+  compile: clean
+  tests: pass 2292（skip 9・Windows）
+  smoke: pass
 
 ## next_action
-- `/task_new` で `instructions/phase/81_uppercase_replacement_target/tasks/task_01_*.md` を起票（範囲 = phase.md の task_01・暫定 61 §3・§4・§7-1〜3・6〜8）→ `codex-implementer`（または判断が要るなら `codex-delegating-implementer`）へ委任 → 差分を直読み → verifier（tests）→ reviewer。
-- 実装の要点: 置換先の正規化の関数を domain に新設し 7 か所から呼ぶ / 大文字は小文字の名前でキーを解き Shift の要否だけ決める（両 OS）/ macOS の `is_shift_down` 等に送信済みの修飾を含める / Windows の従来の `_needs_shift("A")` の実測。
-- ブランチ `claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79）・`claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。取り込み前の設定の件（main へ merge 後に新しいセッションで確認）も継続。保留中: R4・idea_37。
+- `/task_new` で task_02（キーボードUI の記録と表示）を起票: `keyboard_window.py:629` で Shift + 英字 1 文字 → 大文字・`:231` の表示を `normalize_mapping_target` に・大文字は `key_display_names` を引かない・`keymap_panel_controller.py:633` の正規化・tests_ui → codex-implementer → verifier（tests_ui は 1 本だけ・taskkill 禁止）→ reviewer。
+- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。取り込み前の設定の件（main へ merge 後に新しいセッションで確認）も継続。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

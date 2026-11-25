@@ -81,10 +81,13 @@ class InputGateway:
         send = self.resolve_send(key)
         kb = get_backend().keyboard
         window = get_backend().window
+        sent_shift, sent_ctrl_alt = kb.sent_modifiers_down()
         if (
             kb.needs_shift(send)
             and not window.is_shift_down()
+            and not sent_shift
             and not window.is_ctrl_alt_win_down()
+            and not sent_ctrl_alt
         ):
             kb.press_shift()
             try:

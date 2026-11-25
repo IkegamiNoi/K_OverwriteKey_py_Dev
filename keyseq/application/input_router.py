@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis
-from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name, normalize_mapping_target
 from keyseq.domain.key_hold import MODIFIER_KEY_NAMES
 from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
@@ -140,7 +140,7 @@ class InputRouter:
             suppress = bool(trigger.get("suppress", True))
             return InputRoute(actions=(TriggerAction(key=key, repeat=repeat),), accept=not suppress, shadowed=shadowed)
 
-        keymap_target = normalize_key_name(self._find_keymap_target(key))
+        keymap_target = normalize_mapping_target(self._find_keymap_target(key))
         if keymap_target:
             return InputRoute(
                 actions=(SendKeyAction(source_key=key, target_key=keymap_target),),

@@ -268,6 +268,42 @@ class InputGatewaySendTests(unittest.TestCase):
             call.ext(0x27, 0x4D, key_up=True),
         ])
 
+    def test_mapped_key_adds_shift_for_uppercase_letter(self) -> None:
+        backend = SimpleNamespace(window=SimpleNamespace(
+            is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
+        with patch.object(input_gateway, "get_backend", return_value=backend):
+            self.gateway.send_mapped_key("A")
+        self.assertEqual(self.events.mock_calls, [
+            call.press("shift"), call.press("a"), call.release("a"), call.release("shift"),
+        ])
+
+    def test_mapped_key_does_not_add_shift_when_shift_was_sent(self) -> None:
+        backend = SimpleNamespace(window=SimpleNamespace(
+            is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
+        with patch.object(backend.keyboard, "sent_modifiers_down", return_value=(True, False)), \
+             patch.object(input_gateway, "get_backend", return_value=backend):
+            self.gateway.send_mapped_key("A")
+        self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
+
+    def test_mapped_key_does_not_add_shift_when_ctrl_was_sent(self) -> None:
+        backend = SimpleNamespace(window=SimpleNamespace(
+            is_shift_down=Mock(return_value=False), is_ctrl_alt_win_down=Mock(return_value=False),
+        ), keyboard=keyboard_backend.WindowsKeyboardBackend())
+        with patch.object(backend.keyboard, "sent_modifiers_down", return_value=(False, True)), \
+             patch.object(input_gateway, "get_backend", return_value=backend):
+            self.gateway.send_mapped_key("A")
+        self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
+
+    def test_uppercase_resolves_to_lowercase_key(self) -> None:
+        send = self.gateway.resolve_send("A")
+        lower = self.gateway.resolve_send("a")
+        self.assertEqual((send.kind, send.values), (lower.kind, lower.values))
+        self.assertEqual(send.key, "A")
+        self.assertEqual(self.gateway.identity_of(send), self.gateway.identity_of(lower))
+        self.assertTrue(keyboard_backend.WindowsKeyboardBackend().needs_shift(send))
+
     def test_numpad_keys_use_scan_code_sender(self) -> None:
         cases = {
             "num 1": (79, False),

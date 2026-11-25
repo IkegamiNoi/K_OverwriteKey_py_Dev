@@ -750,6 +750,25 @@ class MacKeyboardSendTests(unittest.TestCase):
                             self.q.CGEventSourceFlagsState.call_args_list))
 
 
+    def test_uppercase_resolves_to_shifted_lowercase_key(self):
+        uppercase = self.resolve("A")
+        lowercase = self.resolve("a")
+        self.assertEqual(uppercase.kind, "mac_shift")
+        self.assertEqual(uppercase.values, lowercase.values)
+        self.assertTrue(self.keyboard.needs_shift(uppercase))
+        self.assertEqual(self.keyboard.identity_of(uppercase), self.keyboard.identity_of(lowercase))
+
+    def test_sent_modifiers_down_reports_shift_and_command(self):
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (False, False))
+        with self.keyboard._sent_modifiers_lock:
+            self.keyboard._sent_modifiers.add(56)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (True, False))
+        with self.keyboard._sent_modifiers_lock:
+            self.keyboard._sent_modifiers.clear()
+            self.keyboard._sent_modifiers.add(55)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (False, True))
+
+
 class MacAppKitBackendTests(unittest.TestCase):
     def test_foreground_matches_own_pid_other_pid_and_missing_application(self):
         for pid, expected in ((window_backend.os.getpid(), True), (window_backend.os.getpid() + 1, False),

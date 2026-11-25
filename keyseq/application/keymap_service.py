@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name, normalize_mapping_target
 from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap, trigger_set_owner
 
 
@@ -236,7 +236,7 @@ class KeymapService:
         mappings = keymap.get("mappings", {})
         if not isinstance(mappings, dict):
             return ""
-        return normalize_key_name(mappings.get(normalize_key_name(source_key), ""))
+        return normalize_mapping_target(mappings.get(normalize_key_name(source_key), ""))
 
     @staticmethod
     def has_any_mapping(data: dict[str, Any]) -> bool:
@@ -285,12 +285,12 @@ class KeymapService:
         keymap = KeymapService.ensure_active_keymap(data)
         keymap_id = normalize_identifier(keymap.get("id", ""))
         source = normalize_key_name(source_key)
-        target = normalize_key_name(target_key)
+        target = normalize_mapping_target(target_key)
         mappings = keymap.setdefault("mappings", {})
         if not isinstance(mappings, dict):
             mappings = {}
             keymap["mappings"] = mappings
-        previous = normalize_key_name(mappings.get(source, ""))
+        previous = normalize_mapping_target(mappings.get(source, ""))
         mappings[source] = target
         data["active_keymap_id"] = keymap_id
         return keymap_id, previous != target

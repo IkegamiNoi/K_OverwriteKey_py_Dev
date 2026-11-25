@@ -77,10 +77,18 @@ class KeymapServiceTest(unittest.TestCase):
         keymap_id, changed = KeymapService.set_mapping(data, "X", "Y")
         self.assertEqual(keymap_id, "km1")
         self.assertTrue(changed)
-        self.assertEqual(data["keymaps"][0]["mappings"]["x"], "y")
+        self.assertEqual(data["keymaps"][0]["mappings"]["x"], "Y")
         keymap_id, changed = KeymapService.clear_mapping(data, "x")
         self.assertTrue(changed)
         self.assertNotIn("x", data["keymaps"][0]["mappings"])
+
+    def test_set_mapping_preserves_uppercase_target_and_reports_change(self):
+        data = make_data()
+        data["active_keymap_id"] = "km1"
+        keymap_id, changed = KeymapService.set_mapping(data, "a", "A")
+        self.assertEqual(keymap_id, "km1")
+        self.assertTrue(changed)
+        self.assertEqual(data["keymaps"][0]["mappings"]["a"], "A")
 
 
 if __name__ == "__main__":

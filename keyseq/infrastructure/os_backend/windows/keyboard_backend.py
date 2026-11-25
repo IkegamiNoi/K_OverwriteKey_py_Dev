@@ -190,21 +190,23 @@ class WindowsKeyboardBackend:
     ) -> KeySend:
         if not self.accepts_key_name(key):
             raise ValueError(f"Unknown key name: {key!r}")
-        numpad = numpad_key_spec(key)
+        uppercase = len(key) == 1 and "A" <= key <= "Z"
+        lookup_key = key.lower() if uppercase else key
+        numpad = numpad_key_spec(lookup_key)
         if numpad is not None:
             return KeySend("numpad", (numpad[0], int(numpad[1])), key)
-        extended = _resolve_extended_key(key)
+        extended = _resolve_extended_key(lookup_key)
         if extended is not None:
             return KeySend("extended", extended, key)
         try:
-            scan_codes = tuple(keyboard.key_to_scan_codes(key))
+            scan_codes = tuple(keyboard.key_to_scan_codes(lookup_key))
         except Exception:
             scan_codes = ()
         if scan_codes:
             return KeySend("keyboard", scan_codes, key)
         if resolve_layout_scan_code is not None:
             try:
-                scan_code = resolve_layout_scan_code(key)
+                scan_code = resolve_layout_scan_code(lookup_key)
             except Exception:
                 scan_code = None
             if (
@@ -225,7 +227,7 @@ class WindowsKeyboardBackend:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=False)
         else:
-            keyboard.press(send.key)
+            keyboard.press(send.key.lower() if len(send.key) == 1 and "A" <= send.key <= "Z" else send.key)
 
     def release_send(self, send: KeySend) -> None:
         kind, values = send.kind, send.values
@@ -237,7 +239,7 @@ class WindowsKeyboardBackend:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=True)
         else:
-            keyboard.release(send.key)
+            keyboard.release(send.key.lower() if len(send.key) == 1 and "A" <= send.key <= "Z" else send.key)
 
     def identity_of(self, send: KeySend) -> tuple[int, bool]:
         kind, values = send.kind, send.values
@@ -255,7 +257,10 @@ class WindowsKeyboardBackend:
         raise ValueError(f"Unknown key name: {send.key!r}")
 
     def needs_shift(self, send: KeySend) -> bool:
-        return send.kind == "keyboard" and _needs_shift(send.key)
+        return (len(send.key) == 1 and "A" <= send.key <= "Z") or (send.kind == "keyboard" and _needs_shift(send.key))
+
+    def sent_modifiers_down(self) -> tuple[bool, bool]:
+        return False, False
 
     def press_shift(self) -> None:
         keyboard.press("shift")
