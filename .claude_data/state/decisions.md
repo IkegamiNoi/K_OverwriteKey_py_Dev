@@ -671,3 +671,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 足さない（メイン判断）: リピート停止の直接テスト（deep 3）。照合は gateway の走査コード（`held_inputs.py:87-90`）で、`A` と `a` の一致は task_01 で両 OS を確かめた。偽の gateway で書くと同じ前提の繰り返しになる。reviewer も妥当と判定。
 - task_04 へ送る: Windows の `sent_modifiers_down` が (False, False) の理由（`GetAsyncKeyState` が送ったキーも反映する見込み）を正本と契約に書き添える（deep 4）/ 英字 1 文字の判定の重複 6 か所（deep 6・任意・/refactor_check で扱う）/ `sent_modifiers_down` の lock なしの読み（deep 5・低・受容）。
 
+### 【task_03 実機目視】OK（2026-11-25・ユーザー報告「目視 OK」）
+- 手順 1〜5 をユーザーが確かめ「目視 OK」。NG の報告なし。5（Caps Lock ON の文字）は見込みどおりとして扱う（補正しない・暫定 61 §5 のまま）。OS ごとの内訳と 5 の実際の文字の報告はないので、正本には「見込み」と書き、実測済みとは書かない。
+- OS 別の内訳は未報告（macOS で確かめたかは不明）。正本と current.md には「macOS の実機目視は未確認」と書く（task_04 へ）。reviewer 採用（2026-11-25）。
