@@ -40,7 +40,7 @@ class LayoutControllerRegistrationTest(unittest.TestCase):
                 return_value=layout_path,
             ), patch(
                 "keyseq.presentation.controllers.layout_controller.load_layout_from_json",
-                return_value=SimpleNamespace(layout_id="jis"),
+                return_value=SimpleNamespace(layout_id="jis", key_symbols_invalid_reason=""),
             ):
                 controller.add_external_keyboard_layout()
 
@@ -79,7 +79,7 @@ class LayoutControllerRegistrationTest(unittest.TestCase):
                 return_value=layout_path,
             ), patch(
                 "keyseq.presentation.controllers.layout_controller.load_layout_from_json",
-                return_value=SimpleNamespace(layout_id="jis"),
+                return_value=SimpleNamespace(layout_id="jis", key_symbols_invalid_reason=""),
             ):
                 controller.add_external_keyboard_layout()
 
@@ -177,7 +177,9 @@ class LayoutControllerRefreshListsTest(unittest.TestCase):
             return_value="external.json",
         ), patch(
             "keyseq.presentation.controllers.layout_controller.load_layout_from_json",
-            return_value=SimpleNamespace(layout_id="new_external"),
+            return_value=SimpleNamespace(
+                layout_id="new_external", key_symbols_invalid_reason=""
+            ),
         ):
             controller.add_external_keyboard_layout()
 
@@ -252,6 +254,146 @@ class LayoutControllerRefreshListsTest(unittest.TestCase):
         rebuild_spy.assert_called_once_with()
         sync_controller._app.trigger_panel.refresh_triggers.assert_not_called()
         sync_controller._app.trigger_panel.refresh_actions.assert_not_called()
+
+
+class LayoutControllerKeySymbolsWarningTest(unittest.TestCase):
+    def _controller(self, app=None):
+        if app is None:
+            app = SimpleNamespace(
+                data={"keyboard_layout": "normal", "external_keyboard_layouts": []},
+                _set_flash_message=Mock(),
+                set_flash_underlay=Mock(),
+                ui_vars=SimpleNamespace(keyboard_layout_var=Mock()),
+                trigger_panel=SimpleNamespace(
+                    refresh_triggers=Mock(), refresh_actions=Mock()
+                ),
+            )
+        controller = LayoutController.__new__(LayoutController)
+        controller._app = app
+        controller.keyboard_layout_id = "normal"
+        controller._keyboard_layout_entries = {
+            "normal": SimpleNamespace(
+                layout=SimpleNamespace(
+                    display_name="Normal",
+                    keys=(),
+                    key_symbols_invalid_reason="",
+                )
+            ),
+            "invalid": SimpleNamespace(
+                layout=SimpleNamespace(
+                    display_name="Invalid layout",
+                    keys=(),
+                    key_symbols_invalid_reason="Invalid value",
+                )
+            ),
+        }
+        controller._keyboard_layout_id_to_display = {
+            "normal": "Normal",
+            "invalid": "Invalid layout",
+        }
+        controller._layout_combos = []
+        controller.refresh_keyboard_window = Mock()
+        controller._refresh_lists_after_layout_change = Mock()
+        controller.reload_keyboard_layouts = Mock()
+        controller.persist_keyboard_layout_selection = Mock(return_value=True)
+        return controller
+
+    def test_active_layout_warning_is_set_and_cleared(self):
+        from keyseq.shared.i18n import tr
+
+        controller = self._controller()
+        backend = SimpleNamespace(keyboard=SimpleNamespace(set_layout_key_ids=Mock()))
+
+        with patch(
+            "keyseq.presentation.controllers.layout_controller.get_backend",
+            return_value=backend,
+        ):
+            controller._app.set_flash_underlay.reset_mock()
+            controller.set_keyboard_layout_selection("invalid")
+
+            controller._app.set_flash_underlay.assert_called_once()
+            warning = controller._app.set_flash_underlay.call_args.args[0]
+            self.assertEqual(
+                warning,
+                tr(
+                    "keyboard.layout.key_symbols.ignored",
+                    name="Invalid layout",
+                    reason="Invalid value",
+                ),
+            )
+            self.assertIn("Invalid layout", warning)
+            self.assertIn("Invalid value", warning)
+
+            controller._app.set_flash_underlay.reset_mock()
+            controller.set_keyboard_layout_selection("normal")
+
+        controller._app.set_flash_underlay.assert_called_once_with("")
+
+    def test_active_layout_warning_is_skipped_without_app_setter(self):
+        app = SimpleNamespace(data={})
+        controller = self._controller(app)
+        backend = SimpleNamespace(keyboard=SimpleNamespace(set_layout_key_ids=Mock()))
+
+        with patch(
+            "keyseq.presentation.controllers.layout_controller.get_backend",
+            return_value=backend,
+        ):
+            controller.keyboard_layout_id = "invalid"
+            controller._refresh_active_layout()
+
+        self.assertEqual(controller._active_layout.display_name, "Invalid layout")
+
+    def _add_layout(self, invalid_reason):
+        controller = self._controller()
+        controller.keyboard_layouts_dir = ""
+        controller._app.base_dir = "."
+        controller._app.paths = SimpleNamespace(
+            to_config_relative_or_absolute=Mock(return_value="external.json")
+        )
+        controller._keyboard_layout_entries = {}
+        controller._refresh_lists_after_layout_change = Mock()
+        loaded_layout = SimpleNamespace(
+            layout_id="new_external",
+            display_name="New external",
+            key_symbols_invalid_reason=invalid_reason,
+        )
+        with patch(
+            "keyseq.presentation.controllers.layout_controller.filedialog.askopenfilename",
+            return_value="external.json",
+        ), patch(
+            "keyseq.presentation.controllers.layout_controller.load_layout_from_json",
+            return_value=loaded_layout,
+        ):
+            controller._app._set_flash_message.reset_mock()
+            controller.add_external_keyboard_layout()
+        return controller
+
+    def test_add_invalid_layout_reports_added_and_warning(self):
+        from keyseq.shared.i18n import tr
+
+        controller = self._add_layout("Invalid value")
+
+        controller._app._set_flash_message.assert_called_once()
+        message = controller._app._set_flash_message.call_args.args[0]
+        self.assertEqual(
+            message,
+            tr(
+                "keyboard.layout.added_key_symbols_ignored",
+                layout_id="new_external",
+                name="New external",
+                reason="Invalid value",
+            ),
+        )
+        self.assertIn("Invalid value", message)
+
+    def test_add_valid_layout_keeps_existing_added_message(self):
+        from keyseq.shared.i18n import tr
+
+        controller = self._add_layout("")
+
+        controller._app._set_flash_message.assert_called_once_with(
+            tr("keyboard.layout.added", layout_id="new_external")
+        )
 
 
 if __name__ == "__main__":

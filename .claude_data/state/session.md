@@ -4,34 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T01:00:00
+last_updated: 2026-11-26T02:00:00
 phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
 直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
 last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 task_02 完了（2026-11-26）。task_03（警告の下敷き・見本）へ。**
+focus: **phase 82 task_03 完了（2026-11-26）。task_04（統合確認・Windows の実機目視）へ。**
 mode: implementing
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-26T01:00:00
+ts: 2026-11-26T02:00:00
 who: main
 summary: |
-  task_02（表の受け渡しと描き直し・presentation 限定）を codex-delegating-implementer で実装（子 2 つ起動）。差分を直読み → verifier: compileall pass・tests 2320 OK（skip 9）・対象 tests_ui 40 OK・smoke pass・tests_ui 全体 1341 で `test_minimize_grab_custody` 1 fail（偶発と判断・未確定・decisions に記録・task_04 で再確認）→ reviewer 採用（参考 2 点）。
+  task_03（警告の下敷き〔app.py の一時メッセージ欄・set_flash_underlay〕・追加のときの文言・ja / en・見本 jis.json〔backslash / \ / ro → ＼〕/ us_tkl.json〔{}〕）を codex-delegating-implementer で実装（子あり）。差分を直読み → verifier: compileall pass・tests 2333 OK（skip 9）・tests_ui 3 モジュール 123 OK・smoke pass → reviewer 採用（参考 1 点）。
 result_files:
-  - keyseq/presentation/controllers/action_list_rendering.py・trigger_panel/trigger_panel_controller.py・call_view_controller.py・layout_controller.py・keyseq/presentation/keyboard_window.py
-  - tests/test_layout_controller_registration.py・tests_ui/test_action_list_rendering.py・test_keyboard_key_text.py・test_key_hold_presentation.py・instructions/phase/82_layout_key_symbols/tasks/task_02_*.md
+  - keyseq/presentation/app.py・controllers/layout_controller.py・keyseq/shared/i18n/locales/ja.json・en.json・config/user/keylayout/jis.json・us_tkl.json
+  - tests/test_app_control_sync.py・test_layout_controller_registration.py・test_keyboard_layout_files.py・instructions/phase/82_layout_key_symbols/tasks/task_03_*.md
 verified:
   compile: clean
-  tests: pass 2320（skip 9・Windows）
-  tests_ui: 1341 中 1 fail（test_minimize_grab_custody・偶発と判断）
+  tests: pass 2333（skip 9・Windows）
+  tests_ui: 部分（task_03 の 3 モジュール pass）。全体は task_04
   smoke: pass
 
 ## next_action
-- `/task_new` で task_03（警告の下敷き〔`app.py` の一時メッセージ欄・`_clear_flash_message`〕・追加のときの文言・ja / en・見本 jis.json / us_tkl.json・暫定 62 §3・§7）を起票 → Codex 実装エージェントへ委任 → verifier → reviewer。
-- task_04: 統合確認（tests_ui 全体で `test_minimize_grab_custody` を再確認）→ Windows の実機目視はユーザー（不在中なら引き継いで止まる）。
+- task_04 を起票: 統合確認（verifier で tests / tests_ui 全体 / smoke。`test_minimize_grab_custody` の偶発を再確認）→ 統合レビュー（deep-reviewer + codex-reviewer）→ Windows の実機目視（ユーザー・暫定 62 §8-10 ほか）。
 - ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers

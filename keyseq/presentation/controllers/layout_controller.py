@@ -238,6 +238,12 @@ class LayoutController:
             )
         except Exception:
             _LOG.exception("Could not notify keyboard backend of active layout")
+        if hasattr(self._app, "set_flash_underlay"):
+            reason = self._active_layout.key_symbols_invalid_reason
+            self._app.set_flash_underlay(
+                tr("keyboard.layout.key_symbols.ignored", name=self._active_layout.display_name, reason=reason)
+                if reason else ""
+            )
 
     def get_fallback_keyboard_layout_id(self, *, exclude: str | None = None) -> str:
         excluded = (exclude or "").strip()
@@ -371,7 +377,16 @@ class LayoutController:
         self.reload_keyboard_layouts()
         self._refresh_lists_after_layout_change()
         self.persist_keyboard_layout_selection()
-        self._app._set_flash_message(tr("keyboard.layout.added", layout_id=layout.layout_id))
+        if layout.key_symbols_invalid_reason:
+            message = tr(
+                "keyboard.layout.added_key_symbols_ignored",
+                layout_id=layout.layout_id,
+                name=layout.display_name,
+                reason=layout.key_symbols_invalid_reason,
+            )
+        else:
+            message = tr("keyboard.layout.added", layout_id=layout.layout_id)
+        self._app._set_flash_message(message)
 
     def delete_keyboard_layout(self):
         items = [

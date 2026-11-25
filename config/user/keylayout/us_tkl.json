@@ -2,6 +2,7 @@
   "layout_id": "us_tkl_sample",
   "display_name": "US TKL（見本）",
   "key_display_names": {},
+  "key_symbols": {},
   "keys": [
     {"id": "esc", "label": "Esc", "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0},
     {"id": "f1", "label": "F1", "x": 2.0, "y": 0.0, "w": 1.0, "h": 1.0},

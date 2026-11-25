@@ -2,6 +2,7 @@
   "layout_id": "jis",
   "display_name": "JIS",
   "key_display_names": {"zenkaku_hankaku": "半角\n全角"},
+  "key_symbols": {"backslash": "＼", "\\": "＼", "ro": "＼"},
   "keys": [
     {"id": "esc", "label": "Esc", "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0},
     {"id": "f1", "label": "F1", "x": 2.0, "y": 0.0, "w": 1.0, "h": 1.0},

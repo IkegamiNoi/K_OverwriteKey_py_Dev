@@ -500,5 +500,28 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
                     self.assertEqual(tr_in(lang, key, key="custom"), catalog[key].format(key="custom"))
 
 
+class KeyboardLayoutKeySymbolsSampleTest(unittest.TestCase):
+    def test_jis_sample_defines_backslash_and_ro_full_width_symbols(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+
+        self.assertEqual(
+            layout.key_symbol_map,
+            {"backslash": "＼", "\\": "＼", "ro": "＼"},
+        )
+        self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+    def test_us_tkl_sample_has_empty_key_symbols_without_warning(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["us_tkl"]))
+
+        self.assertEqual(layout.key_symbol_map, {})
+        self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+    def test_jis_mac_sample_keeps_empty_key_symbols(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis_mac"]))
+
+        self.assertEqual(layout.key_symbol_map, {})
+        self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+
 if __name__ == "__main__":
     unittest.main()
