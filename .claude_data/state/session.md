@@ -4,34 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T02:00:00
+last_updated: 2026-11-26T03:00:00
 phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
 直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
 last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 task_03 完了（2026-11-26）。task_04（統合確認・Windows の実機目視）へ。**
-mode: implementing
+focus: **phase 82 task_04 = 統合確認は全 pass・統合レビューの指摘の採否と Windows の実機目視がユーザー判断待ち（不在中のため停止）。**
+mode: blocked
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-26T02:00:00
+ts: 2026-11-26T03:00:00
 who: main
 summary: |
-  task_03（警告の下敷き〔app.py の一時メッセージ欄・set_flash_underlay〕・追加のときの文言・ja / en・見本 jis.json〔backslash / \ / ro → ＼〕/ us_tkl.json〔{}〕）を codex-delegating-implementer で実装（子あり）。差分を直読み → verifier: compileall pass・tests 2333 OK（skip 9）・tests_ui 3 モジュール 123 OK・smoke pass → reviewer 採用（参考 1 点）。
+  task_03 をコミット（b2538a2d）。task_04 を起票し、統合確認（verifier: compileall clean・tests 2333 / skip 9・tests_ui 1341・smoke pass・最小化テストの偶発を確定）と統合レビュー（deep-reviewer 採用・codex-reviewer 指摘 2 件）を実施。
+  Codex (1) は実測で再現せず・(2) は裏取り済み。不在中（presence: away・戻る予定 未定）でユーザー判断に当たったため、確認事項をまとめて停止。
 result_files:
-  - keyseq/presentation/app.py・controllers/layout_controller.py・keyseq/shared/i18n/locales/ja.json・en.json・config/user/keylayout/jis.json・us_tkl.json
-  - tests/test_app_control_sync.py・test_layout_controller_registration.py・test_keyboard_layout_files.py・instructions/phase/82_layout_key_symbols/tasks/task_03_*.md
+  - instructions/phase/82_layout_key_symbols/tasks/task_04_integration_and_visual_check.md・instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md
 verified:
   compile: clean
   tests: pass 2333（skip 9・Windows）
-  tests_ui: 部分（task_03 の 3 モジュール pass）。全体は task_04
+  tests_ui: pass 1341
   smoke: pass
 
 ## next_action
-- task_04 を起票: 統合確認（verifier で tests / tests_ui 全体 / smoke。`test_minimize_grab_custody` の偶発を再確認）→ 統合レビュー（deep-reviewer + codex-reviewer）→ Windows の実機目視（ユーザー・暫定 62 §8-10 ほか）。
-- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- **【ユーザー判断待ち】`instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` の 1〜4 に答えてもらう**: 1 = キーマップの複数選択が縮む件（推奨 A 受容 / B 直す = task_04a）・2 = 孤立サロゲート（推奨 除外）・3 = T1〜T5 を task_05 に含める（推奨 含める・L1〜L4 は保留）・4 = Windows の実機目視（task_04 の手順 1〜5）。
+- 回答後: 1 が B なら task_04a を起票 → Codex → verifier → reviewer。実機目視 OK → task_05（正本反映: 暫定 62 を features.md §4.6・ui_terms.md・codebase_map.md へ昇格 + T1〜T5・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ・/refactor_check）。
+- ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）の push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

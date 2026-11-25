@@ -678,3 +678,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【task_03】完了（2026-11-26・reviewer 採用）
 - delegating の試行: 本体 6・テスト 3 で codex-delegating-implementer。子が起動された（Codex のログ「Collaboration tool wait」・自己申告で controller と見本のテストを分担）。180 秒超でバックグラウンドへ移り、出力ファイルの伸びが止まるのを待って受け取った。1 回で完了。
 - 既存のテスト 3 件のテスト用の偽物（SimpleNamespace）に `key_symbols_invalid_reason=""` を足した（期待値は不変・追加の経路が新しい属性を読むため）→ reviewer 採用。
+### 【task_04 統合確認】全 pass・統合レビュー deep-reviewer 採用 / codex-reviewer 指摘 2 件 → ユーザー判断待ち（2026-11-26）
+- tests 2333 / tests_ui 1341 / smoke pass。`test_minimize_grab_custody` は全体と単独 3 回とも pass → task_02 の失敗は偶発と確定。
+- Codex (1) 孤立サロゲートで Tk が落ちる → 実測で再現せず（除外を推奨）。Codex (2) キーマップの複数選択が 1 件に縮む → 裏取り済み（受容を推奨）。deep-reviewer T1〜T5 は task_05 に含めるのを推奨・L1〜L4 は保留を推奨。詳細は `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md`。
