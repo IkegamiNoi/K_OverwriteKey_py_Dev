@@ -905,6 +905,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 幅の記録: `KeyboardWindow(get_saved_width=, on_width_settled=)` のコールバック（キーボードUIは config を読み書きしない）→ `controllers/layout_controller.py` の `_get_saved_keyboard_window_width` / `_save_keyboard_window_width`（`StartupIo.write_startup` 1 本）。記録は `_settle_size` の利用者の操作の補正の確定でだけ（`_record_settled_width`・保留を解く経路では書かない）
   - 記号キーの表示（phase 74・仕様 = `features.md` §4.6「記号キーのキー名の表示」）: `domain/key_symbols.py` の `display_key_name`（表示専用・保存値は変えない）。`keyboard_window.redraw`（`key_display_names` が優先）・`domain/config.format_trigger_list_item`・`domain/key_hold.format_key_hold_value` から呼ぶ。修飾キーの表示名の差し替えと表示専用の変数・trace は撤去し、一覧・ダイアログ・キー名を差し込む文言にはキー名そのものを表示する（phase 75・task_09e・暫定 57 §5.3.4）。aqua の Command+Option+P は `menu_bar.py` が keycode の上位 8 ビット（35）で判定
   - キー置換の Shift 付きの記号（phase 74・仕様 = `key_input.md`）: 記録 = `keyboard_window._record_key` の `_SHIFTED_TARGET_NAMES`（Shift ありの `yen` / `ro` → `bar` / `underscore`）/ 送信 = `action_executor._send_mapped_key` → `InputGateway.send_mapped_key`（`_needs_shift` = keyboard の先頭候補の修飾）
+  - 置換先の英字の大文字（phase 81・仕様 = `key_input.md` §7.4・`data_schema.md` §5.6）: 正規化 = `domain/config.normalize_mapping_target`（`A`〜`Z` の 1 文字だけ大文字を保つ・他は `normalize_key_name`）を読込（`_normalize_keymap_mappings`）・`keymap_service`（置換先の取得・`set_mapping`）・`input_router`・`keyboard_window`（枠の表示・大文字は `key_display_name` を引かない）・`keymap_panel_controller.assign_keymap_from_keyboard_ui` で使う / 記録 = `_record_key` で Shift + `a`〜`z` → 大文字 / 送信 = 各 OS の `resolve_send` が小文字の名前で解き `needs_shift` を真に（macOS は `mac_shift`）・`InputGateway.send_mapped_key` は物理の状態に `KeyboardBackend.sent_modifiers_down`（macOS = 送信済みの修飾・Windows = 常に偽）を合わせて Shift を足すか決める
   - 見本: `config/user/keylayout/us_tkl.json`（内蔵の US TKL と同じ行・`us_tkl_sample`・`git add -f`）・jis.json の `key_display_names` と `label` の改行
   - テスト: `tests/test_keyboard_layout_files.py`（表の読込・見本と内蔵の一致）・`test_keyboard_key_text.py`・`test_keyboard_window_size.py` / `tests_ui/test_keyboard_key_text.py`・`test_app_ui_flows.py`（`test_keyboard_window_*`・`write_startup` と `_startup_settings` を差し替えて実 config に書かない）
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
@@ -968,6 +969,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   phase 73: `keymaps[].id`・`event_type`・ファイル名由来の id は `normalize_identifier`（trim + 小文字化のみ・`minus` → `-` の読み替えなし）。
   **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが 158 箇所あり、Any 受けにすると
   全経路の意味が変わるため）。規定は `data_schema.md` §5.1「型不正の共通規則」。
+  例外: `mappings` の target は `normalize_mapping_target`（`A`〜`Z` の 1 文字は大文字のまま・phase 81）。
 - **パス系・キー名系にも同じ関数を適用する**（phase 25）。**使い分けは
   「パス = `coerce_label`（trim のみ）/ キー名・id = `coerce_key_name`（trim + 小文字化）」**。
   パスに `coerce_key_name` を使うと小文字化でパスが壊れる（規定は `data_schema.md` §5.5 / §5.7）。
