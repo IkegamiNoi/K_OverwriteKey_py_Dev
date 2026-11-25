@@ -47,8 +47,9 @@
 - Codex 2（外部レイアウトに `a` の表示名 `A` があると `a` と `A` が同じ表示）→ 暫定 61 §5 の確定どおり（小文字は表示名を使う）。`features.md` の「見分けられる」の言い過ぎを直し、受容として明記。
 - Codex 3（実機目視の記録の不足）→ 上の補足で解消。
 
-### 【refactor_check】推奨 → 提案書 29（2026-11-25・ユーザー承認待ち）
+### 【refactor_check】推奨 → 提案書 29 → task_05_refactor で実施（2026-11-25・ユーザー承認「提案書 29 を実施」）
 - M3 該当: 英字 1 文字の大文字の判定が 3 層 7 か所（+ 記録時の小文字の判定 1 か所は対象外）・Windows の press / release の同じ式 2 か所 → [29_refactor_uppercase_replacement_target.md](../../../instructions/modified_proposal/29_refactor_uppercase_replacement_target.md)（R1・R2）。M1 = 600 行超の 2 ファイルは増分小で非該当・他は該当なし。
+- task_05_refactor = codex-implementer（Luna high・1 回）・`is_uppercase_mapping_target`（domain/config.py）に一本化し 7 か所を置換・Windows の press / release は `_keyboard_name`・tests 2296（skip 9）/ tests_ui 2 モジュール 19 件 / smoke pass（verifier）・reviewer 採用。挙動不変。
 
 ## 残存リスク
 

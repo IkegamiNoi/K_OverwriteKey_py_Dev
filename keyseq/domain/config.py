@@ -132,11 +132,15 @@ def coerce_key_name(value: Any) -> str:
     return normalize_key_name(value) if isinstance(value, str) else ""
 
 
+def is_uppercase_mapping_target(value: str) -> bool:
+    return len(value) == 1 and "A" <= value <= "Z"
+
+
 def normalize_mapping_target(value: Any) -> str:
     if not isinstance(value, str):
         return ""
     trimmed = value.strip()
-    if len(trimmed) == 1 and "A" <= trimmed <= "Z":
+    if is_uppercase_mapping_target(trimmed):
         return trimmed
     return normalize_key_name(trimmed)
 

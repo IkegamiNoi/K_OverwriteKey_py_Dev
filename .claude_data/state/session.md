@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 81 完了（2026-11-25）。アクティブなフェーズなし。提案書 29（大文字の判定の重複の集約）はユーザー承認待ち。次フェーズはユーザー判断で `/phase_start`。**
+focus: **phase 81 完了（2026-11-25）。アクティブなフェーズなし。提案書 29 は task_05_refactor で実施済。次フェーズはユーザー判断で `/phase_start`。**
 mode: completed
 
 ## last_action
@@ -30,7 +30,7 @@ verified:
   smoke: pass
 
 ## next_action
-- 提案書 29（英字 1 文字の大文字の判定を domain の 1 関数へ・Windows の press / release の補助）の実施はユーザー承認後。
+- 提案書 29 は phase 81 task_05_refactor で実施済（2026-11-25）。
 - 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68・idea_69 を含む）。
 - ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 

@@ -734,6 +734,16 @@ class MappingTargetNormalizationTest(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(normalize_mapping_target(value), expected)
 
+    def test_is_uppercase_mapping_target(self):
+        from keyseq.domain.config import is_uppercase_mapping_target
+
+        for value in ("A", "Z"):
+            with self.subTest(value=value):
+                self.assertTrue(is_uppercase_mapping_target(value))
+        for value in ("a", "AB", "", "Ａ", "1"):
+            with self.subTest(value=value):
+                self.assertFalse(is_uppercase_mapping_target(value))
+
 
 if __name__ == "__main__":
     unittest.main()

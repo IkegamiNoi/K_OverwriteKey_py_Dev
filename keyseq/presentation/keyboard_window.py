@@ -7,7 +7,12 @@ from typing import Callable
 
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.domain.config import normalize_identifier, normalize_key_name, normalize_mapping_target
+from keyseq.domain.config import (
+    is_uppercase_mapping_target,
+    normalize_identifier,
+    normalize_key_name,
+    normalize_mapping_target,
+)
 from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.key_hold import is_modifier_key
@@ -468,7 +473,7 @@ class KeyboardWindow(tk.Toplevel):
             lookup_key = _LOOKUP_KEY_BY_ID.get(spec.id, spec.id)
             display = self._display_map.get(lookup_key, spec.label)
             if self._kind_map.get(lookup_key) == "keymap":
-                is_uppercase_letter = len(display) == 1 and "A" <= display <= "Z"
+                is_uppercase_letter = is_uppercase_mapping_target(display)
                 if not is_uppercase_letter:
                     display = self._layout.key_display_name(display) or display_key_name(display)
             sub_display = spec.label if self._show_physical_key_labels else ""

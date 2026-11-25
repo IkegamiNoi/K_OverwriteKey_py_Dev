@@ -7,6 +7,7 @@ import subprocess
 from threading import Lock, RLock
 from typing import Callable, Sequence
 
+from keyseq.domain.config import is_uppercase_mapping_target
 from keyseq.infrastructure.os_backend.contracts import KeySend, ResolveLayoutScanCode
 
 from .event_tap import EventTap, KeyEvent, OWN_EVENT_MARK, load_quartz
@@ -185,7 +186,7 @@ class MacKeyboardBackend:
         if not self.accepts_key_name(key):
             raise ValueError(f"Unknown key name: {key!r}")
         jis = self._jis
-        if len(key) == 1 and "A" <= key <= "Z":
+        if is_uppercase_mapping_target(key):
             vk = vk_for_name(key.lower(), jis=jis)
             if vk is not None:
                 return KeySend("mac_shift", (vk,), key)

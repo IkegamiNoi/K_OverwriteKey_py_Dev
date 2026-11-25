@@ -6,6 +6,7 @@ from typing import Callable, Sequence
 
 import keyboard
 
+from keyseq.domain.config import is_uppercase_mapping_target
 from keyseq.domain.numpad_keys import numpad_key_spec
 from keyseq.infrastructure.os_backend.contracts import KeySend, ResolveLayoutScanCode
 from .send_input import _INPUT, _INPUT_KEYBOARD, _KEYBDINPUT, _send_input_api
@@ -42,6 +43,10 @@ _REJECTED_MAC_MODIFIER_NAMES = frozenset({
     "command", "left command", "right command", "cmd", "option",
     "left option", "right option",
 })
+
+
+def _keyboard_name(send: KeySend) -> str:
+    return send.key.lower() if is_uppercase_mapping_target(send.key) else send.key
 
 
 def _normalize_key_name(name: str) -> str:
@@ -190,7 +195,7 @@ class WindowsKeyboardBackend:
     ) -> KeySend:
         if not self.accepts_key_name(key):
             raise ValueError(f"Unknown key name: {key!r}")
-        uppercase = len(key) == 1 and "A" <= key <= "Z"
+        uppercase = is_uppercase_mapping_target(key)
         lookup_key = key.lower() if uppercase else key
         numpad = numpad_key_spec(lookup_key)
         if numpad is not None:
@@ -227,7 +232,7 @@ class WindowsKeyboardBackend:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=False)
         else:
-            keyboard.press(send.key.lower() if len(send.key) == 1 and "A" <= send.key <= "Z" else send.key)
+            keyboard.press(_keyboard_name(send))
 
     def release_send(self, send: KeySend) -> None:
         kind, values = send.kind, send.values
@@ -239,7 +244,7 @@ class WindowsKeyboardBackend:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=True)
         else:
-            keyboard.release(send.key.lower() if len(send.key) == 1 and "A" <= send.key <= "Z" else send.key)
+            keyboard.release(_keyboard_name(send))
 
     def identity_of(self, send: KeySend) -> tuple[int, bool]:
         kind, values = send.kind, send.values
@@ -257,7 +262,7 @@ class WindowsKeyboardBackend:
         raise ValueError(f"Unknown key name: {send.key!r}")
 
     def needs_shift(self, send: KeySend) -> bool:
-        return (len(send.key) == 1 and "A" <= send.key <= "Z") or (send.kind == "keyboard" and _needs_shift(send.key))
+        return is_uppercase_mapping_target(send.key) or (send.kind == "keyboard" and _needs_shift(send.key))
 
     def sent_modifiers_down(self) -> tuple[bool, bool]:
         return False, False
