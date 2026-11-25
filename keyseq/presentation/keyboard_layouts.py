@@ -26,6 +26,12 @@ class KeyboardLayout:
     display_name: str
     keys: tuple[KeySpec, ...]
     key_display_names: tuple[tuple[str, str], ...] = ()
+    key_symbols: tuple[tuple[str, str], ...] = ()
+    key_symbols_invalid_reason: str = ""
+
+    @property
+    def key_symbol_map(self) -> dict[str, str]:
+        return dict(self.key_symbols)
 
     def key_display_name(self, key_name: str) -> str | None:
         normalized_name = normalize_key_name(key_name)
@@ -143,6 +149,28 @@ BUILTIN_LAYOUTS: dict[str, KeyboardLayout] = {
 }
 
 
+def _read_key_symbols(raw: object) -> tuple[tuple[tuple[str, str], ...], str]:
+    if raw is None:
+        return (), ""
+    if not isinstance(raw, dict):
+        return (), tr("keyboard.layout.key_symbols.invalid.object_type")
+
+    symbols: dict[str, str] = {}
+    for raw_key_name, shown_name in raw.items():
+        if not isinstance(shown_name, str):
+            return (), tr("keyboard.layout.key_symbols.invalid.value_type", key=raw_key_name)
+        key_name = normalize_key_name(raw_key_name)
+        if not key_name:
+            return (), tr("keyboard.layout.key_symbols.invalid.key_empty")
+        if "\n" in shown_name or "\r" in shown_name:
+            return (), tr("keyboard.layout.key_symbols.invalid.newline", key=raw_key_name)
+        if shown_name.strip():
+            symbols[key_name] = shown_name
+        else:
+            symbols.pop(key_name, None)
+    return tuple(symbols.items()), ""
+
+
 def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -> dict:
     if not isinstance(data, dict):
         raise ValueError(tr("keyboard.layout.error.root_type"))
@@ -183,6 +211,8 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
                 raise ValueError(tr("keyboard.layout.error.key_display_name_key_empty"))
             normalized_display_names[key_name] = shown_name
         key_display_names = tuple(normalized_display_names.items())
+
+    key_symbols, key_symbols_invalid_reason = _read_key_symbols(data.get("key_symbols"))
 
     raw_keys = data.get("keys")
     if not isinstance(raw_keys, list):
@@ -265,6 +295,8 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         "layout_id": layout_id,
         "display_name": display_name,
         "key_display_names": key_display_names,
+        "key_symbols": key_symbols,
+        "key_symbols_invalid_reason": key_symbols_invalid_reason,
         "keys": normalized_keys,
     }
 
@@ -289,6 +321,8 @@ def keyboard_layout_from_dict(data: dict, *, existing_layout_ids: set[str] | Non
         display_name=normalized["display_name"],
         keys=tuple(keys),
         key_display_names=normalized["key_display_names"],
+        key_symbols=normalized["key_symbols"],
+        key_symbols_invalid_reason=normalized["key_symbols_invalid_reason"],
     )
 
 

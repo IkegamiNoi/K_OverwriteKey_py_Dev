@@ -670,3 +670,5 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - medium: 描き直しの入口 → `set_keyboard_layout_selection` の末尾を足す（採用）・フックキーの個別設定の切替での古い一覧は受容。
 - medium: 選択を保つ API が無い → **保たない**（「次に実行」へ戻るのを受容）。
 - medium: key_hold の対象 → 正しく読めたキーの行だけと明記（採用・文言のみ）。
+### 【task_01】完了（2026-11-26・reviewer 採用）
+- delegating の試行: codex-delegating-implementer に回した（本体 6・テスト 4 で目安に該当）。サブエージェントは起動されず Sol 単独で完了（rollout 2026-11-25T23-51-32 の model は gpt-6.1-sol のみ・同時刻以降に Luna の rollout なし）。1 回で完了・テストの書き漏らしなし。

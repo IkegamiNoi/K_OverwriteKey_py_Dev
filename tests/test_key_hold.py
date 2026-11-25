@@ -222,3 +222,44 @@ class FormatKeyHoldTests(unittest.TestCase):
             ),
             "05. [press] a（リピート）",
         )
+
+
+class FormatKeyHoldOverrideTests(unittest.TestCase):
+    def test_keyboard_press_release_and_repeat_use_override(self):
+        symbols = {"bar": "Custom", "-": "Dash"}
+        for value, expected in (("bar", "Custom"), ("minus", "Dash")):
+            for edge, repeat, tag in (
+                ("down", False, "press"), ("up", False, "release"),
+                ("down", True, "press"),
+            ):
+                action = {"edge": edge, "value": value, "repeat": repeat}
+                suffix = "\uff08\u30ea\u30d4\u30fc\u30c8\uff09" if repeat else ""
+                with self.subTest(action=action):
+                    self.assertEqual(
+                        format_key_hold_value(action, key_symbols=symbols),
+                        f"[{tag}] {expected}{suffix}",
+                    )
+
+    def test_invalid_and_mouse_rows_keep_their_display(self):
+        symbols = {"bar": "Custom", "ctrl+a": "Invalid", "left": "Button", "extra": "Extra"}
+        for action in (
+            {"edge": "bad", "value": "bar"},
+            {"edge": "down", "value": "ctrl+a"},
+            {"edge": "down", "button": "extra"},
+            {"edge": "down", "button": "left", "repeat": True},
+            {"edge": "up", "button": "left", "x": 1, "y": 2},
+        ):
+            with self.subTest(action=action):
+                self.assertEqual(
+                    format_key_hold_value(action, key_symbols=symbols),
+                    format_key_hold_value(action),
+                )
+
+    def test_none_and_empty_map_keep_keyboard_display(self):
+        action = {"edge": "down", "value": "bar", "repeat": True}
+        for symbols in (None, {}):
+            with self.subTest(symbols=symbols):
+                self.assertEqual(
+                    format_key_hold_value(action, key_symbols=symbols),
+                    format_key_hold_value(action),
+                )

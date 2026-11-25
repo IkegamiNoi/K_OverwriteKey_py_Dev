@@ -35,5 +35,22 @@ class DisplayKeyNameTests(unittest.TestCase):
         self.assertEqual(display_key_name("right option"), "right option")
 
 
+class DisplayKeyNameOverrideTests(unittest.TestCase):
+    def test_override_precedes_symbols_and_preserves_written_value(self):
+        symbols = {"bar": " custom ", "muhenkan": "Custom key", "-": "Dash"}
+        for name, expected in (
+            (" BAR ", " custom "), ("MUHENKAN", "Custom key"), ("minus", "Dash"),
+            (" MINUS ", "Dash"), ("slash", "/"), (" Unknown ", " Unknown "),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(display_key_name(name, symbols), expected)
+
+    def test_none_and_empty_map_preserve_existing_display(self):
+        for symbols in (None, {}):
+            for name in (*KEY_SYMBOLS, " BAR ", " Unknown ", ""):
+                with self.subTest(symbols=symbols, name=name):
+                    self.assertEqual(display_key_name(name, symbols), display_key_name(name))
+
+
 if __name__ == "__main__":
     unittest.main()

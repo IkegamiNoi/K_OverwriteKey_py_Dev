@@ -380,6 +380,125 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
             with self.subTest(key_id=key_id):
                 self.assertIn(key_id, key_ids)
 
+    def test_key_symbols_load_normalized_and_preserve_values(self):
+        from keyseq.presentation.keyboard_layouts import validate_layout_json
+
+        data = {
+            **self._layout_data({}),
+            "key_symbols": {" BAR ": " custom ", "minus": "Dash", "muhenkan": "Custom key"},
+        }
+        expected = (("bar", " custom "), ("-", "Dash"), ("muhenkan", "Custom key"))
+        normalized = validate_layout_json(data)
+        self.assertEqual(normalized["key_symbols"], expected)
+        self.assertEqual(normalized["key_symbols_invalid_reason"], "")
+        layout = keyboard_layout_from_dict(data)
+        self.assertEqual(layout.key_symbols, expected)
+        self.assertEqual(layout.key_symbols_invalid_reason, "")
+        self.assertIsInstance(layout.key_symbol_map, dict)
+        self.assertEqual(layout.key_symbol_map, dict(expected))
+        symbols = layout.key_symbol_map
+        symbols["bar"] = "Changed"
+        self.assertEqual(layout.key_symbol_map["bar"], " custom ")
+
+    def test_key_symbols_missing_null_and_empty_have_no_reason(self):
+        for fields in ({}, {"key_symbols": None}, {"key_symbols": {}}):
+            with self.subTest(fields=fields):
+                layout = keyboard_layout_from_dict({**self._layout_data({}), **fields})
+                self.assertEqual(layout.key_symbols, ())
+                self.assertEqual(layout.key_symbol_map, {})
+                self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+    def test_key_symbols_invalid_table_is_discarded_but_layout_loads(self):
+        from keyseq.shared.i18n import tr_in
+        from keyseq.presentation.keyboard_layouts import validate_layout_json
+
+        cases = (
+            ([], "object_type", {}),
+            ("custom", "object_type", {}),
+            ({"valid": "Valid", "bad": 1}, "value_type", {"key": "bad"}),
+            ({"valid": "Valid", "bad": None}, "value_type", {"key": "bad"}),
+            ({"valid": "Valid", "  ": "Empty"}, "key_empty", {}),
+            ({"valid": "Valid", "bad": "line\nbreak"}, "newline", {"key": "bad"}),
+            ({"valid": "Valid", "bad": "\r"}, "newline", {"key": "bad"}),
+        )
+        for raw, reason, params in cases:
+            with self.subTest(raw=raw):
+                data = {
+                    **self._layout_data({"scan_code": 42}),
+                    "key_display_names": {"custom": "Display"},
+                    "key_symbols": raw,
+                }
+                expected_reason = tr_in("ja", f"keyboard.layout.key_symbols.invalid.{reason}", **params)
+                normalized = validate_layout_json(data)
+                self.assertEqual(normalized["key_symbols"], ())
+                self.assertEqual(normalized["key_symbols_invalid_reason"], expected_reason)
+                layout = keyboard_layout_from_dict(data)
+                self.assertEqual(layout.key_symbols, ())
+                self.assertEqual(layout.key_symbols_invalid_reason, expected_reason)
+                self.assertEqual(layout.layout_id, data["layout_id"])
+                self.assertEqual(layout.display_name, data["display_name"])
+                self.assertEqual(layout.keys[0].scan_code, 42)
+                self.assertEqual(layout.key_display_name("custom"), "Display")
+
+    def test_key_symbols_keep_first_invalid_reason(self):
+        from keyseq.shared.i18n import tr_in
+
+        layout = keyboard_layout_from_dict({
+            **self._layout_data({}),
+            "key_symbols": {"first": 1, "second": "line\nbreak", " ": "Empty"},
+        })
+        self.assertEqual(layout.key_symbols, ())
+        self.assertEqual(
+            layout.key_symbols_invalid_reason,
+            tr_in("ja", "keyboard.layout.key_symbols.invalid.value_type", key="first"),
+        )
+
+    def test_key_symbols_duplicates_keep_later_value_and_blank_values_are_absent(self):
+        layout = keyboard_layout_from_dict({
+            **self._layout_data({}),
+            "key_symbols": {
+                "minus": "Old", "-": "Dash", " BAR ": "Old bar", "bar": "New bar",
+                "empty": "", "space": " \t ", "gone": "Old", " GONE ": " ",
+            },
+        })
+        self.assertEqual(layout.key_symbol_map, {"-": "Dash", "bar": "New bar"})
+        self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+    def test_other_layout_errors_still_raise_with_invalid_key_symbols(self):
+        for fields in ({"key_display_names": []}, {"keys": []}):
+            with self.subTest(fields=fields):
+                with self.assertRaises(ValueError):
+                    keyboard_layout_from_dict({
+                        **self._layout_data({}), "key_symbols": [], **fields,
+                    })
+
+    def test_builtin_and_existing_constructor_have_empty_key_symbols(self):
+        from keyseq.presentation.keyboard_layouts import BUILTIN_LAYOUTS
+
+        for layout in (BUILTIN_LAYOUTS["us_tkl"], KeyboardLayout("test", "Test", ())):
+            with self.subTest(layout_id=layout.layout_id):
+                self.assertEqual(layout.key_symbols, ())
+                self.assertEqual(layout.key_symbol_map, {})
+                self.assertEqual(layout.key_symbols_invalid_reason, "")
+
+    def test_key_symbols_reasons_are_translated_in_both_locales(self):
+        import json
+        from keyseq.shared.i18n import tr_in
+
+        locale_dir = Path(__file__).resolve().parents[1] / "keyseq" / "shared" / "i18n" / "locales"
+        catalogs = {
+            lang: json.loads((locale_dir / f"{lang}.json").read_text(encoding="utf-8"))
+            for lang in ("ja", "en")
+        }
+        self.assertEqual(set(catalogs["ja"]), set(catalogs["en"]))
+        for lang, catalog in catalogs.items():
+            for reason in ("object_type", "value_type", "key_empty", "newline"):
+                key = f"keyboard.layout.key_symbols.invalid.{reason}"
+                with self.subTest(lang=lang, reason=reason):
+                    self.assertIn(key, catalog)
+                    self.assertTrue(catalog[key])
+                    self.assertEqual(tr_in(lang, key, key="custom"), catalog[key].format(key="custom"))
+
 
 if __name__ == "__main__":
     unittest.main()

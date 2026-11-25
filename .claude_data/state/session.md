@@ -4,33 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T23:30:00
+last_updated: 2026-11-26T00:10:00
 phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
 直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
 last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 起票済（2026-11-25）。task_01（`key_symbols` の読込と domain の表示の関数）が未着手。**
+focus: **phase 82 task_01 完了（2026-11-26）。task_02（表の受け渡しと描き直し）へ。**
 mode: implementing
+presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-25T23:30:00
+ts: 2026-11-26T00:10:00
 who: main
 summary: |
-  idea_63 の相談 → 方向をユーザー確定（レイアウトの JSON の新項目 `key_symbols`・配列の判別はしない）。配列の種類の項目は idea_70 へ分離して起票。
-  暫定 62 を起票（v0.1 deep-reviewer 修正して採用 → v0.2 / §8 の 5 点を提案どおり確定 → v0.3 / Codex 敵対的 needs-attention 4 件をユーザー判断で反映・不正な表は使わず警告を一時メッセージ欄の下敷きに → v0.4 ユーザー確定）。
-  phase 82 の phase.md・current.md・INDEX（idea_63 着手・idea_70）・decisions.md の phase 82 節を起票。reviewer 整合チェック = 採用（軽微 1 を反映）。
+  task_01（`key_symbols` の読込と domain の表示の関数）を codex-delegating-implementer で実装（子は起動されず Sol 単独）。差分を直読み → verifier: compileall pass・対象 4 モジュール 148 OK・tests 2312 OK（skip 9）→ reviewer 採用（参考 2 点のみ）。
+  ユーザー: task の連続実行を許可・/away（戻る予定 未定）。
 result_files:
-  - instructions/history/62_layout_key_symbols.md・instructions/phase/82_layout_key_symbols/phase.md・instructions/phase/current.md
-  - instructions/backlog/INDEX.md・instructions/backlog/idea_70_layout_physical_type_field.md・.claude_data/state/decisions.md
+  - keyseq/domain/key_symbols.py・config.py・key_hold.py・keyseq/presentation/keyboard_layouts.py・keyseq/shared/i18n/locales/ja.json・en.json
+  - tests/test_key_symbols.py・test_domain_config.py・test_key_hold.py・test_keyboard_layout_files.py・instructions/phase/82_layout_key_symbols/tasks/task_01_*.md
 verified:
-  compile: not_run（文書のみ）
-  tests: not_run（文書のみ）
+  compile: clean
+  tests: pass 2312（skip 9・Windows）
+  tests_ui: not_run（task_01 は domain と読込のみ）
 
 ## next_action
-- `/task_new` で `instructions/phase/82_layout_key_symbols/tasks/task_01_*.md` を起票（phase.md の task_01 = `keyseq/presentation/keyboard_layouts.py` の `key_symbols` の読込〔不正なら表だけ使わず理由を持つ〕・`KeyboardLayout` の保持と dict の取り出し・`keyseq/domain/key_symbols.py` `display_key_name` / `domain/config.py` `format_trigger_list_item`・`format_action_list_item` / `domain/key_hold.py` `format_key_hold_value` に上書きの表の引数・tests）。
-- 起票後、`agent_selection.md` の目安で実装エージェントを選んで委任（本体 4 ファイル・2 層・テスト 3 以上の見込み → `codex-delegating-implementer`）→ verifier → reviewer。
+- `/task_new` で task_02（presentation の表の受け渡しと描き直し・phase.md の task_02・暫定 62 §4〜§6）を起票 → Codex 実装エージェントへ委任 → verifier（tests + tests_ui）→ reviewer。
+- task_03（警告の下敷き・見本）→ task_04 の実機目視はユーザー（不在中なら引き継いで止まる）。
 - ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers

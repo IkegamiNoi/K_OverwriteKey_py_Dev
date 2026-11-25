@@ -484,8 +484,10 @@ def ensure_config_compatibility(
     return config
 
 
-def format_trigger_list_item(index: int, trigger: dict[str, Any]) -> str:
-    key = display_key_name(normalize_key_name(trigger.get("key", "")))
+def format_trigger_list_item(
+    index: int, trigger: dict[str, Any], *, key_symbols: Mapping[str, str] | None = None
+) -> str:
+    key = display_key_name(normalize_key_name(trigger.get("key", "")), key_symbols)
     label = (trigger.get("label") or "").strip()
     if label:
         return f"{index + 1:02d}. {key}: {label}"
@@ -507,6 +509,7 @@ def format_action_list_item(
     counters: Mapping[str, Any] | None = None,
     counter_starts: Mapping[str, Any] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
+    key_symbols: Mapping[str, str] | None = None,
 ) -> str:
     action_type = (action.get("type") or "").strip().lower()
     is_control_action = action_type in (
@@ -522,7 +525,7 @@ def format_action_list_item(
             counter_starts=counter_starts, resolve_call=resolve_call
         )
     elif is_key_hold_action:
-        value_display = key_hold.format_key_hold_value(action)
+        value_display = key_hold.format_key_hold_value(action, key_symbols=key_symbols)
     elif is_mouse_scroll_action:
         value_display = mouse_scroll.format_mouse_scroll_value(action)
     elif action_type == "mouse_click":

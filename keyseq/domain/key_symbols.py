@@ -1,5 +1,7 @@
 """Shared display symbols for common keyboard key names."""
 
+from collections.abc import Mapping
+
 KEY_SYMBOLS: dict[str, str] = {
     "backslash": "\\",
     "slash": "/",
@@ -40,8 +42,14 @@ KEY_SYMBOLS: dict[str, str] = {
 }
 
 
-def display_key_name(key_name: str) -> str:
+def display_key_name(key_name: str, key_symbols: Mapping[str, str] | None = None) -> str:
     """Return a common display symbol, preserving other names verbatim."""
+    if key_symbols is not None:
+        from .config import normalize_key_name
+
+        symbol = key_symbols.get(normalize_key_name(key_name))
+        if symbol is not None:
+            return symbol
     symbol = KEY_SYMBOLS.get(key_name.strip().lower())
     if symbol is not None:
         return symbol

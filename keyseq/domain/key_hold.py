@@ -121,7 +121,9 @@ def held_display_name(kind: str, name: str) -> str:
     return tr(button_keys[name])
 
 
-def format_key_hold_value(action: Mapping[str, Any]) -> str:
+def format_key_hold_value(
+    action: Mapping[str, Any], *, key_symbols: Mapping[str, str] | None = None
+) -> str:
     parsed = parse_key_hold(action)
     if isinstance(parsed, str):
         button = action.get("button")
@@ -131,9 +133,9 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
     tag = "press" if parsed.edge == EDGE_DOWN else "release"
     if parsed.button is None:
         if is_repeat_enabled(action):
-            display = tr("domain.key_hold.display.key_repeat", key=display_key_name(parsed.key))
+            display = tr("domain.key_hold.display.key_repeat", key=display_key_name(parsed.key, key_symbols))
         else:
-            display = tr("domain.key_hold.display.key", key=display_key_name(parsed.key))
+            display = tr("domain.key_hold.display.key", key=display_key_name(parsed.key, key_symbols))
         return f"[{tag}] {display}"
     display = tr(
         "domain.key_hold.display.button",

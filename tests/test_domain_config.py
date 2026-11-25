@@ -745,5 +745,40 @@ class MappingTargetNormalizationTest(unittest.TestCase):
                 self.assertFalse(is_uppercase_mapping_target(value))
 
 
+class FormatListItemKeySymbolsTest(unittest.TestCase):
+    def test_trigger_override_and_default_display(self):
+        trigger = {"key": " BAR ", "label": "Label"}
+        self.assertEqual(
+            format_trigger_list_item(0, trigger, key_symbols={"bar": "Custom"}),
+            "01. Custom: Label",
+        )
+        self.assertEqual(format_trigger_list_item(0, trigger), "01. |: Label")
+        self.assertEqual(
+            format_trigger_list_item(1, {"key": "minus"}, key_symbols={"-": "Dash"}),
+            "02. Dash",
+        )
+
+    def test_key_hold_action_receives_override(self):
+        action = {"type": "key_hold", "edge": "up", "value": "bar", "label": "Label"}
+        self.assertEqual(
+            format_action_list_item(1, action, key_symbols={"bar": "Custom"}),
+            "02. [release] Custom: Label",
+        )
+        self.assertEqual(format_action_list_item(1, action), "02. [release] |: Label")
+
+    def test_other_action_types_keep_their_display_with_override(self):
+        symbols = {"bar": "Custom", "left": "Custom button"}
+        for action in (
+            {"type": "hotkey", "value": "bar"},
+            {"type": "text", "value": "bar"},
+            {"type": "mouse_click", "button": "left", "x": 1, "y": 2},
+        ):
+            with self.subTest(action=action):
+                self.assertEqual(
+                    format_action_list_item(0, action, key_symbols=symbols),
+                    format_action_list_item(0, action),
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
