@@ -1,7 +1,6 @@
 # 暫定仕様 61: キー置換の置換先に英字の大文字（uppercase_replacement_target）
 
-> 状態: **凍結（2026-11-25・phase 81 task_04 で正本 `data_schema.md` §5.1・§5.6 / `key_input.md` §7.4・§7.9 / `features.md` §4.6 / `codebase_map.md` へ昇格）。条項を実装の根拠に引かない（正本が正）**。v0.3 = ユーザー確定済（2026-11-25）（v0.1 → deep-reviewer「修正して採用」を反映 = v0.2 → Codex 敵対的レビュー 5 点 + 表示名 1 点を推奨どおり反映 = v0.3）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（2026-11-25・phase 81 task_04 で正本 `data_schema.md` §5.1・§5.6 / `key_input.md` §7.4・§7.9 / `features.md` §4.6 / `codebase_map.md` へ昇格）。条項を実装の根拠に引かない（正本が正）**。v0.3 = ユーザー確定済（2026-11-25・v0.1 → deep-reviewer「修正して採用」を反映 = v0.2 → Codex 敵対的レビュー 5 点 + 表示名 1 点を推奨どおり反映 = v0.3）。
 > 起票元: [idea_62](../backlog/idea_62_uppercase_replacement_target.md)（2026-11-21 起票・2026-11-25 ユーザーと意図を確認して書き直し）。番号対応: phase 81 / 暫定 61 / decisions 81。
 
 ---
