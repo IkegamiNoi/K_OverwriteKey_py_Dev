@@ -15,11 +15,11 @@ focus: **phase 81 完了（2026-11-25）。アクティブなフェーズなし�
 mode: completed
 
 ## last_action
-ts: 2026-11-25T21:00:00
+ts: 2026-11-25T22:00:00
 who: main
 summary: |
   phase 81 完了。task_03 = 実機目視 OK（Windows 1〜5・macOS は Caps Lock ON 以外）・task_04 = 正本反映（data_schema §5.1・§5.6 / key_input §7.4・§7.9 / features §4.6 / codebase_map）・暫定 61 凍結・contracts.py のコメント。
-  完了判定前レビュー deep-reviewer 修正して採用 / Codex needs-attention（medium 3）→ ユーザー「推奨どおり」: 正本の言い回し修正・idea_69 分離・表示名の受容。refactor_check 推奨 → 提案書 29。
+  完了判定前レビュー deep-reviewer 修正して採用 / Codex needs-attention（medium 3）→ ユーザー「推奨どおり」: 正本の言い回し修正・idea_69 分離・表示名の受容。refactor_check 推奨 → 提案書 29。 続けて提案書 29 を task_05_refactor で実施（003903d3・挙動不変・tests 2296 / smoke pass・reviewer 採用）。
 result_files:
   - instructions/common/（spec_detail/data_schema.md・key_input.md・features.md・codebase_map.md）・instructions/history/61_*.md
   - .claude_data/state/decisions_archive/81_uppercase_replacement_target.md・instructions/modified_proposal/29_*.md・instructions/backlog/idea_69_*.md
