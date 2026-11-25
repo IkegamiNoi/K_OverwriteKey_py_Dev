@@ -227,6 +227,7 @@ class CallViewController:
             counters=summary.counters,
             counter_starts=summary.counter_starts,
             resolve_call=self.app.trigger_panel._resolve_call_target,
+            key_symbols=getattr(self.app.trigger_panel, "_current_key_symbols", lambda: None)(),
         )
         frame.action_list.delete(0, tk.END)
         for index, (text, background) in enumerate(rows):

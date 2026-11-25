@@ -407,5 +407,20 @@ class ActionListRenderingTest(unittest.TestCase):
         self.assertEqual(action_list.get(0), "▶ 01. [loop] 2/3")
 
 
+class ActionListKeySymbolsTest(unittest.TestCase):
+    def test_key_hold_rows_and_summary_use_optional_symbol_table(self):
+        action = {"type": "key_hold", "edge": "down", "value": "minus", "repeat": True}
+        for kwargs, expected in (
+            ({}, "01. [press] -（リピート）"),
+            ({"key_symbols": {"-": "−"}}, "01. [press] −（リピート）"),
+        ):
+            with self.subTest(kwargs=kwargs):
+                rows = build_action_rows([action], loop_iterations={}, counters={}, **kwargs)
+                self.assertEqual(rows, [(expected, None)])
+                self.assertEqual(format_next_action_summary(
+                    0, action, loop_iterations={}, counters={}, **kwargs,
+                ), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

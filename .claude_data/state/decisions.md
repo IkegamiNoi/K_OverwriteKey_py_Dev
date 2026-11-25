@@ -672,3 +672,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - medium: key_hold の対象 → 正しく読めたキーの行だけと明記（採用・文言のみ）。
 ### 【task_01】完了（2026-11-26・reviewer 採用）
 - delegating の試行: codex-delegating-implementer に回した（本体 6・テスト 4 で目安に該当）。サブエージェントは起動されず Sol 単独で完了（rollout 2026-11-25T23-51-32 の model は gpt-6.1-sol のみ・同時刻以降に Luna の rollout なし）。1 回で完了・テストの書き漏らしなし。
+### 【task_02】完了（2026-11-26・reviewer 採用）
+- delegating の試行: 本体 5・テスト 4 で codex-delegating-implementer。子 2 つが起動された（rollout 2026-11-25T23-59-27 / 23-59-44 / 2026-11-26T00-00-48 に gpt-6-luna あり）。1 回で完了・既存の期待値の変更なし。
+- tests_ui 全体で `test_minimize_grab_custody` が 1 件 fail（回ごとに別のテスト・a13 は単独で pass・同モジュール 3 回ずつで変更あり 1/3・基準 7e113f66 は 0/3）。変更は最小化・grab・after の経路に触れず、テストもレイアウトの変更や一覧の描き直しを呼ばない → **負荷依存の偶発的な失敗と判断（未確定）**。task_04 の統合確認で全体を流し直して再確認する。

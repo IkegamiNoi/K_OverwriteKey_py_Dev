@@ -29,6 +29,7 @@ def build_action_rows(
     counters: Mapping[str, int],
     counter_starts: Mapping[str, int] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
+    key_symbols: Mapping[str, str] | None = None,
 ) -> list[tuple[str, str | None]]:
     """表示文字列と行ごとのループ背景色を返す。"""
     structure = analyze_loops(actions)
@@ -43,6 +44,7 @@ def build_action_rows(
             counters=counters,
             counter_starts=counter_starts,
             resolve_call=resolve_call,
+            key_symbols=key_symbols,
         )
         rows.append((item_text, background))
     return rows
@@ -56,6 +58,7 @@ def format_next_action_summary(
     counters: Mapping[str, int],
     counter_starts: Mapping[str, int] | None = None,
     resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
+    key_symbols: Mapping[str, str] | None = None,
 ) -> str:
     """省略表示の要約を作る。制御アクションは一覧と同じ値表示にする。"""
     action_kind = (action.get("type") or "").strip().lower()
@@ -67,6 +70,7 @@ def format_next_action_summary(
             counters=counters,
             counter_starts=counter_starts,
             resolve_call=resolve_call,
+            key_symbols=key_symbols,
         )
 
     if action_kind == "mouse_click":

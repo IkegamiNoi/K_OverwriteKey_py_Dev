@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from collections.abc import Mapping
 from keyseq.application.counter_values import counter_starts_of
 from keyseq.application.sequence_steps import preview_counter_values
 
@@ -182,6 +183,13 @@ class TriggerPanelController:
         self.rename_trigger()
 
     # ---------------- 表示系 ----------------
+    def _current_key_symbols(self) -> Mapping[str, str] | None:
+        """選択中レイアウトの表を返す。未初期化・取得失敗時は従来表示にする。"""
+        try:
+            return self._app.layout.get_current_keyboard_layout().key_symbol_map
+        except Exception:
+            return None
+
     def _sync_trigger_selection_preserving_range(self, listbox):
         bounds = selected_range(listbox)
         active = int(listbox.index(tk.ACTIVE))
@@ -211,10 +219,11 @@ class TriggerPanelController:
         triggers = get_active_triggers(self._app.data)
         overlap = self._app._refresh_key_overlap_report()
         duplicate_indices = shadowed_duplicate_indices(triggers)
+        key_symbols = self._current_key_symbols()
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             conflict = overlap.trigger_conflict(k)
-            s = format_trigger_list_item(i, t)
+            s = format_trigger_list_item(i, t, key_symbols=key_symbols)
             if conflict is not None:
                 s = tr("keymap_panel.entry.conflict", entry=s,
                        reason=self._trigger_conflict_reason(conflict.winner))
@@ -302,6 +311,7 @@ class TriggerPanelController:
             counters=display_counters,
             counter_starts=counter_starts_of(counters),
             resolve_call=self._resolve_call_target,
+            key_symbols=self._current_key_symbols(),
         )
         if effective and key not in self._app._indices:
             self._app._indices[key] = 0
@@ -510,6 +520,7 @@ class TriggerPanelController:
             counters=display_counters,
             counter_starts=counter_starts_of(self._app.state.counters),
             resolve_call=self._resolve_call_target,
+            key_symbols=self._current_key_symbols(),
         )
 
     def _resolve_call_target(self, target: str) -> tuple[str, str | None]:

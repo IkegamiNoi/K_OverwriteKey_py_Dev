@@ -11,6 +11,8 @@ from keyseq.presentation.controllers.action_list_rendering import (
 )
 from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.hook_controller import HookController
+from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
+from keyseq.presentation.keyboard_layouts import KeyboardLayout
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -228,3 +230,77 @@ class KeyHoldPresentationTests(unittest.TestCase):
         destroy.assert_called_once_with()
         self.gateway.release_send.side_effect = None
         self.assertEqual(self.app.held_inputs.release_all(), [])
+
+
+class LayoutKeySymbolsPresentationTests(unittest.TestCase):
+    def _panel(self, layout):
+        trigger = {
+            "key": "-", "label": "記号",
+            "actions": [{"type": "key_hold", "edge": "down", "value": "minus"}],
+        }
+        app = SimpleNamespace(
+            data={"active_keymap_id": "main", "keymaps": [
+                {"id": "main", "triggers": [trigger]},
+            ]},
+            layout=SimpleNamespace(get_current_keyboard_layout=Mock(return_value=layout),
+                                   refresh_keyboard_window=Mock()),
+            full_view=SimpleNamespace(action_list=Mock()),
+            compact_sequence=SimpleNamespace(render=Mock()),
+            state=SimpleNamespace(
+                counters={}, loop_iterations_for=Mock(return_value={}),
+                deferred_counters_for=Mock(return_value={}),
+            ),
+            _active_trigger_set_id=lambda: "main", _selected_trigger_idx=0, _indices={},
+            _find_trigger_by_key=lambda key: trigger if key == "-" else None,
+            _refresh_key_overlap_report=Mock(return_value=SimpleNamespace(
+                trigger_conflict=Mock(return_value=None),
+            )),
+            keymap_panel=SimpleNamespace(refresh_keymap_list_ui=Mock()),
+        )
+        panel = TriggerPanelController(app)
+        for name in ("sync_trigger_selection_to_views", "sync_suppress_checkbox",
+                     "sync_run_to_end_ui", "update_status", "select_next_action_row"):
+            setattr(panel, name, Mock())
+        return app, panel
+
+    def test_symbols_reach_trigger_full_compact_summary_and_call_view(self):
+        layout = KeyboardLayout("symbols", "Symbols", (), key_symbols=(("-", "−"),))
+        app, panel = self._panel(layout)
+        app.trigger_panel = panel
+        listing = Mock()
+        panel.register_trigger_list(listing)
+        panel.refresh_triggers()
+        listing.insert.assert_called_once_with("end", "01. −: 記号")
+
+        panel.refresh_actions()
+        app.full_view.action_list.insert.assert_called_once_with("end", "▶ 01. [press] −")
+        app.compact_sequence.render.assert_called_once_with([("01. [press] −", None)], 0)
+        self.assertEqual(panel.get_next_action_summary("-"), "01. [press] −")
+
+        frame = SimpleNamespace(action_list=Mock())
+        summary = SimpleNamespace(
+            actions=panel.selected_trigger()["actions"], loop_frames=(),
+            counters={}, counter_starts={}, position=0,
+        )
+        CallViewController(app)._render_rows(frame, summary)
+        frame.action_list.insert.assert_called_once_with("end", "▶ 01. [press] −")
+
+    def test_missing_or_failing_layout_keeps_existing_action_and_call_view_text(self):
+        for failure in ("missing", "error"):
+            with self.subTest(failure=failure):
+                app, panel = self._panel(None)
+                app.trigger_panel = panel
+                if failure == "missing":
+                    del app.layout
+                else:
+                    app.layout.get_current_keyboard_layout.side_effect = RuntimeError("unavailable")
+                self.assertIsNone(panel._current_key_symbols())
+                panel.refresh_actions()
+                app.full_view.action_list.insert.assert_called_once_with("end", "▶ 01. [press] -")
+                self.assertEqual(panel.get_next_action_summary("-"), "01. [press] -")
+                frame = SimpleNamespace(action_list=Mock())
+                CallViewController(app)._render_rows(frame, SimpleNamespace(
+                    actions=panel.selected_trigger()["actions"], loop_frames=(),
+                    counters={}, counter_starts={}, position=0,
+                ))
+                frame.action_list.insert.assert_called_once_with("end", "▶ 01. [press] -")

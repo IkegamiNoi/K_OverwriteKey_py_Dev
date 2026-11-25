@@ -475,7 +475,9 @@ class KeyboardWindow(tk.Toplevel):
             if self._kind_map.get(lookup_key) == "keymap":
                 is_uppercase_letter = is_uppercase_mapping_target(display)
                 if not is_uppercase_letter:
-                    display = self._layout.key_display_name(display) or display_key_name(display)
+                    display = self._layout.key_display_name(display) or display_key_name(
+                        display, self._layout.key_symbol_map
+                    )
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
             if not InputGateway.accepts_key_name(lookup_key) or (

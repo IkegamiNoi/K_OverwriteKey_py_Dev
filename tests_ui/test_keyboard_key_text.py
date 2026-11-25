@@ -1,3 +1,4 @@
+from dataclasses import replace
 import re
 import tkinter as tk
 from tkinter import font as tkfont
@@ -162,6 +163,97 @@ class KeyboardKeyTextUiTest(unittest.TestCase):
         lower = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "2")]
         self.assertIn("A", upper)
         self.assertIn("x-name", lower)
+
+    def test_key_symbols_override_common_symbol_and_unknown_name_falls_back(self):
+        layout = replace(
+            resolve_keyboard_layout(),
+            key_symbols=(("backslash", "CUSTOM"),),
+        )
+        window = self._window(layout)
+        window.update_from_config({
+            "active_keymap_id": "default",
+            "keymaps": [{
+                "id": "default",
+                "mappings": {"1": "backslash", "2": "not_in_table"},
+            }],
+        })
+        self._redraw_at_unit(window, 27)
+
+        custom_text = [
+            window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(window, "1")
+        ]
+        fallback_text = [
+            window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(window, "2")
+        ]
+        self.assertIn("CUSTOM", custom_text)
+        self.assertIn("not_in_table", fallback_text)
+
+    def test_key_display_name_precedes_key_symbols(self):
+        layout = replace(
+            resolve_keyboard_layout(),
+            key_display_names=(("backslash", "layout-name"),),
+            key_symbols=(("backslash", "custom-symbol"),),
+        )
+        window = self._window(layout)
+        window.update_from_config({
+            "active_keymap_id": "default",
+            "keymaps": [{"id": "default", "mappings": {"1": "backslash"}}],
+        })
+        self._redraw_at_unit(window, 27)
+
+        text = [
+            window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(window, "1")
+        ]
+        self.assertIn("layout-name", text)
+        self.assertNotIn("custom-symbol", text)
+
+    def test_key_symbols_are_skipped_for_uppercase_and_absent_layout_table(self):
+        layout = replace(
+            resolve_keyboard_layout(),
+            key_display_names=(("a", "WRONG"),),
+            key_symbols=(("a", "WRONG"), ("b", "custom-lowercase")),
+        )
+        window = self._window(layout)
+        window.update_from_config({
+            "active_keymap_id": "default",
+            "keymaps": [{"id": "default", "mappings": {"1": "A", "2": "b"}}],
+        })
+        self._redraw_at_unit(window, 27)
+
+        upper = [
+            window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(window, "1")
+        ]
+        lower = [
+            window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(window, "2")
+        ]
+        self.assertIn("A", upper)
+        self.assertIn("custom-lowercase", lower)
+
+        legacy_layout = replace(resolve_keyboard_layout(), key_symbols=())
+        legacy_window = self._window(legacy_layout)
+        legacy_window.update_from_config({
+            "active_keymap_id": "default",
+            "keymaps": [{
+                "id": "default",
+                "mappings": {"1": "backslash", "2": "bar"},
+            }],
+        })
+        self._redraw_at_unit(legacy_window, 27)
+        legacy_backslash = [
+            legacy_window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(legacy_window, "1")
+        ]
+        legacy_bar = [
+            legacy_window.canvas.itemcget(item, "text")
+            for item in self._texts_in_key(legacy_window, "2")
+        ]
+        self.assertIn("\\", legacy_backslash)
+        self.assertIn("|", legacy_bar)
 
 
 if __name__ == "__main__":

@@ -217,6 +217,13 @@ class LayoutController:
         except Exception:
             pass
 
+    def _refresh_lists_after_layout_change(self) -> None:
+        trigger_panel = getattr(self._app, "trigger_panel", None)
+        if trigger_panel is None:
+            return
+        trigger_panel.refresh_triggers()
+        trigger_panel.refresh_actions()
+
     def get_current_keyboard_layout(self):
         return self._active_layout
 
@@ -326,6 +333,7 @@ class LayoutController:
                 pass
 
         self.refresh_keyboard_window()
+        self._refresh_lists_after_layout_change()
         if persist:
             return self.persist_keyboard_layout_selection()
         return True
@@ -336,6 +344,7 @@ class LayoutController:
             selected = self.get_fallback_keyboard_layout_id()
         self._app.data["keyboard_layout"] = selected
         self.reload_keyboard_layouts()
+        self._refresh_lists_after_layout_change()
         return self.persist_keyboard_layout_selection()
 
     def add_external_keyboard_layout(self):
@@ -360,6 +369,7 @@ class LayoutController:
             return
 
         self.reload_keyboard_layouts()
+        self._refresh_lists_after_layout_change()
         self.persist_keyboard_layout_selection()
         self._app._set_flash_message(tr("keyboard.layout.added", layout_id=layout.layout_id))
 
@@ -406,6 +416,7 @@ class LayoutController:
                 return
 
         self.reload_keyboard_layouts()
+        self._refresh_lists_after_layout_change()
         self._app._set_flash_message(tr("keyboard.layout.deleted", layout_id=target_id))
 
     def rebuild_keyboard_layout_display_maps(self):
