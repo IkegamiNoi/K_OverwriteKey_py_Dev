@@ -768,6 +768,39 @@ class MacKeyboardSendTests(unittest.TestCase):
             self.keyboard._sent_modifiers.add(55)
         self.assertEqual(self.keyboard.sent_modifiers_down(), (False, True))
 
+    def test_sent_modifier_state_tracks_shift_and_command_press_and_release(self):
+        shift = self.resolve("shift")
+        command = self.resolve("command")
+
+        self.keyboard.press_send(shift)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (True, False))
+        self.keyboard.release_send(shift)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (False, False))
+        self.keyboard.press_send(command)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (False, True))
+        self.keyboard.release_send(command)
+        self.assertEqual(self.keyboard.sent_modifiers_down(), (False, False))
+
+    def test_gateway_keeps_sent_shift_held_when_sending_uppercase(self):
+        from keyseq.infrastructure import input_gateway
+
+        window = SimpleNamespace(
+            is_shift_down=Mock(return_value=False),
+            is_ctrl_alt_win_down=Mock(return_value=False),
+        )
+        backend = SimpleNamespace(keyboard=self.keyboard, window=window)
+        with patch.object(input_gateway, "get_backend", return_value=backend), patch.object(
+            input_gateway.InputGateway, "resolve_send", return_value=self.resolve("A"),
+        ):
+            self.keyboard.press_send(self.resolve("shift"))
+            self.q.CGEventPost.reset_mock()
+            input_gateway.InputGateway().send_mapped_key("A")
+
+        key_events = [call.args[1] for call in self.q.CGEventPost.call_args_list]
+        self.assertTrue(key_events)
+        self.assertFalse(any(event.get("vk") == 56 for event in key_events))
+        self.assertIn(56, self.keyboard._sent_modifiers)
+
 
 class MacAppKitBackendTests(unittest.TestCase):
     def test_foreground_matches_own_pid_other_pid_and_missing_application(self):

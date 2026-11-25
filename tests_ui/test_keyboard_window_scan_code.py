@@ -177,6 +177,12 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         callback.assert_called_once_with("source", "a")
         self.assertEqual(result, "break")
 
+    def test_shift_does_not_change_non_letter_character(self):
+        result, callback = self._record("1", True)
+
+        callback.assert_called_once_with("source", "1")
+        self.assertEqual(result, "break")
+
 
 if __name__ == "__main__":
     unittest.main()

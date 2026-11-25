@@ -50,6 +50,7 @@
 - task_01: 置換先の大文字の保存・判定・送信（domain の正規化の関数・application・Windows / macOS の backend・macOS の修飾の判定）と tests（既存の期待値の変更を含む）。Windows の `_needs_shift("A")` の従来値の実測を含む
 - task_02: キーボードUI の記録と表示（Shift + 英字 → 大文字・大文字は表示名を引かない・`a` → `A` の付け替えで変更の印）と tests_ui
 - task_03: 統合確認（tests / tests_ui / smoke）と Windows / macOS の実機目視（ユーザー・暫定 61 §7-9）
+- task_03a: 統合レビューの採用分 = テストの検出力の補強（表示の差し替えを大小無視に・macOS の送信済みの修飾を gateway 経由で・分割設定の往復・Shift + 数字・2026-11-25 追加）
 - task_04: 正本反映（暫定 61 を `data_schema.md` / `key_input.md` / `codebase_map.md` へ昇格・`features.md` は置換先の説明の該当節を特定して追記・暫定 61 を凍結）+ `decisions_archive/81` + current.md の完了記載 + idea_62 を `INDEX_done.md` へ + `/refactor_check`
 
 ## レビュー方針

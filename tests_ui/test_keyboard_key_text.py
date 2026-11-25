@@ -150,7 +150,7 @@ class KeyboardKeyTextUiTest(unittest.TestCase):
             type(layout),
             "key_display_name",
             autospec=True,
-            side_effect=lambda _layout, name: "x-name" if name == "a" else None,
+            side_effect=lambda _layout, name: "x-name" if name.strip().lower() == "a" else None,
         ):
             window = self._window(layout)
             window.update_from_config({

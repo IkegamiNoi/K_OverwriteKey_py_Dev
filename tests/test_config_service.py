@@ -162,6 +162,26 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             self.assertEqual(startup["prompt_if_missing"], True)
             self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
 
+    def test_round_trip_preserves_uppercase_and_lowercase_mapping_targets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            service = ConfigService(JsonRepository())
+            runtime = make_runtime_data()
+            runtime["keymaps"][0]["mappings"].update({"x": "A", "y": "b"})
+
+            _, startup = service.save_runtime_data(
+                "", runtime, config_root=root, startup_data={}, split_base_dir="",
+            )
+            keymap_path = os.path.join(root, "user", "keymaps", "Main.json")
+            loaded = service.load_runtime_data_from_keymap_set_path(
+                os.path.join(root, startup["keymap_set_path"]), config_root=root,
+            )
+
+            self.assertEqual(loaded["keymaps"][0]["mappings"]["x"], "A")
+            self.assertEqual(loaded["keymaps"][0]["mappings"]["y"], "b")
+            with open(keymap_path, encoding="utf-8") as keymap_file:
+                self.assertIn('"A"', keymap_file.read())
+
 
 class StartupEntryPreservationTest(unittest.TestCase):
     def test_loaded_startup_entry_is_preserved(self):

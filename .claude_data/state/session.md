@@ -11,28 +11,28 @@ last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 81 task_02 完了（キーボードUI の記録と表示）。次は task_03（統合確認 + Windows / macOS の実機目視）。タスクの連続実行はユーザー許可済（2026-11-25）。**
-mode: implementing
+focus: **phase 81 task_03a 完了（テストの補強）。task_03 はユーザーの実機目視待ち（Windows / macOS）。目視 OK の後に task_04（正本反映）。**
+mode: pending_review
 
 ## last_action
-ts: 2026-11-25T17:00:00
+ts: 2026-11-25T19:00:00
 who: main
 summary: |
-  task_02: keyboard_window の `_record_key` で Shift + 英字 1 文字 → 大文字（yen / ro の変換の elif）・表示の置換先を normalize_mapping_target に・大文字の置換先は key_display_name を引かない・keymap_panel_controller の割り当ても normalize_mapping_target。tests_ui 4 件追加 + 既存 1 件（test_shift_does_not_change_other_key_names を f1 に）。
-  実装 = codex-implementer（Luna high・1 回）+ メイン修正 1 点（is_dirty は属性）。reviewer 採用（参考: 英字 1 文字の判定の手書き 2 か所）。
+  task_03 統合確認: deep-reviewer 修正して採用 / codex-reviewer P3 × 3（いずれもテストの検出力・実装の欠陥なし）→ ユーザー「推奨どおり」→ task_03a。
+  task_03a: 表示のテストの差し替えを大小無視に・macOS の送信済みの修飾（送信の経路 + gateway 通し）・分割設定の往復・Shift + 数字。codex-implementer（1 回）+ メイン修正 1 点（reset_mock と空振り防止）。reviewer 採用（検出力をコードの読みで確認）。
 result_files:
-  - keyseq/presentation/keyboard_window.py・keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py
-  - tests_ui/（test_keyboard_window_scan_code.py・test_keyboard_key_text.py・test_task05_overlap_ui.py）
-  - instructions/phase/81_uppercase_replacement_target/tasks/task_02_keyboard_ui_record_and_display.md
+  - tests/（test_config_service.py・test_macos_keyboard_backend.py）・tests_ui/（test_keyboard_key_text.py・test_keyboard_window_scan_code.py）
+  - instructions/phase/81_uppercase_replacement_target/（phase.md・tasks/task_03_*.md・task_03a_*.md）・.claude_data/state/decisions.md
 verified:
   compile: clean
-  tests: pass 2292（skip 9・Windows）
-  tests_ui: pass 1334
+  tests: pass 2295（skip 9・Windows）
+  tests_ui: pass（変更 2 モジュール 19 件・全体は task_02 時点で 1334）
   smoke: pass
 
 ## next_action
-- task_03 を起票: 統合確認（deep-reviewer + codex-reviewer で task_01〜02 の差分 `2fa77e03..HEAD`）→ Windows / macOS の実機目視をユーザーへ依頼（暫定 61 §7-2・4・7b・Caps Lock ON・Windows の key_hold の Shift）。
-- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。取り込み前の設定の件も継続。保留中: R4・idea_37。
+- ユーザーの実機目視（task_03 の「実機目視」1〜5・Windows と macOS）の結果を受ける。NG があれば枝番タスク。OK なら task_03 を完了にしてコミット。
+- task_04: 暫定 61 §9 の正本反映（data_schema.md §5.1・§5.6 / key_input.md §7.4 / codebase_map.md / features.md の該当節）+ deep 4 の理由の追記 + 暫定 61 凍結 + decisions_archive/81 + current.md 完了記載（次採番）+ idea_62 を INDEX_done へ + /refactor_check（英字 1 文字の判定の重複 6 か所）。完了判定前は deep-reviewer + Codex 敵対的。
+- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
