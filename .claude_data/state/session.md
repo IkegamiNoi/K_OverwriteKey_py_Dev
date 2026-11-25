@@ -4,40 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T02:00:00
-phase: なし（phase 80 = Win+D から戻したときに入れ子のダイアログが白いまま は 2026-11-25 完了・`decisions_archive/80_win_d_restore_blank_dialog.md`）。次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68
+last_updated: 2026-11-25T12:00:00
+phase: instructions/phase/81_uppercase_replacement_target（キー置換の置換先に英字の大文字・暫定 61 v0.3 ユーザー確定済・起票のみ）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 29 / idea 69
 直前の完了フェーズ = **phase 80**（Win+D から戻したときに入れ子のダイアログが白いまま・`decisions_archive/80_win_d_restore_blank_dialog.md`）
-last_commit_location: `claude/idea-61-e8649d`（worktree `idea-61-e8649d`・Windows・phase 80 完了まで）。push / merge はユーザー
+last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 80 完了（2026-11-25）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
-mode: completed
+focus: **phase 81 起票済（2026-11-25）。次は task_01（置換先の大文字の保存・判定・送信）のタスク定義の起票と実装の委任。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-25T02:00:00
+ts: 2026-11-25T12:00:00
 who: main
 summary: |
-  phase 80 task_03: 完了判定前レビュー（deep-reviewer 修正要〔軽微〕/ Codex needs-attention〔medium 2〕）→ 採用 4 点を task_02a で修正・正本の理由の文を「外さないと」に（ユーザー承認）・記録の補い・保留 4 点は残存リスクへ。decisions_archive/80 と索引・current.md の完了記載（次採番 phase 81 / decisions 81 / idea 68）・idea_61 を INDEX_done へ・refactor_check 不要。
-  phase 80 の要点: 原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す。Windows 目視 OK。OS 標準のダイアログと Win+D は idea_67（低優先）。
+  idea_62 の意図をユーザーと確認 → ねらいは置換先に英字の大文字（phase 74 の記号の延長）。idea_62 を書き直し（ファイル名 `idea_62_uppercase_replacement_target.md`）、置換元の Shift の面は idea_68 へ分離。
+  暫定 61 起票 v0.1 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 5 点 + 表示名 1 点を推奨どおり採用（ユーザー）→ v0.3 確定。
+  /phase_start: phase 81 の phase.md・current.md・INDEX・decisions.md の phase 81 の節。reviewer の整合チェック「修正して採用」（3 点）を反映。
 result_files:
-  - keyseq/presentation/modal.py・keyseq/infrastructure/os_backend/（contracts.py・windows/backend.py・macos/window_backend.py）
-  - tests_ui/test_minimize_grab_custody.py・tests/test_os_backend_contracts.py・tests/test_macos_window_backend.py
-  - instructions/common/spec_detail/features.md・instructions/common/codebase_map.md
-  - .claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md・.claude_data/state/decisions.md
-  - instructions/phase/current.md・instructions/phase/80_win_d_restore_blank_dialog/・instructions/backlog/（INDEX.md・INDEX_done.md・idea_67）
+  - instructions/history/61_uppercase_replacement_target.md・instructions/phase/81_uppercase_replacement_target/phase.md・instructions/phase/current.md
+  - instructions/backlog/（INDEX.md・idea_62_uppercase_replacement_target.md・idea_68_shift_layer_replacement_source.md）・.claude_data/state/decisions.md
 verified:
-  compile: clean
-  tests: pass 2282（skip 9・Windows・task_02a）
-  tests_ui: pass 1330
-  smoke: pass
-  visual: OK（Windows・Win+D → タスクバー・Win+D 2 回）
+  docs_only: コード変更なし（tests 未実行）
 
 ## next_action
-- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
-- 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
-- **取り込み前の設定の件**: このブランチを起動したセッションは取り込み前の旧フックで動いていた（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が旧パスで /save_state を繰り返し要求）。メインのリポジトリ（main・704c6a16）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで確認する**: `disable-model-invocation` の 5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・worktree のセッションで SessionStart の branch が worktree 側になること（push / merge はユーザー）。
-- ブランチ `claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79 の最終・template 取り込みを含む）・`claude/template-import-idea-65-7e55e5`（template 取り込み + phase 79 途中）・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37。
+- `/task_new` で `instructions/phase/81_uppercase_replacement_target/tasks/task_01_*.md` を起票（範囲 = phase.md の task_01・暫定 61 §3・§4・§7-1〜3・6〜8）→ `codex-implementer`（または判断が要るなら `codex-delegating-implementer`）へ委任 → 差分を直読み → verifier（tests）→ reviewer。
+- 実装の要点: 置換先の正規化の関数を domain に新設し 7 か所から呼ぶ / 大文字は小文字の名前でキーを解き Shift の要否だけ決める（両 OS）/ macOS の `is_shift_down` 等に送信済みの修飾を含める / Windows の従来の `_needs_shift("A")` の実測。
+- ブランチ `claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79）・`claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。取り込み前の設定の件（main へ merge 後に新しいセッションで確認）も継続。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
