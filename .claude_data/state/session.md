@@ -11,28 +11,28 @@ last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 81 task_01 完了（置換先の大文字の保存・判定・送信）。次は task_02（キーボードUI の記録と表示）。タスクの連続実行はユーザー許可済（2026-11-25）。**
+focus: **phase 81 task_02 完了（キーボードUI の記録と表示）。次は task_03（統合確認 + Windows / macOS の実機目視）。タスクの連続実行はユーザー許可済（2026-11-25）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-25T15:00:00
+ts: 2026-11-25T17:00:00
 who: main
 summary: |
-  task_01: domain に `normalize_mapping_target`（ASCII の大文字 1 文字だけ保つ）・読込 / set_mapping / 置換先の取得 / input_router で使用。Windows は大文字を小文字の名前で解き press/release も小文字・needs_shift は大文字なら真。macOS は大文字を小文字の VK の mac_shift。契約に `sent_modifiers_down`（macOS = 送信済みの修飾・Windows = (False, False)）・send_mapped_key は送信済みの修飾でも Shift を足さない。
-  実装 = codex-implementer（Luna high・3 回。2 回目まではテストを途中で止めた → 小分けの依頼で完了）+ メイン修正 2 点（test_input_router の差し込み位置・test_config_service の期待値 2 か所）。
-  実測: 従来の `_needs_shift('A')` = False（暫定 61 §1 の前提どおり）。reviewer: 実装は採用・テスト不足 2 点は既存の契約の自動照合と Windows のみのモジュールで満たしていると確認。
+  task_02: keyboard_window の `_record_key` で Shift + 英字 1 文字 → 大文字（yen / ro の変換の elif）・表示の置換先を normalize_mapping_target に・大文字の置換先は key_display_name を引かない・keymap_panel_controller の割り当ても normalize_mapping_target。tests_ui 4 件追加 + 既存 1 件（test_shift_does_not_change_other_key_names を f1 に）。
+  実装 = codex-implementer（Luna high・1 回）+ メイン修正 1 点（is_dirty は属性）。reviewer 採用（参考: 英字 1 文字の判定の手書き 2 か所）。
 result_files:
-  - keyseq/domain/config.py・keyseq/application/（keymap_service.py・input_router.py）・keyseq/infrastructure/input_gateway.py・keyseq/infrastructure/os_backend/（contracts.py・windows/keyboard_backend.py・macos/keyboard_backend.py）
-  - tests/（test_domain_config.py・test_config_service.py・test_keymap_service.py・test_input_router.py・test_input_gateway_send.py・test_macos_keyboard_backend.py）
-  - instructions/phase/81_uppercase_replacement_target/tasks/task_01_uppercase_target_save_and_send.md
+  - keyseq/presentation/keyboard_window.py・keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py
+  - tests_ui/（test_keyboard_window_scan_code.py・test_keyboard_key_text.py・test_task05_overlap_ui.py）
+  - instructions/phase/81_uppercase_replacement_target/tasks/task_02_keyboard_ui_record_and_display.md
 verified:
   compile: clean
   tests: pass 2292（skip 9・Windows）
+  tests_ui: pass 1334
   smoke: pass
 
 ## next_action
-- `/task_new` で task_02（キーボードUI の記録と表示）を起票: `keyboard_window.py:629` で Shift + 英字 1 文字 → 大文字・`:231` の表示を `normalize_mapping_target` に・大文字は `key_display_names` を引かない・`keymap_panel_controller.py:633` の正規化・tests_ui → codex-implementer → verifier（tests_ui は 1 本だけ・taskkill 禁止）→ reviewer。
-- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。取り込み前の設定の件（main へ merge 後に新しいセッションで確認）も継続。保留中: R4・idea_37。
+- task_03 を起票: 統合確認（deep-reviewer + codex-reviewer で task_01〜02 の差分 `2fa77e03..HEAD`）→ Windows / macOS の実機目視をユーザーへ依頼（暫定 61 §7-2・4・7b・Caps Lock ON・Windows の key_hold の Shift）。
+- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。取り込み前の設定の件も継続。保留中: R4・idea_37。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

@@ -139,9 +139,9 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
                 self.assertEqual(result, "break")
 
     def test_shift_does_not_change_other_key_names(self):
-        result, callback = self._record("a", True)
+        result, callback = self._record("f1", True)
 
-        callback.assert_called_once_with("source", "a")
+        callback.assert_called_once_with("source", "f1")
         self.assertEqual(result, "break")
 
     def test_modifier_keys_are_skipped_during_source_capture(self):
@@ -163,6 +163,19 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         for key_id, name in expected.items():
             with self.subTest(key_id=key_id):
                 self.assertEqual(_LOOKUP_KEY_BY_ID[key_id], name)
+
+    def test_shifted_ascii_letters_are_recorded_uppercase(self):
+        for key, expected in (("a", "A"), ("z", "Z")):
+            with self.subTest(key=key):
+                result, callback = self._record(key, True)
+                callback.assert_called_once_with("source", expected)
+                self.assertEqual(result, "break")
+
+    def test_unshifted_ascii_letter_is_recorded_lowercase(self):
+        result, callback = self._record("a", False)
+
+        callback.assert_called_once_with("source", "a")
+        self.assertEqual(result, "break")
 
 
 if __name__ == "__main__":

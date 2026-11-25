@@ -144,6 +144,25 @@ class KeyboardKeyTextUiTest(unittest.TestCase):
         self.assertIsNotNone(bbox)
         self.assertLess(bbox[3] - bbox[1], 2 * font.metrics("linespace"))
 
+    def test_uppercase_mapping_displays_case_and_skips_layout_lookup(self):
+        layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
+        with patch.object(
+            type(layout),
+            "key_display_name",
+            autospec=True,
+            side_effect=lambda _layout, name: "x-name" if name == "a" else None,
+        ):
+            window = self._window(layout)
+            window.update_from_config({
+                "active_keymap_id": "default",
+                "keymaps": [{"id": "default", "mappings": {"1": "A", "2": "a"}}],
+            })
+            self._redraw_at_unit(window, 27)
+        upper = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "1")]
+        lower = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "2")]
+        self.assertIn("A", upper)
+        self.assertIn("x-name", lower)
+
 
 if __name__ == "__main__":
     unittest.main()

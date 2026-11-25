@@ -7,7 +7,7 @@ from keyseq.presentation import message_box as messagebox
 
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis
-from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name, normalize_mapping_target
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
@@ -630,7 +630,7 @@ class KeymapPanelController:
 
     def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
         source = normalize_key_name(source_key)
-        target = normalize_key_name(target_key)
+        target = normalize_mapping_target(target_key)
         if not source or not target:
             return False
         if not self._app.input_gateway.accepts_key_name(source):

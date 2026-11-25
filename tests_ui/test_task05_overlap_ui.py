@@ -279,6 +279,18 @@ class Task05OverlapUiTest(unittest.TestCase):
         self.assertIsNot(current_report, previous_report)
         self.assertIsNone(current_report.trigger_conflict("n"))
 
+    def test_keyboard_assignment_preserves_uppercase_target_and_marks_dirty(self):
+        self.app.data["keymaps"][0]["mappings"]["f1"] = "a"
+        self.app.dirty_tracker.set_dirty(False)
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror",
+            side_effect=AssertionError("unexpected assignment error"),
+        ):
+            self.assertTrue(self.app.keymap_panel.assign_keymap_from_keyboard_ui("f1", "A"))
+
+        self.assertEqual(self.app.data["keymaps"][0]["mappings"]["f1"], "A")
+        self.assertTrue(self.app.dirty_tracker.is_dirty)
+
 
 class _DialogResult:
     def __init__(self, result):

@@ -7,7 +7,7 @@ from typing import Callable
 
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.domain.config import normalize_identifier, normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name, normalize_mapping_target
 from keyseq.domain.key_symbols import display_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.key_hold import is_modifier_key
@@ -228,7 +228,7 @@ class KeyboardWindow(tk.Toplevel):
                 if isinstance(mappings, dict):
                     for raw_source, raw_target in mappings.items():
                         source = normalize_key_name(str(raw_source or ""))
-                        target = normalize_key_name(str(raw_target or ""))
+                        target = normalize_mapping_target(str(raw_target or ""))
                         if not source or not target or source in display_map:
                             continue
                         display_map[source] = target
@@ -468,7 +468,9 @@ class KeyboardWindow(tk.Toplevel):
             lookup_key = _LOOKUP_KEY_BY_ID.get(spec.id, spec.id)
             display = self._display_map.get(lookup_key, spec.label)
             if self._kind_map.get(lookup_key) == "keymap":
-                display = self._layout.key_display_name(display) or display_key_name(display)
+                is_uppercase_letter = len(display) == 1 and "A" <= display <= "Z"
+                if not is_uppercase_letter:
+                    display = self._layout.key_display_name(display) or display_key_name(display)
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
             if not InputGateway.accepts_key_name(lookup_key) or (
@@ -628,6 +630,8 @@ class KeyboardWindow(tk.Toplevel):
 
         if key in _SHIFTED_TARGET_NAMES and get_backend().window.is_shift_down():
             key = _SHIFTED_TARGET_NAMES[key]
+        elif len(key) == 1 and "a" <= key <= "z" and get_backend().window.is_shift_down():
+            key = key.upper()
 
         callback = self._on_assign_keymap
         if callable(callback):
