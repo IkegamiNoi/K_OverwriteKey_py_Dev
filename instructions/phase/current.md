@@ -7,11 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 81](81_uppercase_replacement_target/phase.md)**（2026-11-25 起票・キー置換の置換先に英字の大文字〔例: `F1` → `A`。phase 74 の Shift の要る記号の延長で、大文字は小文字と同じキーで解き Shift を足して送る・キーボードUI では Shift + 英字の記録で大文字〕。暫定仕様先行モード・主入力 [暫定 61](../history/61_uppercase_replacement_target.md) v0.3 ユーザー確定済・JSON スキーマの型は不変（置換先の `A`〜`Z` だけ大文字を保つ）・起票元 [idea_62](../backlog/idea_62_uppercase_replacement_target.md)・置換元の Shift の面は [idea_68](../backlog/idea_68_shift_layer_replacement_source.md) へ分離）。番号対応: phase 81 / 暫定 61 / decisions 81。
-  **次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 29 / idea 69**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = 最小化とモーダル（phase 80・`keyseq/presentation/modal.py` の最小化の処理・`WindowBackend.detaches_deep_transients_during_minimize`・`tests_ui/test_minimize_grab_custody.py`・正本 `features.md` §4.6 の例外（Windows））。残件 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md)（OS 標準のダイアログが前面のとき Win+D・低優先の確認）・残存リスク（付け直しで withdrawn になる機構は未解明・待ち 300ms の最小値は未検証・付け直し後の再検証の仕組みは保留・最小化の間に開いた深い窓は外さない）は decisions_archive/80。その前の同梱の C ライブラリのライセンス（phase 79・`keyseq/presentation/help/content/third_party/`・`tests/test_third_party.py`・`packaging/README.md`）。残件 = 出荷ごとの棚卸しの記録 `packaging/inventory/<版>.md` は初回の出荷時に作る・残存リスク（義務の判定は法律の確認ではない・VC++ の Distributable Code の条文は未確認・ソースごとの表示の走査は Zstandard のみ）は decisions_archive/79。その前の hotkey アクションの保存時の検査（phase 78）の残件 = macOS の `option+comma`（[idea_45](../backlog/idea_45_tk_key_capture_symbol_names.md)）・features.md への hotkey の OK の検査（保留）。その前の初回起動のサンプルの書き出し（phase 77）の残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）。カウンター機能の拡張（phase 76）の残件 = [idea_37](../backlog/idea_37_counter_conditional_branch.md)（後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59・60・63〜66。idea_61 は phase 80 で完了・idea_62 は phase 81 で着手）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
-- 直前の完了フェーズ = [phase 80](80_win_d_restore_blank_dialog/phase.md)（2026-11-25・Win+D から戻したときに入れ子のダイアログが白いまま = 原因は Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失うこと〔Win+D 固有でない〕・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す。直接改訂モード〔暫定なし・正本 `features.md` §4.6 に例外（Windows）〕・presentation + os_backend の窓の契約に 1 メソッド・JSON スキーマ不変・起票元 [idea_61](../backlog/idea_61_win_d_restore_blank_dialog.md)・判断は [decisions_archive/80](../../.claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md)・refactor_check 不要）。
-- その前の完了フェーズ = [phase 79](79_bundled_c_library_licenses/phase.md)（2026-11-24・同梱の C ライブラリのライセンス = 表示の義務がある C ライブラリを OS ごとの行で載せ〔Windows 21 行・Mac 19 行〕・出荷ごとに棚卸し。暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・起票元 [idea_65](../backlog/idea_65_bundled_c_library_licenses.md)・判断は [decisions_archive/79](../../.claude_data/state/decisions_archive/79_bundled_c_library_licenses.md)・refactor_check 不要）。
+- **アクティブなフェーズ = なし**（phase 81 は 2026-11-25 完了）。次フェーズはユーザー判断で `/phase_start`（候補は `../backlog/INDEX.md`）。
+  **次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 30 / idea 70**（暫定 47 は idea_53 で保留中の番号）。
+- 直近の一連の作業の領域 = キー置換の置換先と送信の Shift（phase 81・`domain/config.normalize_mapping_target`・`InputGateway.send_mapped_key`・`KeyboardBackend.resolve_send` / `needs_shift` / `sent_modifiers_down`（両 OS）・`keyboard_window._record_key` と枠の表示・正本 `key_input.md` §7.4・`data_schema.md` §5.6）。残件 = [idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md)（macOS でフックの開始前から押している修飾が置換の送信に付かない・未実測）・[idea_68](../backlog/idea_68_shift_layer_replacement_source.md)（置換元の Shift の面）・提案書 29（大文字の判定の重複・承認待ち）・残存リスク（macOS の Caps Lock ON は未確認・リピート停止は間接の確認のみ）は decisions_archive/81。  その前の領域 = 最小化とモーダル（phase 80・`keyseq/presentation/modal.py` の最小化の処理・`WindowBackend.detaches_deep_transients_during_minimize`・`tests_ui/test_minimize_grab_custody.py`・正本 `features.md` §4.6 の例外（Windows））。残件 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md)（OS 標準のダイアログが前面のとき Win+D・低優先の確認）・残存リスク（付け直しで withdrawn になる機構は未解明・待ち 300ms の最小値は未検証・付け直し後の再検証の仕組みは保留・最小化の間に開いた深い窓は外さない）は decisions_archive/80。その前の同梱の C ライブラリのライセンス（phase 79・`keyseq/presentation/help/content/third_party/`・`tests/test_third_party.py`・`packaging/README.md`）。残件 = 出荷ごとの棚卸しの記録 `packaging/inventory/<版>.md` は初回の出荷時に作る・残存リスク（義務の判定は法律の確認ではない・VC++ の Distributable Code の条文は未確認・ソースごとの表示の走査は Zstandard のみ）は decisions_archive/79。その前の hotkey アクションの保存時の検査（phase 78）の残件 = macOS の `option+comma`（[idea_45](../backlog/idea_45_tk_key_capture_symbol_names.md)）・features.md への hotkey の OK の検査（保留）。その前の初回起動のサンプルの書き出し（phase 77）の残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）。カウンター機能の拡張（phase 76）の残件 = [idea_37](../backlog/idea_37_counter_conditional_branch.md)（後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59・60・63〜66。idea_61 は phase 80 で完了・idea_62 は phase 81 で完了）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
+- 直前の完了フェーズ = [phase 81](81_uppercase_replacement_target/phase.md)（2026-11-25・キー置換の置換先に英字の大文字 = `A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る〔phase 74 の送り方・macOS は送信済みの修飾も判定に含める〕・キーボードUI は Shift + 英字で大文字。暫定仕様先行モード〔暫定 61 v0.3 凍結〕・JSON スキーマの型は不変・起票元 [idea_62](../backlog/idea_62_uppercase_replacement_target.md)・判断は [decisions_archive/81](../../.claude_data/state/decisions_archive/81_uppercase_replacement_target.md)・refactor_check 推奨 → 提案書 29）。
+- その前の完了フェーズ = [phase 80](80_win_d_restore_blank_dialog/phase.md)（2026-11-25・Win+D から戻したときに入れ子のダイアログが白いまま = 原因は Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失うこと〔Win+D 固有でない〕・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す。直接改訂モード〔暫定なし・正本 `features.md` §4.6 に例外（Windows）〕・presentation + os_backend の窓の契約に 1 メソッド・JSON スキーマ不変・起票元 [idea_61](../backlog/idea_61_win_d_restore_blank_dialog.md)・判断は [decisions_archive/80](../../.claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 78](78_action_hotkey_save_validation/phase.md)（2026-11-23・アクションの hotkey の保存時の検査と正規化。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)・判断は [decisions_archive/78](../../.claude_data/state/decisions_archive/78_action_hotkey_save_validation.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 77](77_sample_in_user_folder/phase.md)（2026-11-23・サンプルを config/user/ へ書き出す。暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変・判断は [decisions_archive/77](../../.claude_data/state/decisions_archive/77_sample_in_user_folder.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 76](76_counter_expansion/phase.md)（2026-11-23・カウンター機能の拡張。判断は [decisions_archive/76](../../.claude_data/state/decisions_archive/76_counter_expansion.md)）。
@@ -90,7 +90,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**28 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**29 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -140,7 +140,7 @@
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
   **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 完了**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78〔アーカイブ済〕）。**phase 79 は 2026-11-24 完了**（`79_bundled_c_library_licenses` / 暫定 60〔v0.9・凍結〕/ decisions 79〔アーカイブ済〕）。**phase 80 は 2026-11-25 完了**（`80_win_d_restore_blank_dialog` / 暫定なし〔直接改訂モード〕/ decisions 80〔アーカイブ済〕）。**phase 81 は起票済**（`81_uppercase_replacement_target` / 暫定 61 / decisions 81）。次の phase は `82_<topic>`。
+  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 完了**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78〔アーカイブ済〕）。**phase 79 は 2026-11-24 完了**（`79_bundled_c_library_licenses` / 暫定 60〔v0.9・凍結〕/ decisions 79〔アーカイブ済〕）。**phase 80 は 2026-11-25 完了**（`80_win_d_restore_blank_dialog` / 暫定なし〔直接改訂モード〕/ decisions 80〔アーカイブ済〕）。**phase 81 は 2026-11-25 完了**（`81_uppercase_replacement_target` / 暫定 61〔v0.3・凍結〕/ decisions 81〔アーカイブ済〕）。次の phase は `82_<topic>`。
   次フェーズは **`82_<topic>`**・decisions も **82** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -196,7 +196,7 @@
   58 = カウンター機能の拡張〔**v1.1・凍結**・phase 76 の主入力〕 /
   59 = サンプルを config/user/ へ書き出す〔**v0.2・凍結**・phase 77 の主入力〕 /
   60 = 同梱の C ライブラリのライセンス〔**v0.9・凍結**・phase 79 の主入力〕 /
-  61 = キー置換の置換先に英字の大文字〔**v0.3・未凍結**・phase 81 の主入力〕 /
+  61 = キー置換の置換先に英字の大文字〔**v0.3・凍結**・phase 81 の主入力〕 /
   次採番は **`62_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -220,7 +220,8 @@
   **26 = phase 69 由来・保留**（2026-10-26 ユーザー判断）〔`KeyboardWindow.redraw` 100 行からキーの文字の描画を抽出・キーが無いレイアウトの大きさの定数化〕 /
   **27 = phase 70 由来・保留**（2026-10-29 ユーザー判断）〔`app.py` の「呼んで失敗をログに残す」同型の try/except 5 個を 1 関数へ〕
   **28 = phase 75 由来・実施済＝phase 75 task_15**（2026-11-22）〔`macos/backend.py` を 1 クラス 1 ファイルへ・`modal.install_minimize_grab_custody` の入れ子の関数を外へ〕
-  次採番は **`29_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **29 = phase 81 由来・承認待ち**（2026-11-25）〔英字 1 文字の大文字の判定を domain の 1 関数へ・Windows の press / release の送る名前を 1 つの補助へ〕
+  次採番は **`30_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/skills/spec_split/SKILL.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）

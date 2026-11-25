@@ -40,3 +40,11 @@
 ## 完了条件
 
 - 上記確認・完了判定前レビューの採否が決まる・**reviewer 採用**
+
+## 結果（2026-11-25 完了）
+
+- 正本反映（data_schema §5.1・§5.6 / key_input §7.4・§7.9 / features §4.6 / codebase_map）・`contracts.py` のコメント・暫定 61 凍結
+- 実機目視の補足（ユーザー）: Windows は 1〜5 すべて条件どおり・macOS は Caps Lock ON 以外が条件どおり
+- 完了判定前レビュー = deep-reviewer 修正して採用 / Codex needs-attention（medium 3）→ ユーザー「推奨どおり」: 正本の言い回し 4 点を修正・Codex 1 は idea_69 へ分離・Codex 2 は受容として明記・Codex 3 は目視の補足で解消
+- decisions_archive/81 と索引・current.md の完了記載（次採番 phase 82 / 暫定 62 / decisions 82 / 提案書 30 / idea 70）・idea_62 を INDEX_done へ・idea_69 起票
+- refactor_check = 推奨 → 提案書 29（M3・大文字の判定の重複。実施はユーザー承認後）

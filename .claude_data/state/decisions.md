@@ -90,6 +90,7 @@
 | 78_action_hotkey_save_validation | [78_action_hotkey_save_validation.md](decisions_archive/78_action_hotkey_save_validation.md) | アクションの hotkey の保存時の検査と正規化（2026-11-23 完了・直接改訂モード・JSON スキーマ不変・起票元 idea_03）。OK で他方の OS の修飾キーの検査の後に `validate_hotkey`・不正なら保存しない・正規化した値を保存・既存の値は移行しない・今のレイアウトで通らない既存値はラベルだけの変更でも保存できない。refactor_check: 不要 |
 | 79_bundled_c_library_licenses | [79_bundled_c_library_licenses.md](decisions_archive/79_bundled_c_library_licenses.md) | 同梱の C ライブラリのライセンス（2026-11-24 完了・暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・コード変更なし・起票元 idea_65）。表示の義務がある C ライブラリだけを OS ごとの行で載せる（Windows 21 行・Mac 19 行）・義務の無い物は棚卸しの記録に判定を残す・出荷ごとの棚卸し（`packaging/inventory/<版>.md`）・VC++ は README に一文。refactor_check: 不要 |
 | 80_win_d_restore_blank_dialog | [80_win_d_restore_blank_dialog.md](decisions_archive/80_win_d_restore_blank_dialog.md) | Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-25 完了・直接改訂モード〔正本 features.md §4.6 に例外（Windows）〕・JSON スキーマ不変・起票元 idea_61）。原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。OS 標準のダイアログと Win+D は idea_67（低優先）。refactor_check: 不要 |
+| 81_uppercase_replacement_target | [81_uppercase_replacement_target.md](decisions_archive/81_uppercase_replacement_target.md) | キー置換の置換先に英字の大文字（2026-11-25 完了・暫定 61 v0.3 凍結・JSON スキーマの型は不変・起票元 idea_62）。`A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る（phase 74 の送り方・macOS は送信済みの修飾も判定に含める）・キーボードUI は Shift + 英字で大文字。分離 = idea_68（置換元の Shift の面）・idea_69（macOS の開始前からの修飾）。refactor_check: 推奨 → 提案書 29 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -650,27 +651,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 理由: 本体 0 件なのに編集画面は既定 8 件を表示し、編集画面を OK で閉じるまでアクション編集にプリセットが出なかった（ユーザー報告 2026-11-08）。E4 だけ他の経路と違う理由がない。
 - B: 仕様のまま → **除外**（報告された不具合が残る）/ C: 初回起動で共通プリセットのファイルを生成 → **除外**（起動時の書き込みが増え、§5.10.2「読めなければ置き換えない」と関わる）
 - 影響範囲: 共通プリセットが読めないときの E4 のみ。読めて空配列のときは従来どおり空。`tests/test_per_keymap_triggers_load.py` の空データの期待値を更新。
-
-## 2026-11-25 (phase 81: キー置換の置換先に英字の大文字・暫定 61)
-
-### 【起票】idea_62 の意図確認 → 置換先に大文字（2026-11-25・ユーザー確定）
-- idea_62 の当初案（置換元に `Shift+A` 等の修飾付きの組み合わせ）ではなく、ねらいは**置換先に英字の大文字を置くこと**（phase 74 の Shift の要る記号の延長・使い勝手の向上）→ **採用**。idea_62 を書き直し、置換元の Shift の面（同じキーマップに Shift を押している間の面）は idea_68 へ分離（Shift 以外の修飾の面も同 idea で検討）。
-- 暫定仕様先行モード（`data_schema.md` / `key_input.md` に跨る）。
-
-### 【暫定 61】v0.1 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 needs-attention（5 件 + 表示名）→ v0.3 ユーザー確定（2026-11-25・「推奨通りで良い」）
-- deep-reviewer: Windows の keyboard の表は修飾なしの候補が先で `A` は Shift 付きと判定されない見込み（H1）/ `set_mapping` の保存箇所の漏れ（M1）/ 正本 §5.1・codebase_map の反映先（M2）/ 既存テストの期待値の変更（M3）/ リピート停止は走査コードの照合で変更不要（M4）→ すべて反映。
-- Codex 1（記録の Shift の判定は処理の時点）→ 受容（phase 74 と同じ・入れ直せる）。
-- Codex 2（macOS の Shift / Ctrl 等の判定が物理のフラグだけで key_hold の送信済みの修飾を見ない）→ **本フェーズで直す**（記号と英字で共通・正本 §7.4「物理キー・key_hold のどちらでも」に合わせる）。
-- Codex 3（Caps Lock）→ 見ない・受容。結果は OS ごと（Windows は小文字・macOS は大文字の見込み）を実機で確かめるが補正しない。
-- Codex 4（大文字の名前のままだと入力配列で別のキーに解け得る）→ 大文字は小文字の名前で解き Shift の要否だけを決める（両 OS）。保証はラテン文字の配列。ユーザー: 意図に沿う。
-- Codex 5（手書きの `"A"` の意味の変化・旧版で保存し直すと小文字になる）→ どちらも受容し明記。
-- 追加（外部レイアウトの表示名は `A` と `a` を同じ名前で引く）→ 大文字の置換先は表示名を引かずに大文字で出す。
-
-### 【task_03 統合確認】deep-reviewer 修正して採用 / codex-reviewer P3 × 3（いずれもテストの検出力）→ task_03a（2026-11-25・ユーザー判断「推奨どおり」）
-- 実装の欠陥の指摘なし。採用 = 表示のテストの差し替えを本物と同じ大小無視に（両者）・macOS の送信済みの修飾を送信の経路と gateway を通して確かめる（両者）・分割設定の保存と読込の往復で大文字が残る（両者）・Shift + 数字が変わらない（deep 7）。
-- 足さない（メイン判断）: リピート停止の直接テスト（deep 3）。照合は gateway の走査コード（`held_inputs.py:87-90`）で、`A` と `a` の一致は task_01 で両 OS を確かめた。偽の gateway で書くと同じ前提の繰り返しになる。reviewer も妥当と判定。
-- task_04 へ送る: Windows の `sent_modifiers_down` が (False, False) の理由（`GetAsyncKeyState` が送ったキーも反映する見込み）を正本と契約に書き添える（deep 4）/ 英字 1 文字の判定の重複 6 か所（deep 6・任意・/refactor_check で扱う）/ `sent_modifiers_down` の lock なしの読み（deep 5・低・受容）。
-
-### 【task_03 実機目視】OK（2026-11-25・ユーザー報告「目視 OK」）
-- 手順 1〜5 をユーザーが確かめ「目視 OK」。NG の報告なし。5（Caps Lock ON の文字）は見込みどおりとして扱う（補正しない・暫定 61 §5 のまま）。OS ごとの内訳と 5 の実際の文字の報告はないので、正本には「見込み」と書き、実測済みとは書かない。
-- OS 別の内訳は未報告（macOS で確かめたかは不明）。正本と current.md には「macOS の実機目視は未確認」と書く（task_04 へ）。reviewer 採用（2026-11-25）。

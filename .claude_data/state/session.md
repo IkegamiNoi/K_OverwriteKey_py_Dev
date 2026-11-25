@@ -4,34 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T15:00:00
-phase: instructions/phase/81_uppercase_replacement_target（キー置換の置換先に英字の大文字・暫定 61 v0.3 ユーザー確定済）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 29 / idea 69
-直前の完了フェーズ = **phase 80**（Win+D から戻したときに入れ子のダイアログが白いまま・`decisions_archive/80_win_d_restore_blank_dialog.md`）
-last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 task_01）。push / merge はユーザー
+last_updated: 2026-11-25T21:00:00
+phase: なし（phase 81 = キー置換の置換先に英字の大文字 は 2026-11-25 完了・`decisions_archive/81_uppercase_replacement_target.md`）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 30 / idea 70
+直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
+last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 81 task_03a 完了（テストの補強）。task_03 はユーザーの実機目視待ち（Windows / macOS）。目視 OK の後に task_04（正本反映）。**
-mode: pending_review
+focus: **phase 81 完了（2026-11-25）。アクティブなフェーズなし。提案書 29（大文字の判定の重複の集約）はユーザー承認待ち。次フェーズはユーザー判断で `/phase_start`。**
+mode: completed
 
 ## last_action
-ts: 2026-11-25T19:00:00
+ts: 2026-11-25T21:00:00
 who: main
 summary: |
-  task_03 統合確認: deep-reviewer 修正して採用 / codex-reviewer P3 × 3（いずれもテストの検出力・実装の欠陥なし）→ ユーザー「推奨どおり」→ task_03a。
-  task_03a: 表示のテストの差し替えを大小無視に・macOS の送信済みの修飾（送信の経路 + gateway 通し）・分割設定の往復・Shift + 数字。codex-implementer（1 回）+ メイン修正 1 点（reset_mock と空振り防止）。reviewer 採用（検出力をコードの読みで確認）。
+  phase 81 完了。task_03 = 実機目視 OK（Windows 1〜5・macOS は Caps Lock ON 以外）・task_04 = 正本反映（data_schema §5.1・§5.6 / key_input §7.4・§7.9 / features §4.6 / codebase_map）・暫定 61 凍結・contracts.py のコメント。
+  完了判定前レビュー deep-reviewer 修正して採用 / Codex needs-attention（medium 3）→ ユーザー「推奨どおり」: 正本の言い回し修正・idea_69 分離・表示名の受容。refactor_check 推奨 → 提案書 29。
 result_files:
-  - tests/（test_config_service.py・test_macos_keyboard_backend.py）・tests_ui/（test_keyboard_key_text.py・test_keyboard_window_scan_code.py）
-  - instructions/phase/81_uppercase_replacement_target/（phase.md・tasks/task_03_*.md・task_03a_*.md）・.claude_data/state/decisions.md
+  - instructions/common/（spec_detail/data_schema.md・key_input.md・features.md・codebase_map.md）・instructions/history/61_*.md
+  - .claude_data/state/decisions_archive/81_uppercase_replacement_target.md・instructions/modified_proposal/29_*.md・instructions/backlog/idea_69_*.md
 verified:
-  compile: clean
-  tests: pass 2295（skip 9・Windows）
-  tests_ui: pass（変更 2 モジュール 19 件・全体は task_02 時点で 1334）
+  compile: clean（task_04）
+  tests: pass 2295（skip 9・Windows・task_03a 時点）
+  tests_ui: pass 1334（task_02 時点）
   smoke: pass
 
 ## next_action
-- ユーザーの実機目視（task_03 の「実機目視」1〜5・Windows と macOS）の結果を受ける。NG があれば枝番タスク。OK なら task_03 を完了にしてコミット。
-- task_04: 暫定 61 §9 の正本反映（data_schema.md §5.1・§5.6 / key_input.md §7.4 / codebase_map.md / features.md の該当節）+ deep 4 の理由の追記 + 暫定 61 凍結 + decisions_archive/81 + current.md 完了記載（次採番）+ idea_62 を INDEX_done へ + /refactor_check（英字 1 文字の判定の重複 6 か所）。完了判定前は deep-reviewer + Codex 敵対的。
+- 提案書 29（英字 1 文字の大文字の判定を domain の 1 関数へ・Windows の press / release の補助）の実施はユーザー承認後。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68・idea_69 を含む）。
 - ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
