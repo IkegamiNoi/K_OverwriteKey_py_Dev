@@ -11,27 +11,28 @@ last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正（今回の作業は worktree `idea-58-be6d8d`・Mac・未コミット）
 
 ## current
-focus: **phase 82 task_01・task_02 完了（各 verifier pass・reviewer 採用）→ task_03（統合確認 → deep-reviewer + codex-reviewer → 実機目視はユーザー）。ユーザーがタスクの連続実行を許可（2026-11-26・実機目視で止まる）。**
+focus: **phase 82 task_01〜03a 完了。task_04（正本反映は working-tree に済・未コミット）→ 完了判定前レビュー（deep-reviewer + Codex 敵対的）→ 採否はユーザー → 凍結・decisions_archive/82・current.md・INDEX_done・/refactor_check。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-26T15:00:00
-who: implementer
+ts: 2026-11-26T17:00:00
+who: main
 summary: |
-  task_01 コミット（872bc0c4）。task_02 を codex-delegating-implementer で実装（子 Luna がテスト 3 ファイル・rollout で起動を実測 → decisions.md の phase 82 節に 1 行）: ui_vars の 2 変数・App の起動時の読込 / get_scroll_invert / set_scroll_invert（保存済みと同じなら書かない・失敗で戻す・成功で 1 回の代入）・設定 > スクロールの向き（defer 経由）・ja / en 3 キー・ヘルプ 1 文。
-  verifier: compileall clean / 対象 8 pass / tests_ui.test_scroll_invert_menu 4・test_ui_language 11 pass / tests 2243 pass（skip 34）。reviewer 採用（軽微 2 点は参考）。
+  ユーザー判断: 統合レビュー低 5 件は推奨どおり（①③⑤ → task_03a・②受容・④ task_04）・実機目視は Windows / macOS とも問題なし → task_03 コミット（b1cac697）。
+  task_03a（テストのみ）を codex-implementer で実装 → メインで ⑤の assert を mock_calls == [] に修正 → verifier pass（tests 2244 / tests_ui.test_scroll_invert_menu 6・config.json 不変）→ reviewer 採用（軽微 2 点をメインで修正・再検証 6 pass）。
+  task_04 の定義を起票し、正本反映を working-tree で実施（data_schema §5.4 に scroll_invert の項と作成契機・§5.11.10 に符号の 3 段 / features §4.6 にスクロールの向きの項・§4.8 メニューの処理 / codebase_map）。
 result_files:
-  - keyseq/presentation/（app.py・ui_vars.py・views/menu_bar.py・help/content/help_ja.json・help_en.json）・keyseq/shared/i18n/locales/ja.json・en.json
-  - tests/test_menu_bar_deferral.py・tests/test_scroll_invert_setting.py（新規）・tests_ui/test_scroll_invert_menu.py（新規）・instructions/phase/82_scroll_direction_setting/tasks/task_02_*.md
+  - tests/test_scroll_invert_setting.py・tests_ui/test_scroll_invert_menu.py・instructions/phase/82_scroll_direction_setting/tasks/task_03a_*.md
+  - （task_04・未コミット）instructions/common/spec_detail/data_schema.md・features.md・instructions/common/codebase_map.md・tasks/task_04_*.md
 verified:
-  compile: clean（task_02）
-  tests: pass 2243（skip 34・Mac・task_02）
-  tests_ui: test_scroll_invert_menu 4 / test_ui_language 11 pass（Mac・モジュール指定）
+  compile: clean
+  tests: pass 2244（skip 34・Mac・task_03a）
+  tests_ui: pass 1339（80 モジュール・task_03 時点）+ test_scroll_invert_menu 6（task_03a 後）
+  smoke: pass（task_03）
 
 ## next_action
-- task_03 のタスク定義を起票 → verifier で統合確認（compileall / tests 全体 / tests_ui は Mac の基準線 `instructions/phase/75_mac_support/mac_test_baseline.md` に従いモジュール指定 / smoke）→ deep-reviewer + codex-reviewer（統合）。
-- 実機目視はユーザー（Windows / macOS・暫定 62 §7-8・メニューの見た目・Mac の遅延・実際の向き）で停止。
-- 残り: task_04（正本反映・凍結・decisions_archive/82 と索引・current.md・idea_58 を INDEX_done へ・/refactor_check）。
+- 完了判定前レビュー: deep-reviewer（正本の追記と暫定 62 の整合・フェーズ全体）+ codex-adversarial-reviewer（`--base 57610a54`）→ 指摘の採否はユーザー。
+- 採用分を反映 → 暫定 62 を凍結・decisions_archive/82 と索引・current.md の完了記載（次採番 phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71）・idea_58 を INDEX_done へ・/refactor_check（メトリクスは verifier）→ reviewer で task_04 の整合確認 → コミット。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

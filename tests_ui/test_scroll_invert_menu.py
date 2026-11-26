@@ -135,6 +135,59 @@ class ScrollInvertMenuTests(unittest.TestCase):
         self.assertFalse(self.app.ui_vars.scroll_invert_vertical_var.get())
         self.assertFalse(self.app.ui_vars.scroll_invert_horizontal_var.get())
 
+    def test_scroll_direction_menu_item_toggles_vertical_inversion(self):
+        original_settings = self.app._startup_settings
+        original_invert = self.app._scroll_invert
+        vertical = self.app.ui_vars.scroll_invert_vertical_var
+        horizontal = self.app.ui_vars.scroll_invert_horizontal_var
+        original_vertical, original_horizontal = vertical.get(), horizontal.get()
+        try:
+            self.app._startup_settings = {"scroll_invert": {"vertical": False, "horizontal": False}}
+            vertical.set(False)
+            horizontal.set(False)
+            settings = self._settings_menu()
+            index = next(
+                i for i in range(settings.index("end") + 1)
+                if settings.type(i) == "cascade" and settings.entrycget(i, "label") == "スクロールの向き"
+            )
+            scroll_menu = self.app.nametowidget(settings.entrycget(index, "menu"))
+            with patch.object(self.app.startup_io, "write_startup", return_value=True) as write_startup:
+                scroll_menu.invoke(0)
+                self.app.update()
+                write_startup.assert_called_once_with(
+                    {"scroll_invert": {"vertical": True, "horizontal": False}},
+                )
+                self.assertEqual(self.app.action_executor._get_scroll_invert(), ScrollInvert(vertical=True))
+        finally:
+            self.app._startup_settings = original_settings
+            self.app._scroll_invert = original_invert
+            vertical.set(original_vertical)
+            horizontal.set(original_horizontal)
+
+    def test_font_change_rebuild_keeps_scroll_direction_variables(self):
+        vertical = self.app.ui_vars.scroll_invert_vertical_var
+        horizontal = self.app.ui_vars.scroll_invert_horizontal_var
+        vertical.set(True)
+        try:
+            with patch.object(self.app.startup_io, "write_startup", return_value=True):
+                self.app.set_ui_font_delta(1)
+            settings = self._settings_menu()
+            index = next(
+                i for i in range(settings.index("end") + 1)
+                if settings.type(i) == "cascade" and settings.entrycget(i, "label") == "スクロールの向き"
+            )
+            scroll_menu = self.app.nametowidget(settings.entrycget(index, "menu"))
+            self.assertEqual(
+                str(scroll_menu.entrycget(0, "variable")),
+                str(self.app.ui_vars.scroll_invert_vertical_var),
+            )
+            self.assertTrue(vertical.get())
+        finally:
+            with patch.object(self.app.startup_io, "write_startup", return_value=True):
+                self.app.set_ui_font_delta(0)
+            vertical.set(False)
+            horizontal.set(False)
+
 
 if __name__ == "__main__":
     unittest.main()
