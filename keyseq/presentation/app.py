@@ -524,7 +524,15 @@ class App(tk.Tk):
 
     def _refresh_status_bar(self) -> None:
         self._update_file_status()
-        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, self._flash_message or self._flash_underlay)
+        self._show_flash_area()
+
+    def _show_flash_area(self) -> None:
+        """一時メッセージがあればそれ、無ければ下敷きを欄に出す。"""
+        self._write_status_bar_text(
+            self.ui_vars.flash_message_var,
+            self.ui_vars.flash_message_full_var,
+            self._flash_message or self._flash_underlay,
+        )
 
 
     def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
@@ -540,12 +548,12 @@ class App(tk.Tk):
     def set_flash_underlay(self, text: str) -> None:
         self._flash_underlay = text
         if not self._flash_message:
-            self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, text)
+            self._show_flash_area()
 
     def _clear_flash_message(self):
         self._flash_after_id = None
         self._flash_message = ""
-        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, self._flash_underlay)
+        self._show_flash_area()
 
     def _set_flash_message(self, msg: str, *, auto_clear: bool = True):
         try:
@@ -555,7 +563,7 @@ class App(tk.Tk):
         except Exception:
             self._flash_after_id = None
         self._flash_message = str(msg or "")
-        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, self._flash_message or self._flash_underlay)
+        self._show_flash_area()
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 

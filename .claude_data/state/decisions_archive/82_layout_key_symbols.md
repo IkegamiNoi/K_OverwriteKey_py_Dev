@@ -10,7 +10,8 @@
 - task_02 表の受け渡しと描き直し 97f73cbd = codex-delegating-implementer（子 2 つ）・reviewer 採用。
 - task_03 警告の下敷きと見本 b2538a2d = codex-delegating-implementer（子あり・180 秒超で背景へ）・reviewer 採用。
 - task_04 統合確認と実機目視 1762189b = deep-reviewer 採用 / codex-reviewer 指摘 2 件（受容 1・除外 1）・Windows の実機目視 1〜5 問題なし（ユーザー）。コードの変更なし。
-- task_05 正本反映・完了（本記録）= メイン（文書のみ）。完了判定前レビュー = deep-reviewer 修正して採用（文言 3 点 + 記録 1 点 + 参照 1 点を反映）/ Codex 敵対的 needs-attention（medium 3 件 → ユーザー判断で受容し正本に明記・削除の後の保存失敗でも描き直すことを明記）。
+- task_05 正本反映・完了 8f1a7b8d = メイン（文書のみ）。
+- task_05_refactor 提案書 30（一時メッセージ欄の書き込みの一本化・挙動不変）= codex-implementer（Luna high）+ メイン修正 1 点（テストの偽物）・reviewer 採用。完了判定前レビュー = deep-reviewer 修正して採用（文言 3 点 + 記録 1 点 + 参照 1 点を反映）/ Codex 敵対的 needs-attention（medium 3 件 → ユーザー判断で受容し正本に明記・削除の後の保存失敗でも描き直すことを明記）。
 - 実測（task_04・Windows）: compile clean / tests 2333（skip 9）/ tests_ui 1341 / smoke pass。
 
 ## 判断の記録（decisions.md から移動）
@@ -48,8 +49,9 @@
 - Codex 3（JSON の同じキーの重複で書いた順の後勝ちが崩れる・`json.loads` の実測で後の値が最初の位置）→ 受容。正本に明記。
 - Codex の補足（削除の後に保存が失敗・取り消しでも描き直す）→ 正本に明記。
 
-### 【refactor_check】推奨 → 提案書 30（2026-11-26・ユーザー判断待ち）
+### 【refactor_check】推奨 → 提案書 30 → task_05_refactor で実施（2026-11-26・ユーザー承認「phase 82 の末尾で」）
 - M1・M2・M4・M5・M6 は該当なし。M3（境界）: 「一時メッセージが無ければ下敷き」の規則を `App` の 3 か所で別々に書いている → 補助の判断材料（`app.py` 989 行に責務のまとまりが 3 つ以上）で推奨。提案書 = `instructions/modified_proposal/30_refactor_layout_key_symbols.md`（1 項目・挙動不変）。
+- task_05_refactor = codex-implementer（Luna high・1 回）: `App._show_flash_area` を足し 4 か所を置き換え。reviewer 採用。テストの偽物（`tests/test_app_control_sync.py` の SimpleNamespace）に結び付けるメソッドの一覧へ `_show_flash_area` を 1 つ足した（メイン・期待値は不変）。tests 2333 OK（skip 9）/ smoke pass / tests_ui 1341 中 1 件 fail = `test_minimize_grab_custody`（基準 8f1a7b8d でも 3 回中 2 回 fail → 既存の不安定さ・current.md「テスト負債」に記載）。
 
 ## 残存リスク
 

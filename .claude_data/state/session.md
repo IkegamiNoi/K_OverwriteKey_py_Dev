@@ -11,26 +11,25 @@ last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 完了（2026-11-26）。アクティブなフェーズなし。refactor_check 推奨 → 提案書 30 はユーザー判断待ち。**
+focus: **phase 82 完了（2026-11-26）。提案書 30 は task_05_refactor で実施済。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
 mode: completed
 
 ## last_action
-ts: 2026-11-26T12:00:00
+ts: 2026-11-26T13:00:00
 who: main
 summary: |
-  phase 82 task_05（正本反映・完了）: 暫定 62 を features.md §4.5・§4.6 / codebase_map.md へ昇格（T1〜T5 を含む）・ui_terms.md は変更なし・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ。
-  完了判定前レビュー deep-reviewer 修正して採用 / Codex 敵対的 needs-attention（medium 3）→ ユーザー「推奨どおり」= 文言を直し Codex の 3 件は受容として正本に明記。refactor_check: M3 境界 → 推奨 → 提案書 30（一時メッセージ欄の書き込みの一本化・1 項目）。
+  task_05_refactor（提案書 30 = `App._show_flash_area` に一時メッセージ欄の書き込みを一本化・挙動不変）を codex-implementer（Luna high）で実施。reviewer 採用。
+  verifier でテストの偽物に新しい補助が無く 6 件エラー → メインが結び付けの一覧に 1 つ足して tests 2333 OK（skip 9）。tests_ui は `test_minimize_grab_custody` が 1 件 fail するが基準 8f1a7b8d でも 3 回中 2 回 fail → 既存の不安定さ（current.md「テスト負債」に追記）。smoke pass。
 result_files:
-  - instructions/common/spec_detail/features.md・instructions/common/codebase_map.md・instructions/history/62_layout_key_symbols.md
-  - .claude_data/state/decisions_archive/82_layout_key_symbols.md・instructions/modified_proposal/30_refactor_layout_key_symbols.md・instructions/backlog/INDEX.md・INDEX_done.md・instructions/phase/current.md
+  - keyseq/presentation/app.py・tests/test_app_control_sync.py・instructions/phase/82_layout_key_symbols/tasks/task_05_refactor.md・phase.md
+  - instructions/modified_proposal/30_*.md・.claude_data/state/decisions_archive/82_layout_key_symbols.md・instructions/phase/current.md・instructions/common/codebase_map.md
 verified:
-  compile: clean（task_04）
-  tests: pass 2333（skip 9・Windows・task_04）
-  tests_ui: pass 1341（task_04）
+  compile: clean
+  tests: pass 2333（skip 9・Windows）
+  tests_ui: 1341 中 1 fail（test_minimize_grab_custody・既存の不安定さ）
   smoke: pass
 
 ## next_action
-- **提案書 30（`instructions/modified_proposal/30_refactor_layout_key_symbols.md`）の採否をユーザーに確かめる**。実施するなら (a) phase 82 末の `task_05_refactor` / (b) 次フェーズ前の独立ミニフェーズ を選んでもらう。
 - 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_70・idea_71 を含む）。
 - ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 

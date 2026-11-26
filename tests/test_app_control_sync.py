@@ -120,7 +120,7 @@ class FlashUnderlayTest(unittest.TestCase):
             _update_file_status=Mock(),
         )
         for name in (
-            "_status_bar_text", "_write_status_bar_text", "_refresh_status_bar",
+            "_status_bar_text", "_write_status_bar_text", "_refresh_status_bar", "_show_flash_area",
             "set_flash_underlay", "_set_flash_message", "_clear_flash_message",
         ):
             setattr(self.app, name, getattr(App, name).__get__(self.app))

@@ -54,6 +54,7 @@
 - task_03: 警告の下敷き（一時メッセージ欄・追加のときの文言・ja / en）と見本 jis.json / us_tkl.json と tests / tests_ui（§3・§7）
 - task_04: 統合確認（tests / tests_ui / smoke）と Windows の実機目視（ユーザー・暫定 62 §8）
 - task_05: 正本反映（暫定 62 を `features.md` §4.6・`ui_terms.md`・`codebase_map.md` へ昇格・暫定 62 を凍結）+ `decisions_archive/82` + current.md の完了記載 + idea_63 を `INDEX_done.md` へ + `/refactor_check`
+- task_05_refactor: 提案書 30（一時メッセージ欄の書き込みを `App._show_flash_area` に一本化・挙動不変・2026-11-26 追加）
 
 ## レビュー方針
 

@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜62）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 82 完了（2026-11-26）。アクティブなフェーズなし。refactor_check 推奨 → 提案書 30（一時メッセージ欄の書き込みの一本化）はユーザー判断待ち。**
+**phase 82 完了（2026-11-26）。提案書 30（一時メッセージ欄の書き込みの一本化）は task_05_refactor で実施済。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
 phase 82 = レイアウトの JSON の任意キー `key_symbols` で記号の表示を上書き（日本語のフォントで `\` が ¥ に見える問題・配列は判別しない・見本 jis.json は `backslash` / `\` / `ro` → `＼`）。不正な表は使わず一時メッセージ欄の下敷きで警告。正本 = `features.md` §4.5・§4.6 / `codebase_map.md`。判断と残存リスクは decisions_archive/82。分離 = idea_70（配列の種類の項目）・idea_71（軽い気づき・優先度 低）。
 worktree = `claude/idea-63-jis-layout-2d47d5`（Windows・phase 82 完了までコミット済・未 push）。
 直近の実測（Windows・task_04・2026-11-26）: compile clean / tests 2333 pass（skip 9）/ tests_ui 1341 pass / smoke pass（verifier）。
@@ -42,7 +42,7 @@ Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
 **件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕→ 2279〔phase 79 task_01〕→ 2282〔phase 80〕→ 2333〔phase 82〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78〕→ 1330〔phase 80〕→ 1341〔phase 82〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
-`tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
+`tests_ui/test_minimize_grab_custody.py` は単独でも 1 件落ちることがある（落ちるテストは回ごとに変わる・phase 82 の基準でも再現・current.md「テスト負債」）。`tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存（phase 77 のサンプルの symlink テスト 2 件を含む）。
@@ -55,7 +55,6 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **提案書 30 の採否をユーザーに確かめる**（実施なら (a) phase 82 末の `task_05_refactor` / (b) 次フェーズ前の独立ミニフェーズ）。
 - 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
 - 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）ほかの push / merge はユーザー。保留中: R4・idea_37・idea_45・59・60・64・66〜70 は検討段階。

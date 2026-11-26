@@ -1,6 +1,6 @@
 # 提案書 30: phase 82 のリファクタ（一時メッセージ欄の書き込みの一本化）
 
-> 状態: **提案（ユーザー判断待ち・2026-11-26）**。起票元 = phase 82 task_05 の `/refactor_check`（PHASE_BASE = 7dc202ff・対象 = keyseq の変更 10 ファイル）。挙動不変。
+> 状態: **実施済（2026-11-26・phase 82 task_05_refactor・ユーザー承認「phase 82 の末尾で」）**。起票元 = phase 82 task_05 の `/refactor_check`（PHASE_BASE = 7dc202ff・対象 = keyseq の変更 10 ファイル）。挙動不変。
 
 ## 判定の根拠
 
