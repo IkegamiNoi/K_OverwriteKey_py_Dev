@@ -4,35 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-25T21:00:00
-phase: なし（phase 81 = キー置換の置換先に英字の大文字 は 2026-11-25 完了・`decisions_archive/81_uppercase_replacement_target.md`）。次採番 = phase 82 / 暫定 62 / decisions 82 / 提案書 30 / idea 70
+last_updated: 2026-11-26T13:00:00
+phase: instructions/phase/82_scroll_direction_setting（スクロールのアクションの向きの反転・起票元 idea_58・暫定仕様先行モード・主入力 = 暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
 直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
 last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 完了）。push / merge はユーザー
-※現在地・SHA はセッション開始時の git 実測値が正
+※現在地・SHA はセッション開始時の git 実測値が正（今回の作業は worktree `idea-58-be6d8d`・Mac・未コミット）
 
 ## current
-focus: **phase 81 完了（2026-11-25）。アクティブなフェーズなし。提案書 29 は task_05_refactor で実施済。次フェーズはユーザー判断で `/phase_start`。**
-mode: completed
+focus: **phase 82 起票済（2026-11-26・reviewer 整合確認 = 採用）。次は task_01 の起票（`/task_new`）。**
+mode: implementing
 
 ## last_action
-ts: 2026-11-25T22:00:00
+ts: 2026-11-26T13:00:00
 who: main
 summary: |
-  phase 81 完了。task_03 = 実機目視 OK（Windows 1〜5・macOS は Caps Lock ON 以外）・task_04 = 正本反映（data_schema §5.1・§5.6 / key_input §7.4・§7.9 / features §4.6 / codebase_map）・暫定 61 凍結・contracts.py のコメント。
-  完了判定前レビュー deep-reviewer 修正して採用 / Codex needs-attention（medium 3）→ ユーザー「推奨どおり」: 正本の言い回し修正・idea_69 分離・表示名の受容。refactor_check 推奨 → 提案書 29。 続けて提案書 29 を task_05_refactor で実施（003903d3・挙動不変・tests 2296 / smoke pass・reviewer 採用）。
+  ユーザーが暫定 62 v0.4 を確定（2026-11-26）→ ヘッダを「ユーザー確定済・実装着手可」に。`/phase_start` で phase 82 を起票: phase.md（task_01 domain + application / task_02 presentation + tests_ui / task_03 統合確認と実機目視 / task_04 正本反映と完了）。
+  付随更新: current.md の現在の参照先の先頭に phase 82・次採番節（phase 83 / 暫定 63 / decisions 83）・backlog INDEX の idea_58 行に phase リンク。reviewer の整合確認 = 採用（任意の指摘 a・c を phase.md へ反映・b は /task_new で対応）。
+  それまでの経緯（監査・deep-reviewer・Codex 敵対的レビュー・idea_70 分離）は暫定 62 のヘッダと §8 に記録済。
 result_files:
-  - instructions/common/（spec_detail/data_schema.md・key_input.md・features.md・codebase_map.md）・instructions/history/61_*.md
-  - .claude_data/state/decisions_archive/81_uppercase_replacement_target.md・instructions/modified_proposal/29_*.md・instructions/backlog/idea_69_*.md
+  - instructions/history/62_scroll_direction_setting.md・instructions/phase/82_scroll_direction_setting/phase.md（新規）
+  - instructions/phase/current.md・instructions/backlog/INDEX.md・instructions/backlog/idea_70_config_overwrite_on_multiple_instances.md（新規）
 verified:
-  compile: clean（task_04）
-  tests: pass 2295（skip 9・Windows・task_03a 時点）
-  tests_ui: pass 1334（task_02 時点）
-  smoke: pass
+  compile: not_run（文書のみ）
+  tests: not_run
 
 ## next_action
-- 提案書 29 は phase 81 task_05_refactor で実施済（2026-11-25）。
-- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68・idea_69 を含む）。
-- ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- `/task_new` で `instructions/phase/82_scroll_direction_setting/tasks/task_01_*.md` を起票 → `codex-implementer` へ委任（本体は domain/mouse_scroll.py・application/action_executor.py の 2 ファイル・テスト 2 ファイルの見込み → 量の目安に当たらない）→ verifier で tests → reviewer。
+- コミットは `/task_commit`（起票分の文書はタスク着手前に区切ってよい）。ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
