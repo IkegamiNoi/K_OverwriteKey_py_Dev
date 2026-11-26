@@ -91,6 +91,7 @@
 | 79_bundled_c_library_licenses | [79_bundled_c_library_licenses.md](decisions_archive/79_bundled_c_library_licenses.md) | 同梱の C ライブラリのライセンス（2026-11-24 完了・暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・コード変更なし・起票元 idea_65）。表示の義務がある C ライブラリだけを OS ごとの行で載せる（Windows 21 行・Mac 19 行）・義務の無い物は棚卸しの記録に判定を残す・出荷ごとの棚卸し（`packaging/inventory/<版>.md`）・VC++ は README に一文。refactor_check: 不要 |
 | 80_win_d_restore_blank_dialog | [80_win_d_restore_blank_dialog.md](decisions_archive/80_win_d_restore_blank_dialog.md) | Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-25 完了・直接改訂モード〔正本 features.md §4.6 に例外（Windows）〕・JSON スキーマ不変・起票元 idea_61）。原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。OS 標準のダイアログと Win+D は idea_67（低優先）。refactor_check: 不要 |
 | 81_uppercase_replacement_target | [81_uppercase_replacement_target.md](decisions_archive/81_uppercase_replacement_target.md) | キー置換の置換先に英字の大文字（2026-11-25 完了・暫定 61 v0.3 凍結・JSON スキーマの型は不変・起票元 idea_62）。`A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る（phase 74 の送り方・macOS は送信済みの修飾も判定に含める）・キーボードUI は Shift + 英字で大文字。分離 = idea_68（置換元の Shift の面）・idea_69（macOS の開始前からの修飾）。refactor_check: 推奨 → 提案書 29 を task_05_refactor で実施済 |
+| 82_scroll_direction_setting | [82_scroll_direction_setting.md](decisions_archive/82_scroll_direction_setting.md) | スクロールのアクションの向きの反転（2026-11-26 完了・暫定 62 v0.4 凍結・JSON スキーマ = config.json の任意キー `scroll_invert` の追加・起票元 idea_58）。縦・横別に符号を反転・設定 > スクロールの向き・保存が成功した後の行から効く。分離 = idea_70（多重起動で config.json が上書き）・idea_71（読めなかった config.json を次の保存で上書き）。refactor_check: 不要（M4 は新しい型の境界・別タスク化候補に記録） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -656,14 +657,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 経緯: phase 81 で Luna 単独（codex-implementer）の失敗が続いた。量が原因 = task_01（本体 9・3 層・両 OS・テスト 6 前後でテストを書き終える前に 2 回停止）。依頼文の不足が原因 = テストを既存テストの途中に差し込む・既存の期待値の直し漏れ・属性をメソッドとして呼ぶ・準備の呼び出しまで数えるテスト。
 - 決定: `agent_selection.md` に目安（本体 5 ファイル以上 / 3 層以上か両 OS の backend / テスト 3 ファイル以上か既存の期待値の変更 のどれかで delegating）と、期待値を変える既存テストの `ファイル:行` の列挙を追加。2 つの Codex 実装エージェントの転送文に「テストの書き方の注意」4 点を追加。codex / codex_medium の変種へ追随（claude_only は対象外）。
 - 試行扱い: 目安で delegating に回したタスクは、子が実際に起動されたかと結果をそのフェーズの decisions に 1 行残す。
-
-## phase 82（スクロールのアクションの向きの反転・暫定 62）
-
-### 【task_02】codex-delegating-implementer の試行の記録（2026-11-26・目安の試行扱い）
-- 目安に当たった理由: 本体 7 ファイル（presentation 3 + 言語ファイル 2 + ヘルプ 2）・テスト 3 ファイル・既存の期待値の変更（`test_menu_bar_deferral.py`）。
-- 実測: rollout `2026-11-26T20-19-58-…` に `thread_source: subagent`（gpt-6-luna）あり = 子は起動された（主は gpt-6.1-sol）。子の担当はテスト 3 ファイル（自己申告）。1 回の依頼で本体・テストとも書き終えた（期待値の直し漏れなし・既存テストの途中への差し込みなし・メインで直読み済）。
-
-### 【task_03】統合確認 pass・統合レビューの採否・実機目視 OK（2026-11-26・ユーザー判断「推奨通りでよい」）
-- 統合確認（Mac・HEAD 7bfc6821）: compileall clean / tests 2243 pass（skip 34）/ tests_ui 80 モジュール別プロセス 1339 件・失敗 0 / smoke OK。
-- deep-reviewer 採用（低 5）・codex-reviewer 指摘なし。採否: ①保存→再読込の往復テスト・③メニューの invoke とフォント変更での作り直しのテスト・⑤dirty テストの意図の明示 → **task_03a（テストのみ）**。②失敗のつながりは既存の起動設定の保存失敗と同じ経路のため**受容**（Mac で固まらないことは実機目視 5 で確認）。④正本昇格の注意（`features.md` §4.8 の列挙と文・`data_schema.md` §5.4 を `compact_header_view` と同じ書き方で 4 点）→ **task_04**。
-- 実機目視（ユーザー・Windows / macOS とも task_03 定義の 1〜7）: 問題なし。

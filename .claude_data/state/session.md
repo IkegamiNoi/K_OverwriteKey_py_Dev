@@ -4,35 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T13:00:00
-phase: instructions/phase/82_scroll_direction_setting（スクロールのアクションの向きの反転・起票元 idea_58・暫定仕様先行モード・主入力 = 暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
-直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
-last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Windows・phase 81 完了）。push / merge はユーザー
-※現在地・SHA はセッション開始時の git 実測値が正（今回の作業は worktree `idea-58-be6d8d`・Mac・未コミット）
+last_updated: 2026-11-26T19:00:00
+phase: なし（phase 82 = スクロールのアクションの向きの反転 は 2026-11-26 完了・`decisions_archive/82_scroll_direction_setting.md`）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72
+直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
+last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac・phase 82 完了）。push / merge はユーザー
+※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 task_01〜03a 完了。task_04（正本反映は working-tree に済・未コミット）→ 完了判定前レビュー（deep-reviewer + Codex 敵対的）→ 採否はユーザー → 凍結・decisions_archive/82・current.md・INDEX_done・/refactor_check。**
-mode: implementing
+focus: **phase 82 完了（2026-11-26）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+mode: completed
 
 ## last_action
-ts: 2026-11-26T17:00:00
+ts: 2026-11-26T19:00:00
 who: main
 summary: |
-  ユーザー判断: 統合レビュー低 5 件は推奨どおり（①③⑤ → task_03a・②受容・④ task_04）・実機目視は Windows / macOS とも問題なし → task_03 コミット（b1cac697）。
-  task_03a（テストのみ）を codex-implementer で実装 → メインで ⑤の assert を mock_calls == [] に修正 → verifier pass（tests 2244 / tests_ui.test_scroll_invert_menu 6・config.json 不変）→ reviewer 採用（軽微 2 点をメインで修正・再検証 6 pass）。
-  task_04 の定義を起票し、正本反映を working-tree で実施（data_schema §5.4 に scroll_invert の項と作成契機・§5.11.10 に符号の 3 段 / features §4.6 にスクロールの向きの項・§4.8 メニューの処理 / codebase_map）。
+  phase 82 完了。task_01〜03b（872bc0c4・7bfc6821・b1cac697・81723c9a・06c77a8b）+ task_04 = 正本反映（data_schema §5.4 scroll_invert・§5.11.10 符号の 3 段と③は Windows / features §4.6 スクロールの向き・§4.8 メニューの処理 / codebase_map）・暫定 62 凍結・decisions_archive/82 と索引・current.md の完了記載・idea_58 を INDEX_done へ。
+  完了判定前レビュー: deep-reviewer 完了可 / Codex 敵対的 needs-attention 3 → ユーザー「推奨」: idea_71 分離・正本修正・task_03b。refactor_check 不要（M4 は新しい型の境界・別タスク化候補に記録）。
 result_files:
-  - tests/test_scroll_invert_setting.py・tests_ui/test_scroll_invert_menu.py・instructions/phase/82_scroll_direction_setting/tasks/task_03a_*.md
-  - （task_04・未コミット）instructions/common/spec_detail/data_schema.md・features.md・instructions/common/codebase_map.md・tasks/task_04_*.md
+  - instructions/common/（spec_detail/data_schema.md・features.md・codebase_map.md）・instructions/history/62_*.md（凍結）
+  - .claude_data/state/decisions_archive/82_scroll_direction_setting.md・decisions.md（索引）・instructions/phase/current.md・instructions/backlog/INDEX.md・INDEX_done.md・idea_71_*.md
 verified:
   compile: clean
   tests: pass 2244（skip 34・Mac・task_03a）
-  tests_ui: pass 1339（80 モジュール・task_03 時点）+ test_scroll_invert_menu 6（task_03a 後）
+  tests_ui: pass 1339（80 モジュール・Mac・task_03）+ test_scroll_invert_menu 7（task_03b）
   smoke: pass（task_03）
 
 ## next_action
-- 完了判定前レビュー: deep-reviewer（正本の追記と暫定 62 の整合・フェーズ全体）+ codex-adversarial-reviewer（`--base 57610a54`）→ 指摘の採否はユーザー。
-- 採用分を反映 → 暫定 62 を凍結・decisions_archive/82 と索引・current.md の完了記載（次採番 phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71）・idea_58 を INDEX_done へ・/refactor_check（メトリクスは verifier）→ reviewer で task_04 の整合確認 → コミット。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68〜71 を含む）。
+- ブランチ `claude/idea-58-be6d8d`（phase 82）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

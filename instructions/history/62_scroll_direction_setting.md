@@ -1,7 +1,6 @@
 # 暫定仕様 62: スクロールのアクションの向きの反転（scroll_direction_setting）
 
-> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-11-26）・実装着手可（起票時 deep-reviewer「修正して採用」・§6 のユーザー確定・Codex 敵対的レビュー〔needs-attention〕の指摘 2〜5 を反映、指摘 1 はスコープ外）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（2026-11-26・正本反映済）**。正本（`data_schema.md` §5.4・§5.11.10 / `features.md` §4.6「スクロールの向き」・§4.8「メニューの処理」/ `codebase_map.md`）が最新。本書は経緯記録として凍結（v0.4 でユーザー確定・起票時 deep-reviewer・Codex 敵対的レビュー〔起票時・完了判定前〕を反映）。
 > 起票元: [idea_58](../backlog/idea_58_scroll_direction_setting.md)（2026-11-15 phase 75 task_11a の Mac 実機目視でユーザーが要望）。
 > 番号対応: phase 82 / 暫定 62 / decisions 82。
 
