@@ -11,26 +11,25 @@ last_commit_location: `claude/idea-62-048dd1`（worktree `idea-62-048dd1`・Wind
 ※現在地・SHA はセッション開始時の git 実測値が正（今回の作業は worktree `idea-58-be6d8d`・Mac・未コミット）
 
 ## current
-focus: **phase 82 起票済（2026-11-26・reviewer 整合確認 = 採用）。次は task_01 の起票（`/task_new`）。**
+focus: **phase 82 task_01 完了（verifier pass・reviewer 採用）→ task_02 へ。ユーザーがタスクの連続実行を許可（2026-11-26・task_03 の実機目視で止まる）。**
 mode: implementing
 
 ## last_action
-ts: 2026-11-26T13:00:00
-who: main
+ts: 2026-11-26T14:00:00
+who: implementer
 summary: |
-  ユーザーが暫定 62 v0.4 を確定（2026-11-26）→ ヘッダを「ユーザー確定済・実装着手可」に。`/phase_start` で phase 82 を起票: phase.md（task_01 domain + application / task_02 presentation + tests_ui / task_03 統合確認と実機目視 / task_04 正本反映と完了）。
-  付随更新: current.md の現在の参照先の先頭に phase 82・次採番節（phase 83 / 暫定 63 / decisions 83）・backlog INDEX の idea_58 行に phase リンク。reviewer の整合確認 = 採用（任意の指摘 a・c を phase.md へ反映・b は /task_new で対応）。
-  それまでの経緯（監査・deep-reviewer・Codex 敵対的レビュー・idea_70 分離）は暫定 62 のヘッダと §8 に記録済。
+  起票分をコミット（c6ee58a5）。task_01（domain + application）と task_02（presentation）のタスク定義を起票。
+  task_01 を codex-implementer で実装: domain/mouse_scroll.py に ScrollInvert・NO_SCROLL_INVERT・coerce_scroll_invert・scroll_invert_to_json・apply_scroll_invert / ActionExecutor に get_scroll_invert（行ごとに try 内で読む）/ テスト 2 ファイルの末尾に追加。差分をメインで直読み済。verifier: compileall clean / 対象 25 pass / tests 2238 pass（skip 34）。reviewer 採用（指摘 2 = コンストラクタ経由の配線は task_02 の tests_ui で担保）。
 result_files:
-  - instructions/history/62_scroll_direction_setting.md・instructions/phase/82_scroll_direction_setting/phase.md（新規）
-  - instructions/phase/current.md・instructions/backlog/INDEX.md・instructions/backlog/idea_70_config_overwrite_on_multiple_instances.md（新規）
+  - instructions/phase/82_scroll_direction_setting/tasks/task_01_domain_application_invert.md・task_02_presentation_menu_and_save.md（新規）
+  - keyseq/domain/mouse_scroll.py・keyseq/application/action_executor.py・tests/test_mouse_scroll.py・tests/test_action_executor_mouse_scroll.py
 verified:
-  compile: not_run（文書のみ）
-  tests: not_run
+  compile: clean（task_01）
+  tests: pass 2238（skip 34・Mac・task_01）
 
 ## next_action
-- `/task_new` で `instructions/phase/82_scroll_direction_setting/tasks/task_01_*.md` を起票 → `codex-implementer` へ委任（本体は domain/mouse_scroll.py・application/action_executor.py の 2 ファイル・テスト 2 ファイルの見込み → 量の目安に当たらない）→ verifier で tests → reviewer。
-- コミットは `/task_commit`（起票分の文書はタスク着手前に区切ってよい）。ブランチ `claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- task_02 を `codex-delegating-implementer` へ委任（本体 7 ファイル・テスト 3 ファイル・既存の期待値の変更 = test_menu_bar_deferral.py:32,33,46,47,50,51 → 量の目安に当たる。子の起動の有無を decisions へ 1 行）→ 直読み → verifier（tests_ui はモジュール指定）→ reviewer → コミット。
+- task_03 = 統合確認（verifier）→ deep-reviewer + codex-reviewer → 実機目視はユーザー（Windows / macOS）で停止。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
