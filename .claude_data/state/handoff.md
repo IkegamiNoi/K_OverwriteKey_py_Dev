@@ -15,19 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 82**〔`instructions/phase/82_layout_key_symbols/phase.md`・主入力 = 暫定 62 v0.4〕）。
-   次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 82 は 2026-11-26 完了〕。次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 31 / idea 72（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜61）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜62）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 82 task_04 = 統合確認は全 pass・統合レビューの指摘の採否と Windows の実機目視がユーザー判断待ち（不在中のため停止・2026-11-26）。**
-phase 82 = レイアウトの JSON の任意キー `key_symbols`（キー名 → 1 行の表示）で、トリガー一覧・key_hold の行・呼び出し先の表示枠・キーボードUIのキー置換の枠の記号の表示を上書きする（日本語のフォントで `\` が ¥ に見える問題・idea_63）。見本 jis.json = `backslash` / `\` / `ro` → `＼`。不正な表は読込エラーにせず使わず、ステータスバーの一時メッセージ欄の下敷きで警告。
-task_01（7e113f66）・task_02（97f73cbd）・task_03（b2538a2d）は完了・reviewer 採用。**確認事項は `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md`**（1 = キーマップの複数選択が縮む件〔推奨 受容〕/ 2 = 孤立サロゲート〔推奨 除外〕/ 3 = T1〜T5 を task_05 へ〔推奨 含める〕/ 4 = 実機目視）。
-worktree = `claude/idea-63-jis-layout-2d47d5`（Windows・未 push）。presence: away（戻る予定 未定）→ 新しいセッションで再開したら session.md の presence 行は消してよい。
+**phase 82 完了（2026-11-26）。アクティブなフェーズなし。refactor_check 推奨 → 提案書 30（一時メッセージ欄の書き込みの一本化）はユーザー判断待ち。**
+phase 82 = レイアウトの JSON の任意キー `key_symbols` で記号の表示を上書き（日本語のフォントで `\` が ¥ に見える問題・配列は判別しない・見本 jis.json は `backslash` / `\` / `ro` → `＼`）。不正な表は使わず一時メッセージ欄の下敷きで警告。正本 = `features.md` §4.5・§4.6 / `codebase_map.md`。判断と残存リスクは decisions_archive/82。分離 = idea_70（配列の種類の項目）・idea_71（軽い気づき・優先度 低）。
+worktree = `claude/idea-63-jis-layout-2d47d5`（Windows・phase 82 完了までコミット済・未 push）。
 直近の実測（Windows・task_04・2026-11-26）: compile clean / tests 2333 pass（skip 9）/ tests_ui 1341 pass / smoke pass（verifier）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -56,8 +55,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー判断待ち】`instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` の 1〜4 に答えてもらう**（1 = 推奨 A 受容 / B 直す = task_04a・2 = 推奨 除外・3 = 推奨 T1〜T5 を task_05 に含める・L1〜L4 は保留・4 = Windows の実機目視 = `tasks/task_04_integration_and_visual_check.md` の手順 1〜5）。
-- 回答後: 1 が B なら task_04a を起票 → Codex 実装エージェント → verifier → reviewer。実機目視 OK → task_05（正本反映: 暫定 62 を features.md §4.6・ui_terms.md・codebase_map.md へ昇格 + T1〜T5・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ・/refactor_check）。
+- **提案書 30 の採否をユーザーに確かめる**（実施なら (a) phase 82 末の `task_05_refactor` / (b) 次フェーズ前の独立ミニフェーズ）。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
 - 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
 - ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）ほかの push / merge はユーザー。保留中: R4・idea_37・idea_45・59・60・64・66〜70 は検討段階。
 - **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。`codex-delegating-implementer` は 180 秒を超えると背景へ移る → 出力ファイルの伸びが止まるのを待って受け取る（phase 82 task_03）。**`config/` は .gitignore 対象だが見本は追跡済み** → 見本の JSON のコミットは `git add -f <ファイル>`。
@@ -136,7 +135,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 81_uppercase_replacement_target / 80_win_d_restore_blank_dialog / 79_bundled_c_library_licenses）。
+  （直近 3 件: 82_layout_key_symbols / 81_uppercase_replacement_target / 80_win_d_restore_blank_dialog）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/

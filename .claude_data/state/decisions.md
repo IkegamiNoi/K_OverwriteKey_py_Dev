@@ -91,6 +91,7 @@
 | 79_bundled_c_library_licenses | [79_bundled_c_library_licenses.md](decisions_archive/79_bundled_c_library_licenses.md) | 同梱の C ライブラリのライセンス（2026-11-24 完了・暫定仕様先行モード〔暫定 60 v0.9 凍結〕・JSON スキーマ不変・コード変更なし・起票元 idea_65）。表示の義務がある C ライブラリだけを OS ごとの行で載せる（Windows 21 行・Mac 19 行）・義務の無い物は棚卸しの記録に判定を残す・出荷ごとの棚卸し（`packaging/inventory/<版>.md`）・VC++ は README に一文。refactor_check: 不要 |
 | 80_win_d_restore_blank_dialog | [80_win_d_restore_blank_dialog.md](decisions_archive/80_win_d_restore_blank_dialog.md) | Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-25 完了・直接改訂モード〔正本 features.md §4.6 に例外（Windows）〕・JSON スキーマ不変・起票元 idea_61）。原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。OS 標準のダイアログと Win+D は idea_67（低優先）。refactor_check: 不要 |
 | 81_uppercase_replacement_target | [81_uppercase_replacement_target.md](decisions_archive/81_uppercase_replacement_target.md) | キー置換の置換先に英字の大文字（2026-11-25 完了・暫定 61 v0.3 凍結・JSON スキーマの型は不変・起票元 idea_62）。`A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る（phase 74 の送り方・macOS は送信済みの修飾も判定に含める）・キーボードUI は Shift + 英字で大文字。分離 = idea_68（置換元の Shift の面）・idea_69（macOS の開始前からの修飾）。refactor_check: 推奨 → 提案書 29 を task_05_refactor で実施済 |
+| 82_layout_key_symbols | [82_layout_key_symbols.md](decisions_archive/82_layout_key_symbols.md) | レイアウトごとのキー名の記号の上書き（2026-11-26 完了・暫定 62 v0.4 凍結・JSON スキーマ = レイアウトの JSON に任意キー `key_symbols` の追加・起票元 idea_63）。選んでいるレイアウトの表がトリガー一覧・key_hold の行・呼び出し先の表示枠・キーボードUIのキー置換の枠の記号の表示を上書きする（配列は判別しない・見本 jis.json は `\` 系を `＼`）。不正な表は読込エラーにせず使わず、ステータスバーの一時メッセージ欄の下敷きで警告。分離 = idea_70（配列の種類の項目）・idea_71（軽い気づき）。refactor_check: 推奨 → 提案書 30（ユーザー判断待ち） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -656,31 +657,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 経緯: phase 81 で Luna 単独（codex-implementer）の失敗が続いた。量が原因 = task_01（本体 9・3 層・両 OS・テスト 6 前後でテストを書き終える前に 2 回停止）。依頼文の不足が原因 = テストを既存テストの途中に差し込む・既存の期待値の直し漏れ・属性をメソッドとして呼ぶ・準備の呼び出しまで数えるテスト。
 - 決定: `agent_selection.md` に目安（本体 5 ファイル以上 / 3 層以上か両 OS の backend / テスト 3 ファイル以上か既存の期待値の変更 のどれかで delegating）と、期待値を変える既存テストの `ファイル:行` の列挙を追加。2 つの Codex 実装エージェントの転送文に「テストの書き方の注意」4 点を追加。codex / codex_medium の変種へ追随（claude_only は対象外）。
 - 試行扱い: 目安で delegating に回したタスクは、子が実際に起動されたかと結果をそのフェーズの decisions に 1 行残す。
-
-## 2026-11-25〜 (phase 82: レイアウトごとのキー名の記号の上書き・暫定 62)
-
-### 【起票時】方向 → **レイアウトの JSON の新しい任意の項目で持たせる・配列の判別はしない**（ユーザー確定 2026-11-25）
-- 「JIS のときだけ適用」は採らない（¥ に見えるのはフォントの問題で配列ではない・他言語〔韓国語の ₩ 等〕も利用者が直せるように）。既存の `key_display_names` はキーボードUIの枠だけで一覧に使わない決まり（改行を含むため）なので、1 行の別項目 `key_symbols` を足す。
-- 配列の種類をレイアウトに書く項目は idea_70 へ分離（macOS の JIS 判別の改善・本フェーズの表示には不要）。
-### 【暫定 62 v0.2・v0.3】起票時 deep-reviewer「修正して採用」を反映 / 確認事項 5 点を提案どおり確定（2026-11-25）
-- 呼び出し先の表示枠を対象に足す・上書きの表は `normalize_key_name` で引く・描き直しの入口を操作の 3 か所に・同梱の入れ方の根拠を `bundled_layouts.py` に。
-- 項目名 `key_symbols` / 見本は jis.json だけ `backslash`・`\`・`ro` → `＼`（案 A）/ US のレイアウトの間は直らないのを受容 / jis_mac.json には書かない / 既存の利用者のフォルダは自動で直さない。
-### 【暫定 62 v0.4】Codex 敵対的レビュー needs-attention 4 件 → ユーザー判断で反映（2026-11-25）
-- high: 不正な `key_symbols` でレイアウトごと読めなくなり US TKL へ落ちる → **表だけを使わずレイアウトは読む**（採用）+ **警告をステータスバーの一時メッセージ欄の下敷きにする**（ユーザー追加案。自動で消えず上書きで失われる案・右の列に専用欄を作る案は除外 = 範囲が広がるため）。
-- medium: 描き直しの入口 → `set_keyboard_layout_selection` の末尾を足す（採用）・フックキーの個別設定の切替での古い一覧は受容。
-- medium: 選択を保つ API が無い → **保たない**（「次に実行」へ戻るのを受容）。
-- medium: key_hold の対象 → 正しく読めたキーの行だけと明記（採用・文言のみ）。
-### 【task_01】完了（2026-11-26・reviewer 採用）
-- delegating の試行: codex-delegating-implementer に回した（本体 6・テスト 4 で目安に該当）。サブエージェントは起動されず Sol 単独で完了（rollout 2026-11-25T23-51-32 の model は gpt-6.1-sol のみ・同時刻以降に Luna の rollout なし）。1 回で完了・テストの書き漏らしなし。
-### 【task_02】完了（2026-11-26・reviewer 採用）
-- delegating の試行: 本体 5・テスト 4 で codex-delegating-implementer。子 2 つが起動された（rollout 2026-11-25T23-59-27 / 23-59-44 / 2026-11-26T00-00-48 に gpt-6-luna あり）。1 回で完了・既存の期待値の変更なし。
-- tests_ui 全体で `test_minimize_grab_custody` が 1 件 fail（回ごとに別のテスト・a13 は単独で pass・同モジュール 3 回ずつで変更あり 1/3・基準 7e113f66 は 0/3）。変更は最小化・grab・after の経路に触れず、テストもレイアウトの変更や一覧の描き直しを呼ばない → **負荷依存の偶発的な失敗と判断（未確定）**。task_04 の統合確認で全体を流し直して再確認する。
-### 【task_03】完了（2026-11-26・reviewer 採用）
-- delegating の試行: 本体 6・テスト 3 で codex-delegating-implementer。子が起動された（Codex のログ「Collaboration tool wait」・自己申告で controller と見本のテストを分担）。180 秒超でバックグラウンドへ移り、出力ファイルの伸びが止まるのを待って受け取った。1 回で完了。
-- 既存のテスト 3 件のテスト用の偽物（SimpleNamespace）に `key_symbols_invalid_reason=""` を足した（期待値は不変・追加の経路が新しい属性を読むため）→ reviewer 採用。
-### 【task_04 統合確認】全 pass・統合レビュー deep-reviewer 採用 / codex-reviewer 指摘 2 件 → ユーザー判断待ち（2026-11-26）
-- tests 2333 / tests_ui 1341 / smoke pass。`test_minimize_grab_custody` は全体と単独 3 回とも pass → task_02 の失敗は偶発と確定。
-- Codex (1) 孤立サロゲートで Tk が落ちる → 実測で再現せず（除外を推奨）。Codex (2) キーマップの複数選択が 1 件に縮む → 裏取り済み（受容を推奨）。deep-reviewer T1〜T5 は task_05 に含めるのを推奨・L1〜L4 は保留を推奨。詳細は `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md`。
-- ユーザー判断（2026-11-26）: Codex (2) キーマップの複数選択が縮む → **受容**（暫定 62 §6 に 1 行追記）。Windows の実機目視 1〜5 → **問題なし**。
-- ユーザー判断（2026-11-26）: Codex (1) 孤立サロゲート → **除外**（実測で再現せず）。deep-reviewer T1〜T5 → **task_05 に含める**。L1〜L4 → **保留**・idea_71（優先度 低）に起票。
-### 【task_04】完了（2026-11-26）: 統合確認 pass・統合レビューの指摘の採否が決定・Windows の実機目視 1〜5 問題なし（ユーザー）。コードの変更なし（暫定 62 §6 に受容を 1 行追記のみ）。

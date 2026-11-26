@@ -4,34 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T09:00:00
-phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72
-直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
-last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 起票）。push / merge はユーザー
+last_updated: 2026-11-26T12:00:00
+phase: なし（phase 82 = レイアウトごとのキー名の記号の上書き は 2026-11-26 完了・`decisions_archive/82_layout_key_symbols.md`）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 31 / idea 72
+直前の完了フェーズ = **phase 82**（レイアウトごとのキー名の記号の上書き・`decisions_archive/82_layout_key_symbols.md`）
+last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 task_04 = 統合確認 pass・実機目視 OK・キーマップの複数選択の件は受容。残り = 孤立サロゲート（推奨 除外）と T1〜T5（推奨 task_05 に含める）・L1〜L4（推奨 保留）の回答待ち。**
-mode: blocked
+focus: **phase 82 完了（2026-11-26）。アクティブなフェーズなし。refactor_check 推奨 → 提案書 30 はユーザー判断待ち。**
+mode: completed
 
 ## last_action
-ts: 2026-11-26T03:00:00
+ts: 2026-11-26T12:00:00
 who: main
 summary: |
-  task_03 をコミット（b2538a2d）。task_04 を起票し、統合確認（verifier: compileall clean・tests 2333 / skip 9・tests_ui 1341・smoke pass・最小化テストの偶発を確定）と統合レビュー（deep-reviewer 採用・codex-reviewer 指摘 2 件）を実施。
-  Codex (1) は実測で再現せず・(2) は裏取り済み。不在中（presence: away・戻る予定 未定）でユーザー判断に当たったため、確認事項をまとめて停止。
+  phase 82 task_05（正本反映・完了）: 暫定 62 を features.md §4.5・§4.6 / codebase_map.md へ昇格（T1〜T5 を含む）・ui_terms.md は変更なし・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ。
+  完了判定前レビュー deep-reviewer 修正して採用 / Codex 敵対的 needs-attention（medium 3）→ ユーザー「推奨どおり」= 文言を直し Codex の 3 件は受容として正本に明記。refactor_check: M3 境界 → 推奨 → 提案書 30（一時メッセージ欄の書き込みの一本化・1 項目）。
 result_files:
-  - instructions/phase/82_layout_key_symbols/tasks/task_04_integration_and_visual_check.md・instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md
+  - instructions/common/spec_detail/features.md・instructions/common/codebase_map.md・instructions/history/62_layout_key_symbols.md
+  - .claude_data/state/decisions_archive/82_layout_key_symbols.md・instructions/modified_proposal/30_refactor_layout_key_symbols.md・instructions/backlog/INDEX.md・INDEX_done.md・instructions/phase/current.md
 verified:
-  compile: clean
-  tests: pass 2333（skip 9・Windows）
-  tests_ui: pass 1341
+  compile: clean（task_04）
+  tests: pass 2333（skip 9・Windows・task_04）
+  tests_ui: pass 1341（task_04）
   smoke: pass
 
 ## next_action
-- **【回答待ち】** `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` の 2（孤立サロゲート・推奨 除外）と 3（T1〜T5 を task_05 に含める・L1〜L4 は保留）。1 は受容・4 の実機目視は問題なし（ユーザー 2026-11-26・暫定 62 §6 に受容を追記済み）。回答後に task_04 を完了にして task_05 へ。
-- 回答後: 1 が B なら task_04a を起票 → Codex → verifier → reviewer。実機目視 OK → task_05（正本反映: 暫定 62 を features.md §4.6・ui_terms.md・codebase_map.md へ昇格 + T1〜T5・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ・/refactor_check）。
-- ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）の push / merge はユーザー。
+- **提案書 30（`instructions/modified_proposal/30_refactor_layout_key_symbols.md`）の採否をユーザーに確かめる**。実施するなら (a) phase 82 末の `task_05_refactor` / (b) 次フェーズ前の独立ミニフェーズ を選んでもらう。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_70・idea_71 を含む）。
+- ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
