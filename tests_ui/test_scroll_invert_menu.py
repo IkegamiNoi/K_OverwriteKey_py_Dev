@@ -5,6 +5,7 @@ from unittest.mock import patch
 from keyseq.domain.mouse_scroll import ScrollInvert
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.tk_platform import is_aqua
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -187,6 +188,44 @@ class ScrollInvertMenuTests(unittest.TestCase):
                 self.app.set_ui_font_delta(0)
             vertical.set(False)
             horizontal.set(False)
+
+    def test_horizontal_menu_item_saves_after_menu_queue_runs(self):
+        original_settings = self.app._startup_settings
+        original_invert = self.app._scroll_invert
+        vertical = self.app.ui_vars.scroll_invert_vertical_var
+        horizontal = self.app.ui_vars.scroll_invert_horizontal_var
+        original_vertical, original_horizontal = vertical.get(), horizontal.get()
+        try:
+            self.app._startup_settings = {"scroll_invert": {"vertical": False, "horizontal": False}}
+            vertical.set(False)
+            horizontal.set(False)
+            self.app._scroll_invert = ScrollInvert()
+            settings = self._settings_menu()
+            index = next(
+                i for i in range(settings.index("end") + 1)
+                if settings.type(i) == "cascade" and settings.entrycget(i, "label") == "スクロールの向き"
+            )
+            scroll_menu = self.app.nametowidget(settings.entrycget(index, "menu"))
+            with patch.object(self.app.startup_io, "write_startup", return_value=True) as write_startup:
+                scroll_menu.invoke(1)
+                if is_aqua(self.app):
+                    write_startup.assert_not_called()
+                    self.assertTrue(horizontal.get())
+                    self.assertEqual(self.app.action_executor._get_scroll_invert(), ScrollInvert())
+
+                self.app.update()
+                write_startup.assert_called_once_with(
+                    {"scroll_invert": {"vertical": False, "horizontal": True}},
+                )
+                self.assertEqual(
+                    self.app.action_executor._get_scroll_invert(),
+                    ScrollInvert(horizontal=True),
+                )
+        finally:
+            self.app._startup_settings = original_settings
+            self.app._scroll_invert = original_invert
+            vertical.set(original_vertical)
+            horizontal.set(original_horizontal)
 
 
 if __name__ == "__main__":
