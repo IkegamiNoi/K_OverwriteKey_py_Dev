@@ -79,4 +79,5 @@ macOS で、ダイアログの「?」（Welcome の「ヘルプを開く」を�
 - verifier（Mac）: compileall clean / tests 2247 pass（skip 35）/ tests_ui 7 モジュール中 `test_welcome_window` の 1 件が失敗 / smoke OK
   - 失敗 = `test_help_is_single_child_on_guide_tab_and_closes_with_welcome`（`tests_ui/test_welcome_window.py:132` の「開いた直後も grab は Welcome」）。Mac では開いたヘルプが前面になり、仕様どおり grab がヘルプへ移るため。受け渡しのない前提のテストなので、このテストだけ `hands_grab_to_active_child_window` を偽に固定（メインの軽微修正・期待値は不変）。修正後 `test_welcome_window` + `test_help_grab_handoff` 21 件 pass
 - reviewer = **採用**（必須修正なし）。参考: Welcome の初回経路に掛かることを直接確かめるテストはない（実機目視で確認）/ 最小化でヘルプが隠れるかは実機依存（目視 ⑧）/ task_03 で `codebase_map.md` に `hands_grab_to_active_child_window` と `help/grab_handoff.py` を反映する
-- 残り: 実機目視（Mac ①〜⑧・Windows）
+- 実機目視（2026-11-26・ユーザー）: Mac ①〜⑧・Windows とも問題なし
+- 目視で見つかった別件（ユーザー報告）: ヘルプを開いたあとに別のダイアログを開くと、Mac・Windows ともヘルプが操作できなくなる（対応前の Mac と同じ状態）→ 扱いはユーザーと相談中
