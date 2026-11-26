@@ -743,3 +743,27 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
                     focus.assert_not_called()
 
         self._with_confirmation(manager, check)
+
+    def test_delegate_grab_is_held_and_restored_by_dialog(self):
+        self._patch(modal, "_modal_front_listener", None)
+        self._patch(modal, "_modal_help_follow", {})
+        self._patch(modal, "_modal_last_inputs", {})
+        dialog = self._action()
+        delegate = self._track_window(tk.Toplevel(dialog))
+        delegate.transient(dialog)
+        modal.mark_grab_delegate(delegate)
+        delegate.grab_set()
+        self.assertIs(self.app.grab_current(), delegate)
+
+        self.app.iconify()
+        self.app.update()
+
+        self.assertEqual(self.app.wm_state(), "iconic")
+        self.assertIsNone(self.app.grab_current())
+        self.assertIs(modal._custody_window, dialog)
+
+        self._restore_app()
+
+        self.assertTrue(dialog.winfo_viewable())
+        self.assertIs(self.app.grab_current(), dialog)
+        self.assertIsNone(modal._custody_window)

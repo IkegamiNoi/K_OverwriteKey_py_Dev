@@ -379,9 +379,10 @@ class ModalGrabTest(unittest.TestCase):
 
             window.grab_current.assert_called_once_with()
             window.grab_set.assert_called_once_with()
-            window.bind.assert_called_once()
-            self.assertEqual(window.bind.call_args.args[0], "<Destroy>")
-            restore_grab = window.bind.call_args.args[1]
+            # phase 83: 最後の入力先を覚える <FocusIn> の bind も足される。破棄ハンドラは 1 つだけ。
+            destroy_binds = [c for c in window.bind.call_args_list if c.args[0] == "<Destroy>"]
+            self.assertEqual(len(destroy_binds), 1)
+            restore_grab = destroy_binds[0].args[1]
             restore_grab(Mock(widget=window))
             # 記録した保持者は None なので、復元時の照会や親のモーダル化は行わない。
             window.grab_current.assert_called_once_with()
@@ -398,9 +399,10 @@ class ModalGrabTest(unittest.TestCase):
             grab_modal(window)
 
             window.grab_set.assert_called_once_with()
-            window.bind.assert_called_once()
-            self.assertEqual(window.bind.call_args.args[0], "<Destroy>")
-            restore_grab = window.bind.call_args.args[1]
+            # phase 83: 最後の入力先を覚える <FocusIn> の bind も足される。破棄ハンドラは 1 つだけ。
+            destroy_binds = [c for c in window.bind.call_args_list if c.args[0] == "<Destroy>"]
+            self.assertEqual(len(destroy_binds), 1)
+            restore_grab = destroy_binds[0].args[1]
             # 直接呼び出し、例外の吸収がなければ Tk の通知経由にせずテストを失敗させる。
             restore_grab(Mock(widget=window))
             self.assertEqual(window.grab_current.call_count, 2)

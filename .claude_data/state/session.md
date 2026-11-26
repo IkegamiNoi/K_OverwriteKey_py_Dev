@@ -11,7 +11,8 @@ last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_03（暫定 63 の前提の実測）中。Mac は完了（作り直し可・表示後の lower・案 X のフォーカスの戻しで入力先が保たれる = task01_measurement.md §11・§12）→ 暫定 63 v0.5 で §3.6 を改訂済み。残り = Windows の実測（ユーザー・spike/help_follow_spike2.py）と reviewer。次は task_04（modal.py の口と grab の持ち主の解決）。**
+presence: away（戻る予定 未定・2026-11-27 から）
+focus: **phase 83 task_04 完了（2026-11-27・verifier pass・reviewer 採用）。次は task_05（ヘルプの付け替え本体）を起票して実装。連続実行の許可あり・ユーザー不在（presence 行）。**
 mode: implementing
 
 ## last_action
@@ -30,8 +31,8 @@ verified:
   tests: not_run
 
 ## next_action
-- Windows で `spike/help_follow_spike2.py` を実行してもらい結果を `task01_measurement.md` §12 の後へ記録 → task_03 を reviewer へ → 完了なら task_04 を起票（phase.md のタスク一覧どおり）。
-- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`。
+- task_05（ヘルプの付け替え・暫定 63 §3・§4・§5）を起票 → 実装（codex-delegating-implementer）→ verifier → reviewer → コミット。引き継ぎ = `task01_measurement.md` §13。
+- task_06（統合確認・実機目視）はユーザーの目視が要る → 不在なら終了処理（/away の規則）。
 - ブランチ `claude/idea-60-be6a81`（phase 83）ほかの push / merge はユーザー。
 
 ## blockers
