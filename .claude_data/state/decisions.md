@@ -681,3 +681,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【task_04 統合確認】全 pass・統合レビュー deep-reviewer 採用 / codex-reviewer 指摘 2 件 → ユーザー判断待ち（2026-11-26）
 - tests 2333 / tests_ui 1341 / smoke pass。`test_minimize_grab_custody` は全体と単独 3 回とも pass → task_02 の失敗は偶発と確定。
 - Codex (1) 孤立サロゲートで Tk が落ちる → 実測で再現せず（除外を推奨）。Codex (2) キーマップの複数選択が 1 件に縮む → 裏取り済み（受容を推奨）。deep-reviewer T1〜T5 は task_05 に含めるのを推奨・L1〜L4 は保留を推奨。詳細は `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md`。
+- ユーザー判断（2026-11-26）: Codex (2) キーマップの複数選択が縮む → **受容**（暫定 62 §6 に 1 行追記）。Windows の実機目視 1〜5 → **問題なし**。
+- ユーザー判断（2026-11-26）: Codex (1) 孤立サロゲート → **除外**（実測で再現せず）。deep-reviewer T1〜T5 → **task_05 に含める**。L1〜L4 → **保留**・idea_71（優先度 低）に起票。
+### 【task_04】完了（2026-11-26）: 統合確認 pass・統合レビューの指摘の採否が決定・Windows の実機目視 1〜5 問題なし（ユーザー）。コードの変更なし（暫定 62 §6 に受容を 1 行追記のみ）。

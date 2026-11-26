@@ -16,7 +16,7 @@
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 82**〔`instructions/phase/82_layout_key_symbols/phase.md`・主入力 = 暫定 62 v0.4〕）。
-   次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71（暫定 47 は idea_53 で保留中の番号）
+   次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。

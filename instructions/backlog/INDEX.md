@@ -54,3 +54,4 @@
 | idea_68 | [idea_68_shift_layer_replacement_source.md](idea_68_shift_layer_replacement_source.md) | キー置換の置換元に `Shift+キー` を指定し、同じキーマップに Shift を押している間の面を持たせる（例: `Shift+2` だけ `@`）。Shift 以外の修飾キーの面も検討。 | 未着手（検討段階・2026-11-25 idea_62 の意図確認からの分離）|
 | idea_69 | [idea_69_mac_premod_lost_on_mapped_send.md](idea_69_mac_premod_lost_on_mapped_send.md) | macOS でフックの開始より前から押している Command 等が、キー置換の送信イベントに付かないことがある（静的推論・未実測）。 | 未着手（検討段階・2026-11-25 phase 81 の Codex 敵対的レビュー）|
 | idea_70 | [idea_70_layout_physical_type_field.md](idea_70_layout_physical_type_field.md) | キーレイアウトの JSON に「どの配列として作ったか」（jis / ansi / iso 等）を書く任意の項目を設け、macOS の JIS の判別（今は `yen`・`ro` のキーの有無で推測）をその項目で行う。 | 未着手（検討段階・2026-11-25 idea_63 の相談からの分離）|
+| idea_71 | [idea_71_key_symbols_minor_cleanups.md](idea_71_key_symbols_minor_cleanups.md) | phase 82 の統合レビューの軽い気づき 4 点（キーボードUI・一覧の二重の描き直し / 枠ごとの dict の生成 / 表を取る補助の書き方と例外の記録 / 警告の名前の `[id]`）をまとめて整える。 | 未着手（検討段階・**優先度 低**・2026-11-26 phase 82 task_04 の統合レビュー）|

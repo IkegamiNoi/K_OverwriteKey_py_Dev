@@ -4,16 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T03:00:00
-phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 71
+last_updated: 2026-11-26T09:00:00
+phase: instructions/phase/82_layout_key_symbols（レイアウトごとのキー名の記号の上書き・暫定 62 v0.4 ユーザー確定済）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 81**（キー置換の置換先に英字の大文字・`decisions_archive/81_uppercase_replacement_target.md`）
 last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 起票）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 task_04 = 統合確認は全 pass・統合レビューの指摘の採否と Windows の実機目視がユーザー判断待ち（不在中のため停止）。**
+focus: **phase 82 task_04 = 統合確認 pass・実機目視 OK・キーマップの複数選択の件は受容。残り = 孤立サロゲート（推奨 除外）と T1〜T5（推奨 task_05 に含める）・L1〜L4（推奨 保留）の回答待ち。**
 mode: blocked
-presence: away（戻る予定 未定）
 
 ## last_action
 ts: 2026-11-26T03:00:00
@@ -30,7 +29,7 @@ verified:
   smoke: pass
 
 ## next_action
-- **【ユーザー判断待ち】`instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` の 1〜4 に答えてもらう**: 1 = キーマップの複数選択が縮む件（推奨 A 受容 / B 直す = task_04a）・2 = 孤立サロゲート（推奨 除外）・3 = T1〜T5 を task_05 に含める（推奨 含める・L1〜L4 は保留）・4 = Windows の実機目視（task_04 の手順 1〜5）。
+- **【回答待ち】** `instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` の 2（孤立サロゲート・推奨 除外）と 3（T1〜T5 を task_05 に含める・L1〜L4 は保留）。1 は受容・4 の実機目視は問題なし（ユーザー 2026-11-26・暫定 62 §6 に受容を追記済み）。回答後に task_04 を完了にして task_05 へ。
 - 回答後: 1 が B なら task_04a を起票 → Codex → verifier → reviewer。実機目視 OK → task_05（正本反映: 暫定 62 を features.md §4.6・ui_terms.md・codebase_map.md へ昇格 + T1〜T5・暫定 62 凍結・decisions_archive/82・current.md の完了記載・idea_63 を INDEX_done へ・/refactor_check）。
 - ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）の push / merge はユーザー。
 
