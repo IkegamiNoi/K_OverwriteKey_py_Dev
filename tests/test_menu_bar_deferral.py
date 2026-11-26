@@ -29,8 +29,8 @@ class MenuBarDeferralTests(unittest.TestCase):
             orphan_sweep_io=SimpleNamespace(run_sweep=Mock()),
             quarantine_manage_io=SimpleNamespace(manage_quarantine=Mock()),
             layout=SimpleNamespace(**{name: Mock() for name in ("open_keyboard_window", "add_external_keyboard_layout", "delete_keyboard_layout")}),
-            ui_vars=SimpleNamespace(keyboard_show_physical_key_labels_var=Mock(), ui_font_delta_var=Mock(), ui_language_var=Mock()),
-            open_preset_manager=Mock(), on_close=Mock(), set_ui_font_delta=Mock(), set_ui_language=Mock(),
+            ui_vars=SimpleNamespace(keyboard_show_physical_key_labels_var=Mock(), ui_font_delta_var=Mock(), ui_language_var=Mock(), scroll_invert_vertical_var=Mock(), scroll_invert_horizontal_var=Mock()),
+            open_preset_manager=Mock(), on_close=Mock(), set_ui_font_delta=Mock(), set_ui_language=Mock(), set_scroll_invert=Mock(),
             help=SimpleNamespace(open=Mock()), license=SimpleNamespace(open=Mock()),
             config=Mock(), tk=Mock(),
         )
@@ -43,12 +43,17 @@ class MenuBarDeferralTests(unittest.TestCase):
                            if kind == "radiobutton" and options["variable"] is app.ui_vars.ui_language_var]
         font_radios = [options for menu in menus for kind, options in menu.entries
                        if kind == "radiobutton" and options["variable"] is app.ui_vars.ui_font_delta_var]
-        physical_checks = [options for kind, options in entries if kind == "checkbutton"]
-        self.assertEqual(len(deferred), len(commands) + len(language_radios))
+        physical_checks = [options for kind, options in entries
+                           if kind == "checkbutton" and options["variable"] is app.ui_vars.keyboard_show_physical_key_labels_var]
+        scroll_variables = (app.ui_vars.scroll_invert_vertical_var, app.ui_vars.scroll_invert_horizontal_var)
+        scroll_checks = [options for kind, options in entries
+                         if kind == "checkbutton" and any(options["variable"] is variable for variable in scroll_variables)]
+        self.assertEqual(len(deferred), len(commands) + len(language_radios) + len(scroll_checks))
         self.assertEqual(len(language_radios), len(available_languages()))
         self.assertEqual(len(font_radios), 7)
         self.assertEqual(len(physical_checks), 1)
-        self.assertEqual(len(deferred), 22 + len(available_languages()))
+        self.assertEqual(len(scroll_checks), 2)
+        self.assertEqual(len(deferred), 24 + len(available_languages()))
 
     def test_physical_label_apply_is_immediate_and_save_skips_changed_path(self):
         scheduled = []

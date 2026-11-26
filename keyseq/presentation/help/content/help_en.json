@@ -176,7 +176,7 @@
               "hotkey: Sends a key combination, such as ctrl+c. You can choose from Presets.",
               "text: Enters a text string.",
               "mouse_click: Clicks or drags.",
-              "mouse_scroll: Scrolls the mouse wheel.",
+              "mouse_scroll: Scrolls the mouse wheel. You can invert the direction in Settings > Scroll direction (for example, when you use natural scrolling on a Mac).",
               "file_line: Enters one line from a text file. A counter determines the line number.",
               "counter_text: Types the counter value as it is.",
               "key_hold: Holds down or releases a key or mouse button. For example, hold shift while using arrow keys to select a range.",

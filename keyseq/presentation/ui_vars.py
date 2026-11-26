@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.domain.mouse_scroll import NO_SCROLL_INVERT, ScrollInvert
 from keyseq.presentation.keyboard_layouts import DEFAULT_LAYOUT_ID
 from keyseq.shared.i18n import resolve_language
 
@@ -8,8 +9,13 @@ from keyseq.shared.i18n import resolve_language
 class UiVars:
     """View / controller 間で共有する Tk 変数のホルダー。"""
 
-    def __init__(self, master, ui_font_delta_pt: int, ui_language: object = None) -> None:
+    def __init__(
+        self, master, ui_font_delta_pt: int, ui_language: object = None,
+        *, scroll_invert: ScrollInvert = NO_SCROLL_INVERT,
+    ) -> None:
         self.ui_language_var = tk.StringVar(master=master, value=resolve_language(ui_language))
+        self.scroll_invert_vertical_var = tk.BooleanVar(master=master, value=scroll_invert.vertical)
+        self.scroll_invert_horizontal_var = tk.BooleanVar(master=master, value=scroll_invert.horizontal)
         self.always_on_top_var = tk.BooleanVar(master=master, value=False)
         self.keyboard_always_on_top_var = tk.BooleanVar(master=master, value=False)
         self.stop_key_var = tk.StringVar(master=master, value=str(master.data.get(HOOK_STOP_KEY, "")))

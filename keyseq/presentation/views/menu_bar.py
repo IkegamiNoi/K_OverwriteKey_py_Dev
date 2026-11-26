@@ -41,6 +41,19 @@ def build_menu_bar(app):
     )
     settings_menu.add_separator()
 
+    scroll_menu = tk.Menu(settings_menu, tearoff=False)
+    scroll_menu.add_checkbutton(
+        label=tr("menu.settings.scroll_direction.invert_vertical"),
+        variable=app.ui_vars.scroll_invert_vertical_var,
+        command=app.menu_commands.defer(app.set_scroll_invert),
+    )
+    scroll_menu.add_checkbutton(
+        label=tr("menu.settings.scroll_direction.invert_horizontal"),
+        variable=app.ui_vars.scroll_invert_horizontal_var,
+        command=app.menu_commands.defer(app.set_scroll_invert),
+    )
+    settings_menu.add_cascade(label=tr("menu.settings.scroll_direction"), menu=scroll_menu)
+
     font_menu = tk.Menu(settings_menu, tearoff=False)
     for delta in (-3, -2, -1, 0, 1, 2, 3):
         label = tr("menu.settings.font_size.standard") if delta == 0 else f"{delta:+d}"
