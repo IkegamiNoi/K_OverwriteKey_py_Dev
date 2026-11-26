@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T21:00:00
-phase: **83_help_input_during_modal**（ダイアログを開いている間にヘルプの絞り込み欄へ入力できない・起票元 idea_60・直接改訂モード・2026-11-26 起票）。次採番 = phase 84 / 暫定 63 / decisions 84 / 提案書 30 / idea 72
+last_updated: 2026-11-27T00:40:00
+phase: **83_help_input_during_modal**（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
 last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac・phase 82 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_02 実装済み（案 D・Mac だけヘルプが前面の間 grab をヘルプへ）。verifier pass（test_welcome_window の前提をメインが修正）・reviewer 採用。残り = 実機目視（Mac ①〜⑧・Windows）→ task_03（記録・codebase_map・decisions_archive/83・INDEX_done・/refactor_check）。未コミット。**
+focus: **phase 83 task_03（暫定 63 の前提の実測）中。Mac は完了（作り直し可・表示後の lower・案 X のフォーカスの戻しで入力先が保たれる = task01_measurement.md §11・§12）→ 暫定 63 v0.5 で §3.6 を改訂済み。残り = Windows の実測（ユーザー・spike/help_follow_spike2.py）と reviewer。次は task_04（modal.py の口と grab の持ち主の解決）。**
 mode: implementing
 
 ## last_action
@@ -30,9 +30,9 @@ verified:
   tests: not_run
 
 ## next_action
-- phase 83 task_01 のタスク定義を `/task_new` で起票して着手（`instructions/phase/83_help_input_during_modal/phase.md`）。候補 ①`modal.py` のフォーカス戻し ②macOS で transient でない子窓 ③メニュー経由、を素の tkinter と実機で切り分ける（Windows はユーザーに手順を渡す）。
-- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`（current.md は次採番の番号だけ進める）。
-- ブランチ `claude/idea-58-be6d8d`（phase 82 + current.md の分離）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- Windows で `spike/help_follow_spike2.py` を実行してもらい結果を `task01_measurement.md` §12 の後へ記録 → task_03 を reviewer へ → 完了なら task_04 を起票（phase.md のタスク一覧どおり）。
+- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`。
+- ブランチ `claude/idea-60-be6a81`（phase 83）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

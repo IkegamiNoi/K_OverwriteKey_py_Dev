@@ -8,8 +8,8 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ = [phase 83](83_help_input_during_modal/phase.md)**（ダイアログを開いている間にヘルプの絞り込み欄へ入力できない・2026-11-26 起票・起票元 [idea_60](../backlog/idea_60_help_input_during_modal.md)）。
-  直接改訂モード（暫定なし）・phase 83 / decisions 83。方針（案 A / B / C）は未決で、まず原因を実測する（ユーザー 2026-11-26）。
-  **次採番 = phase 84 / 暫定 63 / decisions 84 / 提案書 30 / idea 72**（暫定 47 は idea_53 で保留中の番号）。
+  2026-11-26 に暫定仕様先行モードへ切り替え（主入力 = [暫定 63](../history/63_help_follows_front_dialog.md)）・phase 83 / 暫定 63 / decisions 83。
+  **次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72**（暫定 47 は idea_53 で保留中の番号）。
 - 直近の一連の作業の領域 = スクロールの向きの反転（phase 82・`domain/mouse_scroll.py` の `ScrollInvert` / `coerce_scroll_invert` / `apply_scroll_invert`・`ActionExecutor` の `get_scroll_invert`・`App.set_scroll_invert` と設定 > スクロールの向き・config.json の `scroll_invert`・正本 `data_schema.md` §5.4・§5.11.10 / `features.md` §4.6・§4.8）。残件 = [idea_70](../backlog/idea_70_config_overwrite_on_multiple_instances.md)（多重起動で config.json が上書き）・[idea_71](../backlog/idea_71_unreadable_config_overwritten_on_save.md)（読めなかった config.json を次の保存で上書き）・残存リスク（実際の向き・macOS の遅延は実機目視のみ）は decisions_archive/82。
   それ以前の領域の残件は各 `decisions_archive/<phase>.md`（phase 81 = [idea_68](../backlog/idea_68_shift_layer_replacement_source.md)・[idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md) / phase 80 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md) / phase 75 = 検討段階の idea〔idea_45・59・60・63〜66〕ほか）。
 - 直前の完了フェーズ = [phase 82](82_scroll_direction_setting/phase.md)（2026-11-26・判断は [decisions_archive/82](../../.claude_data/state/decisions_archive/82_scroll_direction_setting.md)・refactor_check 不要）。
@@ -22,7 +22,7 @@
 ## 次採番
 
 - **phase**: 次は **`84_<topic>`**・decisions も **84**（欠番が出た場合はここに明記し、再利用しない）。
-- **暫定仕様**（`instructions/history/NN_<topic>.md`・フェーズと独立採番）: 次は **`63_<topic>`**。**47 は idea_53 で保留中の番号**（再利用しない）。一覧と状態は [history/README.md](../history/README.md)。
+- **暫定仕様**（`instructions/history/NN_<topic>.md`・フェーズと独立採番）: 次は **`64_<topic>`**。**47 は idea_53 で保留中の番号**（再利用しない）。一覧と状態は [history/README.md](../history/README.md)。
 - **リファクタ提案書**（`instructions/modified_proposal/NN_*.md`・独立採番）: 次は **`30_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割・規範は `.claude/skills/spec_split/SKILL.md`。提案書 09 とは別物）。提案書由来の計画はフェーズ番号を消費しない。一覧は [modified_proposal/INDEX.md](../modified_proposal/INDEX.md)。
 - **idea**: 次は **`idea_72`**（`instructions/backlog/` のフォルダ実体が正・`/idea`）。
 

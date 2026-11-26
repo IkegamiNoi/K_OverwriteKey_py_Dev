@@ -11,8 +11,8 @@
 **対象は presentation の見込み（`keyseq/presentation/help/`・`modal.py`）・JSON スキーマ不変**。
 
 - 起票元: [idea_60](../../backlog/idea_60_help_input_during_modal.md)（2026-11-17・phase 75 task_11d の Mac 目視）。
-- 主入力（暫定仕様）: なし（直接改訂モード）。
-- モード: **直接改訂モード**（task_01 は実測のみ）。番号対応: phase 83 / 暫定なし / decisions 83。
+- 主入力（暫定仕様）: [63_help_follows_front_dialog.md](../../history/63_help_follows_front_dialog.md)（2026-11-26 起票・task_02 の目視の別件 = ヘルプを開いたあとに別のダイアログを開くとヘルプが操作できない・案 E）。task_01〜02 は直接改訂モードで行い、正本 §4.6 の macOS の例外は task_01 で改訂済み。以降は暫定 63 が正（フェーズ末に昇格）。
+- モード: **直接改訂モード → 暫定仕様先行モード**（2026-11-26 ユーザー判断で切り替え）。番号対応: phase 83 / 暫定 63 / decisions 83。
   task_01 で決める方針が `features.md` §4.6「ヘルプの窓」「モーダルダイアログの作法」や `key_input.md` のヘルプの節を
   変える場合（案 A / B）は、止めてユーザーへ報告し、`.claude/rules/spec_change_workflow.md` に従ってモードを選び直す。
 
@@ -54,13 +54,15 @@
 
 ## タスク
 
-- task_01: 再現と原因の実測（Mac・Windows は手順を渡してユーザー）。素の tkinter の最小構成（grab を持つ窓 + その子の Toplevel / App が親の Toplevel）と実機の両方で、
+- task_01（完了・2026-11-26）: 再現と原因の実測（Mac・Windows は手順を渡してユーザー）。素の tkinter の最小構成（grab を持つ窓 + その子の Toplevel / App が親の Toplevel）と実機の両方で、
   「?」で開いたヘルプ・メニューから開いたヘルプのそれぞれで絞り込み欄をクリックして入力できるかを確かめ、候補 ①〜③ を切り分ける。
   原因と直し方の案（案 A / B / C ほか・仕様変更の要否）を出してユーザーが選ぶ。コード変更なし（計測用の一時スクリプトは scratchpad）
-- task_02: macOS で「?」から開いたヘルプへの grab の受け渡し（案 D・正本 §4.6 の macOS の例外・2026-11-26 改訂）。最初に transient なしで成り立つかを素の tkinter で確かめる。実装 = 既定の実装エージェント・tests / tests_ui のテスト・標準検証・Mac / Windows の目視（ユーザー）
-- task_03（最終タスク）: 記録（正本の追記が要ればユーザー承認のうえ `features.md`・`key_input.md`・`codebase_map.md`・`decisions_archive/83`・
-  current.md の完了記載・`instructions/backlog/INDEX.md` の idea_60 の行を完了にして `INDEX_done.md` へ移動・`/refactor_check`）。
-  案 C（受け入れ）ならコードは変えず、ヘルプ・ツールチップの文言（`ja.json` / `en.json`・`ui_terms.md` に従う）と記録だけになる
+- task_02（完了・2026-11-26）: macOS で「?」から開いたヘルプへの grab の受け渡し（案 D・正本 §4.6 の macOS の例外・2026-11-26 改訂）。最初に transient なしで成り立つかを素の tkinter で確かめる。実装 = 既定の実装エージェント・tests / tests_ui のテスト・標準検証・Mac / Windows の目視（ユーザー）
+- task_03: 暫定 63 の前提の実測（A0・メイン・コード変更なし）。素の tkinter で、①ダイアログが破棄されたあと `after_idle` で作り直せて状態が保たれる ②`lower(持ち主)` で新しいヘルプがダイアログのすぐ下に置ける を Mac で確かめ、Windows はユーザーへ手順を渡す。効かなければ止めて相談する
+- task_04: modal.py の口と grab の持ち主の解決（暫定 63 §3.2・§5）= `set_modal_front_listener`・「grab の持ち主がヘルプならその親」の解決関数と、`grab_modal` の前の持ち主・最小化の預かり・`choice_dialog._grab_holder` での使用・カーソルグリッドの編集窓の対象外の印。テスト
+- task_05: ヘルプの付け替え（暫定 63 §3・§4・§5）= 持ち主の選び直し・開く / 閉じるときの作り直し・状態の控えと復元・窓の消え方の 4 区分・初期フォーカスの抑止・本文の保持・`install_grab_handoff` の掛け直し・メニューの `open` と「?」の扱い。テスト（期待値の変わる既存テストを列挙）
+- task_06: 統合確認と実機目視（verifier・deep-reviewer + codex-reviewer・Mac / Windows の目視 = 暫定 63 §7 A1〜A14・閉じるときの一瞬の消え方の許容の判断）
+- task_07（最終タスク）: 正本反映と記録（暫定 63 の正本への昇格と凍結〔`features.md` §4.6「ヘルプの窓」「モーダルダイアログの作法」・`key_input.md`〕・`codebase_map.md`・`decisions_archive/83`・current.md の完了記載・`instructions/history/README.md`・idea_60 の行を完了にして `INDEX_done.md` へ移動・目視用の一時スクリプト `spike/` の削除・`/refactor_check`）
 
 ## レビュー方針
 
