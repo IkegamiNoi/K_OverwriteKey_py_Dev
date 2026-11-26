@@ -662,3 +662,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【task_02】codex-delegating-implementer の試行の記録（2026-11-26・目安の試行扱い）
 - 目安に当たった理由: 本体 7 ファイル（presentation 3 + 言語ファイル 2 + ヘルプ 2）・テスト 3 ファイル・既存の期待値の変更（`test_menu_bar_deferral.py`）。
 - 実測: rollout `2026-11-26T20-19-58-…` に `thread_source: subagent`（gpt-6-luna）あり = 子は起動された（主は gpt-6.1-sol）。子の担当はテスト 3 ファイル（自己申告）。1 回の依頼で本体・テストとも書き終えた（期待値の直し漏れなし・既存テストの途中への差し込みなし・メインで直読み済）。
+
+### 【task_03】統合確認 pass・統合レビューの採否・実機目視 OK（2026-11-26・ユーザー判断「推奨通りでよい」）
+- 統合確認（Mac・HEAD 7bfc6821）: compileall clean / tests 2243 pass（skip 34）/ tests_ui 80 モジュール別プロセス 1339 件・失敗 0 / smoke OK。
+- deep-reviewer 採用（低 5）・codex-reviewer 指摘なし。採否: ①保存→再読込の往復テスト・③メニューの invoke とフォント変更での作り直しのテスト・⑤dirty テストの意図の明示 → **task_03a（テストのみ）**。②失敗のつながりは既存の起動設定の保存失敗と同じ経路のため**受容**（Mac で固まらないことは実機目視 5 で確認）。④正本昇格の注意（`features.md` §4.8 の列挙と文・`data_schema.md` §5.4 を `compact_header_view` と同じ書き方で 4 点）→ **task_04**。
+- 実機目視（ユーザー・Windows / macOS とも task_03 定義の 1〜7）: 問題なし。

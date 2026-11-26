@@ -50,6 +50,7 @@
 - task_01: domain（`ScrollInvert`・`coerce_scroll_invert`・`apply_scroll_invert`）+ application（`ActionExecutor` の `get_scroll_invert` と反転の適用）と tests（暫定 62 §3・§4・§7-1〔値の正規化〕〜3・6）
 - task_02: presentation（起動時の読込と値の保持・設定メニューのサブメニュー・保存と失敗時の戻し・`ui_vars`・ja / en の文言・ヘルプ本文）と tests_ui・`tests/test_menu_bar_deferral.py` の期待値の変更（§5・§7-1〔起動時の読込・config.json が読めないとき〕・4・5・5a・7・7a）
 - task_03: 統合確認（tests / tests_ui / smoke）と Windows / macOS の実機目視（ユーザー・§7-8）
+- task_03a: 統合レビュー（deep-reviewer 低 5 件）の採用分 = テストの補強（保存 → 再読込の往復・メニューの invoke とフォント変更での作り直し・dirty に触れないことの明示・テストのみ・2026-11-26 追加）
 - task_04: 正本反映（暫定 62 を `data_schema.md` §5.4・§5.11.10 / `features.md` §4.6・§4.8 / `codebase_map.md` へ昇格・`ui_terms.md` は用語を足す場合・暫定 62 を凍結）+ `decisions_archive/82` と `decisions.md` の索引 + current.md の完了記載 + idea_58 を `INDEX_done.md` へ + `/refactor_check`
 
 ## レビュー方針
