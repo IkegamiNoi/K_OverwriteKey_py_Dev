@@ -43,7 +43,9 @@
 
 - 暫定仕様先行モードの場合: 正本 `instructions/common/spec_detail/` への昇格 + 暫定仕様書の凍結
 - `.claude_data/state/decisions_archive/<NN_topic>.md` の作成（判断履歴の集約）
-- `instructions/phase/current.md` の完了記載更新（次採番の明記）
+- `instructions/phase/current.md` の完了記載更新（次採番の明記・完了フェーズのリンクは直近 3 件）。
+  台帳は持ち主のファイルで更新する（暫定仕様の凍結 = `instructions/history/README.md` /
+  提案書の状態 = `instructions/modified_proposal/INDEX.md` / 別タスク化候補 = `instructions/backlog/deferred_tasks.md`）
 - 起票元 idea がある場合: `instructions/backlog/INDEX.md` の該当行を完了 / クローズ状態に
   更新して `instructions/backlog/INDEX_done.md` へ移動する
 - `/refactor_check` の実行と、判定結果の完了報告への記載（CLAUDE.md）

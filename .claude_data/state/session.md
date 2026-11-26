@@ -11,27 +11,28 @@ last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 完了（2026-11-26）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+focus: **phase 82 完了（2026-11-26）。フェーズ外で current.md の台帳を持ち主のファイルへ分離（reviewer 採用・コミット済み）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
 mode: completed
 
 ## last_action
-ts: 2026-11-26T19:00:00
+ts: 2026-11-26T20:00:00
 who: main
 summary: |
-  phase 82 完了。task_01〜03b（872bc0c4・7bfc6821・b1cac697・81723c9a・06c77a8b）+ task_04 = 正本反映（data_schema §5.4 scroll_invert・§5.11.10 符号の 3 段と③は Windows / features §4.6 スクロールの向き・§4.8 メニューの処理 / codebase_map）・暫定 62 凍結・decisions_archive/82 と索引・current.md の完了記載・idea_58 を INDEX_done へ。
-  完了判定前レビュー: deep-reviewer 完了可 / Codex 敵対的 needs-attention 3 → ユーザー「推奨」: idea_71 分離・正本修正・task_03b。refactor_check 不要（M4 は新しい型の境界・別タスク化候補に記録）。
+  ユーザー判断「current.md に溜めた情報は持ち主のファイルへ移しリンクで辿れるようにし、今後の更新も持ち主へ」。
+  current.md 456 行 → 70 行: 別タスク化候補 → instructions/backlog/deferred_tasks.md / 提案書の台帳 → instructions/modified_proposal/INDEX.md / 暫定仕様の状態 → instructions/history/README.md 末尾 / 完了フェーズの要約・過去の領域・次採番の完了の行 → instructions/phase/past_areas.md（凍結）。本文はそのまま・相対リンクを新しい置き場所から解決するよう書き換え（全件実在を確認）・元の行の欠落なしを機械的に確認。
+  reviewer 採用（欠落なし・リンク BROKEN 0・次採番はフォルダ実体と一致・台帳を current.md へ書かせる指示の残りなし・モード管理対象外）。
+  運用の追随: current.md のフェーズ完了時の指示・注意 / .claude/skills/{refactor_check,phase_start,spec_draft}/SKILL.md / .claude/rules/task_execution.md / .claude/template_pull_state.md（意図的差分）。モード管理対象外（追随不要）。
 result_files:
-  - instructions/common/（spec_detail/data_schema.md・features.md・codebase_map.md）・instructions/history/62_*.md（凍結）
-  - .claude_data/state/decisions_archive/82_scroll_direction_setting.md・decisions.md（索引）・instructions/phase/current.md・instructions/backlog/INDEX.md・INDEX_done.md・idea_71_*.md
+  - instructions/phase/current.md・past_areas.md（新規）・instructions/backlog/deferred_tasks.md（新規）・instructions/modified_proposal/INDEX.md（新規）・instructions/history/README.md
+  - .claude/skills/refactor_check/SKILL.md・phase_start/SKILL.md・spec_draft/SKILL.md・.claude/rules/task_execution.md・.claude/template_pull_state.md
 verified:
-  compile: clean
-  tests: pass 2244（skip 34・Mac・task_03a）
-  tests_ui: pass 1339（80 モジュール・Mac・task_03）+ test_scroll_invert_menu 7（task_03b）
-  smoke: pass（task_03）
+  compile: not_run（文書のみ）
+  tests: not_run
 
 ## next_action
 - 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68〜71 を含む）。
-- ブランチ `claude/idea-58-be6d8d`（phase 82）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`（current.md は次採番の番号だけ進める）。
+- ブランチ `claude/idea-58-be6d8d`（phase 82 + current.md の分離）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 
 ## blockers
 - なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`

@@ -10,7 +10,7 @@ description: 新フェーズを instructions/phase/NN_<topic>/ に起票し curr
 
 1. **ユーザー方針の確認**: 次フェーズが未確定なら、何をやるフェーズかをユーザーに確認してから
    起票する（`instructions/phase/current.md`「作業開始時の指示」）。
-2. **採番**: `current.md` 末尾「新フェーズ作成時の更新ルール」の次採番に従う
+2. **採番**: `current.md`「次採番」節に従う
    （フォルダ実体とも突き合わせる。欠番は current.md の記載が正・再利用しない）。
    フォルダ名は `NN_<topic_snake_case>`。
 3. **モード選択**: `.claude/rules/spec_change_workflow.md`「モードの選択」で
@@ -71,7 +71,7 @@ description: 新フェーズを instructions/phase/NN_<topic>/ に起票し curr
 1. **`instructions/phase/current.md`**: 「## 現在の参照先」の**先頭**に新フェーズの項を追加
    （直前完了フェーズの項は残してよい。完了フェーズの整理は current.md「フェーズ完了時の指示」に従う）。書くのは概要・確定事項・リンク（phase.md / 暫定仕様 /
    判断アーカイブ / 起票元）・番号対応まで。**実装順序・タスク詳細・チェック内容は書かない**
-   （current.md 末尾「注意」）。末尾の次採番の記述も更新する。
+   （current.md 末尾「注意」）。「次採番」節の番号も進める（暫定仕様を同時に起票したなら、その状態は `instructions/history/README.md` の一覧で更新する）。
 2. **起票内容の整合チェック**: phase.md について reviewer エージェントで **1 回・整合確認に限定**
    して実施する（観点: 主入力の暫定仕様と phase.md の齟齬・スコープ/タスク分割の欠落・
    リンクと番号対応の誤り）。**設計内容そのものの再レビューはしない**
