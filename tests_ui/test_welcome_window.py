@@ -4,6 +4,7 @@ import tkinter as tk
 import unittest
 from unittest.mock import patch
 
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.help.help_content import HelpContent, HelpLoadResult
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.welcome.first_launch import run_first_launch_welcome
@@ -123,8 +124,10 @@ class WelcomeWindowUiTest(unittest.TestCase):
     def test_help_is_single_child_on_guide_tab_and_closes_with_welcome(self):
         content = HelpLoadResult(HelpContent(guide=(), faq=()))
         window = self._window()
+        # grab の受け渡し（macOS・phase 83）は test_help_grab_handoff で確かめる。ここでは無効にして OS によらず見る。
         with patch("keyseq.presentation.welcome.welcome_window.load_help_content",
-                   return_value=content) as load:
+                   return_value=content) as load, \
+                patch.object(get_backend().window, "hands_grab_to_active_child_window", return_value=False):
             window.help_button.invoke()
             self.root.update()
             help_window = window._help_window

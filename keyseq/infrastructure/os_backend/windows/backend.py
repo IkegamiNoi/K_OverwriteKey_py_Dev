@@ -54,6 +54,9 @@ class WindowsWindowBackend:
     def detaches_deep_transients_during_minimize(self) -> bool:
         return True
 
+    def hands_grab_to_active_child_window(self) -> bool:
+        return False
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         return True
 

@@ -3,6 +3,7 @@
 import tkinter as tk
 from tkinter import ttk
 
+from keyseq.presentation.help.grab_handoff import install_grab_handoff
 from keyseq.presentation.help.help_content import load_help_content
 from keyseq.presentation.help.help_window import HelpWindow
 from keyseq.presentation.modal import grab_modal
@@ -168,6 +169,7 @@ class WelcomeWindow(tk.Toplevel):
             self._help_window = HelpWindow(
                 self, load_help_content(), suspend_hook=lambda: None, resume_hook=lambda: None,
             )
+            install_grab_handoff(self._help_window, self)
         else:
             self._help_window.deiconify()
             self._help_window.lift()

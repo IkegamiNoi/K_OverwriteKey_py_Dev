@@ -47,6 +47,9 @@ class MacWindowBackend:
     def detaches_deep_transients_during_minimize(self) -> bool:
         return False
 
+    def hands_grab_to_active_child_window(self) -> bool:
+        return True
+
     def install_minimize_preparation(self, window: tkinter.Misc) -> bool:
         try:
             from keyseq.infrastructure.os_backend.macos.minimize_observer import create_minimize_observer

@@ -3,6 +3,7 @@
 from collections.abc import Callable
 import tkinter as tk
 
+from keyseq.presentation.help.grab_handoff import install_grab_handoff
 from keyseq.presentation.help.help_content import HelpLoadResult, load_help_content
 from keyseq.presentation.help.help_window import HelpWindow
 
@@ -59,8 +60,11 @@ class HelpWindowController:
     def open_for_dialog(self, dialog: tk.Toplevel, tab: str, target_id: str) -> None:
         if self._window is not None and self._window.master is not dialog:
             self.close()
-        window = (self._create_window(dialog) if self._window is None
-                  else self._raise_window())
+        if self._window is None:
+            window = self._create_window(dialog)
+            install_grab_handoff(window, dialog)
+        else:
+            window = self._raise_window()
         window.select_tab(tab)
         window.clear_filter()
         window.reveal(tab, target_id)

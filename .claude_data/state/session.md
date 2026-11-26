@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T19:00:00
-phase: なし（phase 82 = スクロールのアクションの向きの反転 は 2026-11-26 完了・`decisions_archive/82_scroll_direction_setting.md`）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 30 / idea 72
+last_updated: 2026-11-26T21:00:00
+phase: **83_help_input_during_modal**（ダイアログを開いている間にヘルプの絞り込み欄へ入力できない・起票元 idea_60・直接改訂モード・2026-11-26 起票）。次採番 = phase 84 / 暫定 63 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
 last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac・phase 82 完了）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 完了（2026-11-26）。フェーズ外で current.md の台帳を持ち主のファイルへ分離（reviewer 採用・コミット済み）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
-mode: completed
+focus: **phase 83 task_02 実装済み（案 D・Mac だけヘルプが前面の間 grab をヘルプへ）。verifier pass（test_welcome_window の前提をメインが修正）・reviewer 採用。残り = 実機目視（Mac ①〜⑧・Windows）→ task_03（記録・codebase_map・decisions_archive/83・INDEX_done・/refactor_check）。未コミット。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-26T20:00:00
@@ -30,7 +30,7 @@ verified:
   tests: not_run
 
 ## next_action
-- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_68〜71 を含む）。
+- phase 83 task_01 のタスク定義を `/task_new` で起票して着手（`instructions/phase/83_help_input_during_modal/phase.md`）。候補 ①`modal.py` のフォーカス戻し ②macOS で transient でない子窓 ③メニュー経由、を素の tkinter と実機で切り分ける（Windows はユーザーに手順を渡す）。
 - 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`（current.md は次採番の番号だけ進める）。
 - ブランチ `claude/idea-58-be6d8d`（phase 82 + current.md の分離）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
 

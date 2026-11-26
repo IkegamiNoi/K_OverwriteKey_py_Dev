@@ -356,6 +356,19 @@ class OsBackendContractTests(unittest.TestCase):
             self.assertIsNone(MacAppIdentity().relaunch("/work"))
         relaunch.assert_called_once_with("/work")
 
+    def test_hands_grab_to_active_child_window_contract(self) -> None:
+        self.assertEqual(
+            list(inspect.signature(WindowBackend.hands_grab_to_active_child_window).parameters),
+            ["self"],
+        )
+
+    def test_windows_hands_grab_to_active_child_window(self) -> None:
+        if sys.platform != "win32":
+            self.skipTest("Windows implementation")
+        from keyseq.infrastructure.os_backend.windows.backend import WindowsWindowBackend
+
+        self.assertFalse(WindowsWindowBackend().hands_grab_to_active_child_window())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -196,3 +196,6 @@ class MacWindowBackendTests(unittest.TestCase):
                 handler(SimpleNamespace(widget=self.window))
                 scheduled = self.window.after.call_args.args[1]
                 scheduled()
+
+    def test_hands_grab_to_active_child_window(self) -> None:
+        self.assertTrue(self.backend.hands_grab_to_active_child_window())
