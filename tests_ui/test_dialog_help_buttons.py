@@ -24,6 +24,7 @@ from keyseq.presentation.help.help_content import (
     HelpBlock, HelpCategory, HelpContent, HelpItem, HelpLoadResult,
 )
 from keyseq.presentation.help.help_targets import DIALOG_TARGETS
+from keyseq.presentation import modal
 from keyseq.presentation.help.help_window import HelpWindow
 from tests_ui.escape_delivery import send_escape
 from keyseq.shared.i18n import fix_language
@@ -113,7 +114,7 @@ class DialogHelpButtonsTest(unittest.TestCase):
         dialog = (TriggerDialog(self.app, title="導線の検査") if kind == "trigger" else
                   OrphanSweepDialog(self.app, scan_dirs=(), initial_dir=""))
         self.addCleanup(self._close_dialog, dialog)
-        self.app.update_idletasks()
+        self.app.update()
         return dialog
 
     def _help_button(self, dialog: tk.Toplevel) -> ttk.Button:
@@ -130,7 +131,8 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertIsNotNone(window)
         assert window is not None
         self.assertEqual(window.winfo_parent(), str(dialog))
-        self.assertIs(self.app.grab_current(), dialog)
+        # Mac では前面になったヘルプが grab を預かる（暫定 63 §5・task_02）。持ち主へ読み替えて比べる。
+        self.assertIs(modal.resolve_grab_holder(self.app.grab_current()), dialog)
         self.assertEqual(window.filter_text, "")
         self.assertEqual(window.notebook.select(), str(window.tabs["guide"]))
         self.assertTrue(window.tabs["guide"].is_category_open(target))
@@ -147,15 +149,23 @@ class DialogHelpButtonsTest(unittest.TestCase):
                 old = self.app.help.window
                 old.filter_var.set("入力済み")
                 dialog = self._dialog(kind)
-                window = self._open_help(dialog, target)
+                followed = self.app.help.window
                 self.assertFalse(old.winfo_exists())
+                self.assertIsNotNone(followed)
+                assert followed is not None
+                self.assertEqual(followed.winfo_parent(), str(dialog))
+                window = self._open_help(dialog, target)
+                self.assertIs(window, followed)
                 window.filter_var.set("再入力")
                 self.assertIs(self._open_help(dialog, target), window)
                 next(button for button in buttons_in(dialog)
                      if button.cget("text") == close_label).invoke()
                 self.app.update()
                 self.assertFalse(window.winfo_exists())
-                self.assertIsNone(self.app.help.window)
+                followed = self.app.help.window
+                self.assertIsNotNone(followed)
+                assert followed is not None
+                self.assertEqual(followed.winfo_parent(), str(self.app))
                 self.assertIs(self.app.grab_current(), self.app)
                 self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
                 self.app.grab_release()
@@ -180,7 +190,10 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertFalse(old.winfo_exists())
         self.assertEqual(len(windows), 1)
         self.assertFalse(windows[0].winfo_exists())
-        self.assertIsNone(self.app.help.window)
+        followed = self.app.help.window
+        self.assertIsNotNone(followed)
+        assert followed is not None
+        self.assertEqual(followed.winfo_parent(), str(self.app))
         self.assertIs(self.app.grab_current(), self.app)
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
@@ -199,20 +212,33 @@ class DialogHelpButtonsTest(unittest.TestCase):
         window.filter_entry.event_generate("<FocusIn>")
         self.assertEqual(self.app.hook.get_hook_pause_count(), 2)
         send_escape(self, self.app, dialog)
+        self.app.update()
         self.assertFalse(window.winfo_exists())
-        self.assertIsNone(self.app.help.window)
+        followed = self.app.help.window
+        self.assertIsNotNone(followed)
+        assert followed is not None
+        self.assertEqual(followed.winfo_parent(), str(self.app))
         self.assertIs(self.app.grab_current(), self.app)
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
-    def test_switching_dialog_parent_destroys_previous_help(self) -> None:
+    def test_switching_dialog_parent_and_closing_returns_help_to_previous_owner(self) -> None:
         first = self._dialog()
         old = self._open_help(first, "trigger")
         second = self._dialog("orphan")
-        new = self._open_help(second, "cleanup")
+        followed = self.app.help.window
         self.assertFalse(old.winfo_exists())
+        self.assertIsNotNone(followed)
+        assert followed is not None
+        self.assertEqual(followed.winfo_parent(), str(second))
+        new = self._open_help(second, "cleanup")
+        self.assertIs(new, followed)
         self._close_dialog(second)
         self.assertFalse(new.winfo_exists())
-        self.assertIs(self.app.grab_current(), first)
+        followed = self.app.help.window
+        self.assertIsNotNone(followed)
+        assert followed is not None
+        self.assertEqual(followed.winfo_parent(), str(first))
+        self.assertIs(modal.resolve_grab_holder(self.app.grab_current()), first)
 
     def test_dialog_help_applies_topmost_on_creation_and_reuse(self) -> None:
         dialog = self._dialog()
@@ -330,7 +356,7 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertEqual(window.filter_text, "")
         self.assertIsNone(window.notebook)
         self.assertIn("読込失敗", window.error_label.cget("text"))
-        self.assertIs(self.app.grab_current(), dialog)
+        self.assertIs(modal.resolve_grab_holder(self.app.grab_current()), dialog)
 
     def test_plain_root_button_and_existing_left_or_right_buttons(self) -> None:
         root = tk.Tk()

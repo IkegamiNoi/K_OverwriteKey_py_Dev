@@ -4,16 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-27T09:50:00
+last_updated: 2026-11-27T22:40:00
 phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
 last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・7a8ec77d = task_03・04 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定・2026-11-27 から）
-focus: **phase 83 task_05（ヘルプの付け替え本体）は実装・修正済みだが未検証・未コミット。Mac の画面がロックされ GUI テストが止まるため検証できず、ユーザー不在で終了。再開したら画面のロックを解いて verifier を流し直す（task_05 の定義の「結果」の末尾に手順）。**
-mode: blocked
+focus: **phase 83 task_05 完了（2026-11-27・reviewer 採用・Tk の deiconify のクラッシュ対策込み）。次 = task_06（統合確認と実機目視）を起票。probe のため Python の ApplePersistenceIgnoreState を設定中（ユーザーの許可を取って戻す）。**
+mode: implementing
 
 ## last_action
 ts: 2026-11-27T09:50:00
@@ -33,13 +32,14 @@ verified:
   tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- **【ユーザーへ】Mac の画面のロックを解いた状態で再開する**（ロック中は Tk の GUI テストが止まる・AppKit ごと落ちる）。再開したら `presence` 行を消す。
-- verifier に task_05 の検証を依頼（`tasks/task_05_help_follow.md` の「結果」の末尾の「残り」のとおり。`test_minimize_grab_custody` の既知の 2 件がロック解除後に通るかも見る）→ pass なら reviewer に「指摘 1・2 の反映」を確認依頼 → `/task_commit`（task_05）。
-- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容）を起票 → verifier・deep-reviewer + codex-reviewer → ユーザーの目視（Mac / Windows）。
+- verifier の task_05 の検証結果を見る（`tasks/task_05_help_follow.md` の「結果」の末尾）→ pass なら reviewer にクラッシュ対策と指摘 1・2 の反映を確認依頼 → `/task_commit`（task_05）。
+- 検証が終わったら、**ユーザーの許可を取ってから** `defaults delete org.python.python ApplePersistenceIgnoreState` で Python の設定を戻す。
+- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15）を起票。
 - ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
 
 ## blockers
-- **Mac の画面のロック**（2026-11-27 朝・ユーザー不在）で GUI テストを流せない → task_05 の検証が止まっている。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- **【元に戻す・ユーザーの許可を取ってから】2026-11-27 に probe のため `defaults write org.python.python ApplePersistenceIgnoreState -bool YES` を入れた（元は未設定）。検証が終わったら、ユーザーの許可を取って `defaults delete org.python.python ApplePersistenceIgnoreState` で戻す**（ユーザー指示）
+- （解消）Mac の画面のロック・再起動後の Python の再オープン確認のダイアログ。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints

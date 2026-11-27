@@ -41,7 +41,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_minimize_check_id", None)
         self._patch(modal, "_restore_check_id", None)
         self._patch(modal, "_modal_presence_listener", None)
-        self._patch(modal, "_is_app_foreground", return_value=False)
+        self._patch(modal, "is_app_foreground", return_value=False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
         self._patch(self.app.hook, "resume_hook_after_dialog")
         callback_error = self._patch(self.app, "report_callback_exception")
@@ -458,7 +458,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         dialog = self._action()
         self._minimize(dialog)
         with ExitStack() as patches:
-            patches.enter_context(patch.object(modal, "_is_app_foreground", return_value=True))
+            patches.enter_context(patch.object(modal, "is_app_foreground", return_value=True))
             focus = patches.enter_context(patch.object(
                 dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
             ))
@@ -489,7 +489,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         dialog = self._action()
         self._minimize(dialog)
         with ExitStack() as patches:
-            patches.enter_context(patch.object(modal, "_is_app_foreground", return_value=True))
+            patches.enter_context(patch.object(modal, "is_app_foreground", return_value=True))
             focus = patches.enter_context(patch.object(
                 dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
             ))
@@ -520,7 +520,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         other = self._track_window(tk.Toplevel(self.app))
         other.grab_set()
         self.assertIs(modal._custody_window, dialog)
-        with patch.object(modal, "_is_app_foreground", return_value=True):
+        with patch.object(modal, "is_app_foreground", return_value=True):
             with patch.object(tk.Misc, "focus_force", autospec=True) as force:
                 with patch.object(self.app, "focus_get", return_value=None):
                     self._restore_app()
@@ -536,7 +536,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         entry.pack()
         modal.grab_modal(child, focus=entry)
         self.assertTrue(any(opened is child for opened in modal._opened_while_minimized))
-        with patch.object(modal, "_is_app_foreground", return_value=True):
+        with patch.object(modal, "is_app_foreground", return_value=True):
             with patch.object(tk.Misc, "focus_force", autospec=True) as force:
                 with patch.object(self.app, "focus_get", return_value=None):
                     self._restore_app()

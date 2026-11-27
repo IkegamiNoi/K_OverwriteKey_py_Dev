@@ -60,7 +60,7 @@
 - task_02（完了・2026-11-26）: macOS で「?」から開いたヘルプへの grab の受け渡し（案 D・正本 §4.6 の macOS の例外・2026-11-26 改訂）。最初に transient なしで成り立つかを素の tkinter で確かめる。実装 = 既定の実装エージェント・tests / tests_ui のテスト・標準検証・Mac / Windows の目視（ユーザー）
 - task_03（完了・2026-11-27）: 暫定 63 の前提の実測（A0・メイン・コード変更なし）。素の tkinter で、①ダイアログが破棄されたあと `after_idle` で作り直せて状態が保たれる ②`lower(持ち主)` で新しいヘルプがダイアログのすぐ下に置ける を Mac で確かめ、Windows はユーザーへ手順を渡す。効かなければ止めて相談する
 - task_04（完了・2026-11-27）: modal.py の口と grab の持ち主の解決（暫定 63 §3.2・§5）= `set_modal_front_listener`・「grab の持ち主がヘルプならその親」の解決関数と、`grab_modal` の前の持ち主・最小化の預かり・`choice_dialog._grab_holder` での使用・カーソルグリッドの編集窓の対象外の印。テスト
-- task_05: ヘルプの付け替え（暫定 63 §3・§4・§5）= 持ち主の選び直し・開く / 閉じるときの作り直し・状態の控えと復元・窓の消え方の 4 区分・初期フォーカスの抑止・本文の保持・`install_grab_handoff` の掛け直し・メニューの `open` と「?」の扱い。テスト（期待値の変わる既存テストを列挙）
+- task_05（完了・2026-11-27）: ヘルプの付け替え（暫定 63 §3・§4・§5）= 持ち主の選び直し・開く / 閉じるときの作り直し・状態の控えと復元・窓の消え方の 4 区分・初期フォーカスの抑止・本文の保持・`install_grab_handoff` の掛け直し・メニューの `open` と「?」の扱い。テスト（期待値の変わる既存テストを列挙）
 - task_06: 統合確認と実機目視（verifier・deep-reviewer + codex-reviewer・Mac / Windows の目視 = 暫定 63 §7 A1〜A14・閉じるときの一瞬の消え方の許容の判断）
 - task_07（最終タスク）: 正本反映と記録（暫定 63 の正本への昇格と凍結〔`features.md` §4.6「ヘルプの窓」「モーダルダイアログの作法」・`key_input.md`〕・`codebase_map.md`・`decisions_archive/83`・current.md の完了記載・`instructions/history/README.md`・idea_60 の行を完了にして `INDEX_done.md` へ移動・目視用の一時スクリプト `spike/` の削除・`/refactor_check`）
 

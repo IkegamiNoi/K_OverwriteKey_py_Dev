@@ -123,7 +123,7 @@ def _notify_modal_presence_changed() -> None:
         logging.getLogger(__name__).exception("Could not notify modal presence listener")
 
 
-def _is_app_foreground(app: tk.Misc) -> bool:
+def is_app_foreground(app: tk.Misc) -> bool:
     """OS の前面窓が App のメイン窓である場合だけ真を返す。"""
     try:
         backend = get_backend().window
@@ -146,7 +146,7 @@ def _restore_modal_focus(app: tk.Misc) -> None:
             return
         target = window.focus_lastfor() or window
         target.focus_set()
-        if app.focus_get() is None and _is_app_foreground(app):
+        if app.focus_get() is None and is_app_foreground(app):
             target.focus_force()
     except (tk.TclError, KeyError):
         # 破棄中や tkinter 管理外の名前解決失敗は復元を妨げない。

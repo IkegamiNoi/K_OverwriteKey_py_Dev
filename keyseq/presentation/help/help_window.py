@@ -14,8 +14,13 @@ class HelpWindow(tk.Toplevel):
     def __init__(
         self, master: tk.Misc, result: HelpLoadResult, *,
         suspend_hook: Callable[[], None], resume_hook: Callable[[], None],
+        initial_focus: bool = True,
+        on_state_changed: Callable[[], None] | None = None,
+        on_user_close: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master)
+        self._on_state_changed = on_state_changed
+        self._on_user_close = on_user_close
         self._suspend_hook = suspend_hook
         self._resume_hook = resume_hook
         self._filter_hook_suspended = False
@@ -34,9 +39,13 @@ class HelpWindow(tk.Toplevel):
         self.bind("<Destroy>", self._on_window_destroy, add="+")
         self.filter_var.trace_add("write", self._filter_changed)
         self.bind("<Escape>", self._escape)
-        self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self._focus_after_id: str | None = self.after_idle(self._initial_focus)
+        self.protocol("WM_DELETE_WINDOW", self._user_close)
+        self._focus_after_id: str | None = (
+            self.after_idle(self._initial_focus) if initial_focus else None
+        )
         self.bind("<Destroy>", self._cancel_initial_focus, add="+")
+        for sequence in ("<Configure>", "<Map>", "<Unmap>"):
+            self.bind(sequence, self._window_state_changed, add="+")
 
     def _build_filter(self) -> None:
         bar = ttk.Frame(self, padding=8)
@@ -58,11 +67,13 @@ class HelpWindow(tk.Toplevel):
             self.error_label.pack(fill="both", expand=True)
             return
         self.notebook = ttk.Notebook(self)
+        self.notebook.bind("<<NotebookTabChanged>>", lambda _event: self._state_changed())
         self.notebook.pack(fill="both", expand=True, padx=8, pady=(0, 8))
         tab_labels = (("guide", "help.window.tab.guide"), ("faq", "help.window.tab.faq"))
         for name, label_key in tab_labels:
             label = tr(label_key)
-            view = HelpTabView(self.notebook, getattr(result.content, name))
+            view = HelpTabView(self.notebook, getattr(result.content, name),
+                               on_state_changed=self._state_changed)
             self.tabs[name] = view
             self.notebook.add(view, text=label)
 
@@ -120,6 +131,52 @@ class HelpWindow(tk.Toplevel):
                     if terms else tr(label_key)
                 )
                 self.notebook.tab(self.tabs[name], text=text)
+        self._state_changed()
+
+    def _state_changed(self) -> None:
+        if self._on_state_changed is not None:
+            self._on_state_changed()
+
+    def _window_state_changed(self, event: tk.Event) -> None:
+        if event.widget is self:
+            self._state_changed()
+
+    def export_state(self) -> dict:
+        state = {"geometry": self.geometry(), "window_state": self.wm_state(),
+                 "filter": self.filter_text}
+        if self.notebook is not None:
+            state["tab"] = next(name for name, view in self.tabs.items()
+                                if str(view) == self.notebook.select())
+            state["tabs"] = {name: view.export_state() for name, view in self.tabs.items()}
+        return state
+
+    def apply_state(self, state: dict) -> None:
+        self.geometry(state["geometry"])
+        self.filter_var.set(state["filter"])
+        for name, saved in state.get("tabs", {}).items():
+            self.tabs[name].apply_state(saved, restore_scroll=False)
+        self.deiconify()
+        # 未選択のタブも実寸で配置してからスクロールの割合を戻す。
+        for name in state.get("tabs", {}):
+            self.select_tab(name)
+            self.update_idletasks()
+        if "tab" in state:
+            self.select_tab(state["tab"])
+        self.restore_scroll(state)
+        self.state(state["window_state"])
+
+    def restore_scroll(self, state: dict) -> None:
+        """描画を済ませてからタブごとのスクロールの割合を戻す（表示が確定すると折り返しが変わるため）。"""
+        self.update_idletasks()
+        for name, saved in state.get("tabs", {}).items():
+            if name in self.tabs:
+                self.tabs[name].restore_scroll(saved)
+
+    def _user_close(self) -> None:
+        if self._on_user_close is not None:
+            self._on_user_close()
+        else:
+            self.destroy()
 
     def _initial_focus(self) -> None:
         self._focus_after_id = None
@@ -136,5 +193,5 @@ class HelpWindow(tk.Toplevel):
         if self.focus_get() is self.filter_entry and self.filter_text:
             self.filter_var.set("")
         else:
-            self.destroy()
+            self._user_close()
         return "break"

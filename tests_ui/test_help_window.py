@@ -271,6 +271,7 @@ class HelpWindowTest(unittest.TestCase):
         variable.set(True)
         window = self.app.license.open()
         self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
+        self.addCleanup(setattr, self.app.help, "_following", True)
         # destroy を patch した終了は App を残すので、終了中の印も戻す（共有の App）。
         self.addCleanup(setattr, self.app, "_closing", False)
         try:
@@ -619,6 +620,8 @@ class HelpWindowTest(unittest.TestCase):
     def test_app_close_closes_help_without_resuming_hook(self) -> None:
         self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
         self.addCleanup(setattr, self.app, "_closing", False)
+        # on_close は共有 App の追従を止めるため、次のテスト用に復元する。
+        self.addCleanup(setattr, self.app.help, "_following", True)
         window = self._open()
         window.filter_entry.event_generate("<FocusIn>")
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
@@ -643,14 +646,54 @@ class HelpWindowTest(unittest.TestCase):
         self.app.hook._shutting_down = False
 
     def test_destroy_and_wm_delete_clear_controller_reference(self) -> None:
+        # 親（App）が生きたままの destroy は「親と一緒に消えた」ではないので作り直さない（暫定 63 §3.5）。
         window = self._open()
         window.destroy()
-        self.app.update_idletasks()
+        self.app.update()
         self.assertIsNone(self.app.help.window)
 
         window = self._open()
         protocol = window.protocol("WM_DELETE_WINDOW")
         self.app.tk.call(protocol)
-        self.app.update_idletasks()
+        self.app.update()
         self.assertIsNone(self.app.help.window)
+
+    def test_window_and_tab_state_export_apply_roundtrip(self) -> None:
+        window = self._open()
+        view = window.tabs["guide"]
+        view.toggle("guide-basics")
+        view.toggle("guide-street")
+        view.text.yview_moveto(0.5)
+        self.app.update_idletasks()
+
+        tab_state = view.export_state()
+        self.assertEqual(tab_state["open"], ["guide-basics", "guide-street"])
+        self.assertEqual(tab_state["selected"], "guide-street")
+        view.toggle("guide-street")
+        view.text.yview_moveto(0.0)
+        view.apply_state(tab_state)
+        self.app.update_idletasks()
+        self.assertEqual(view.export_state(), tab_state)
+
+        window.filter_var.set("ガイド")
+        window.select_tab("faq")
+        window.geometry("640x480+30+30")
+        self.app.update_idletasks()
+        window_state = window.export_state()
+        self.assertEqual(window_state["filter"], "ガイド")
+        self.assertEqual(window_state["tab"], "faq")
+
+        window.filter_var.set("")
+        window.select_tab("guide")
+        window.geometry("700x500+60+60")
+        self.app.update_idletasks()
+        window.apply_state(window_state)
+        self.app.update_idletasks()
+
+        restored = window.export_state()
+        self.assertEqual(restored["geometry"], window_state["geometry"])
+        self.assertEqual(restored["window_state"], window_state["window_state"])
+        self.assertEqual(restored["filter"], window_state["filter"])
+        self.assertEqual(restored["tab"], window_state["tab"])
+        self.assertEqual(restored["tabs"], window_state["tabs"])
 

@@ -390,6 +390,7 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
         modal.set_modal_presence_listener(self._on_modal_presence_changed)
+        modal.set_modal_front_listener(self.help.on_modal_front_changed)
 
     def _prepare_first_launch(self) -> None:
         result = run_first_launch_welcome(self)
@@ -942,6 +943,7 @@ class App(tk.Tk):
             self.pane_layout.cancel_window_width_save()
             self.compact_window.cancel_save()
             self.hook.begin_shutdown()
+            self.help.stop_following()
         except Exception:
             self._closing = False
             raise
