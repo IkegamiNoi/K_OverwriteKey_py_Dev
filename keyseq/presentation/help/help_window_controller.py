@@ -4,7 +4,7 @@ from collections.abc import Callable
 import logging
 import tkinter as tk
 
-from keyseq.presentation import modal
+from keyseq.presentation import modal, tk_platform
 from keyseq.presentation.help.grab_handoff import install_grab_handoff
 from keyseq.presentation.help.help_content import HelpLoadResult, load_help_content
 from keyseq.presentation.help.help_window import HelpWindow
@@ -28,6 +28,8 @@ class HelpWindowController:
         self._parent_destroyed = False
         self._orphan_parent: tk.Misc | None = None
         self._destroy_reasons: dict[HelpWindow, str] = {}
+        self._waiting_for_map = False
+        self.app.bind("<Map>", self._on_app_map, add="+")
 
     def _owner(self) -> tk.Misc:
         return modal.front_modal() or self.app
@@ -65,19 +67,19 @@ class HelpWindowController:
         assert self._window is not None
         self.apply_topmost()
         window = self._window
-        # Tk 9.1（macOS）は、この窓に deiconify すると TkWmMapWindow で落ちることがある（task_05 の probe）。
-        # 最小化・非表示なら deiconify せず、控えから同じ持ち主の子として作り直して出す（§4.6「最小化を解除して前面へ出す」）。
         if window.wm_state() in ("iconic", "withdrawn"):
-            window = self._recreate_shown(window)
+            # Tk 9.1（macOS）は、この窓への deiconify で内部クラッシュすることがある。
+            if tk_platform.is_aqua(window):
+                window = self._recreate_shown(window)
+            else:
+                window.deiconify()
         window.lift()
         window.focus_set()
         return window
 
     def _recreate_shown(self, window: HelpWindow) -> HelpWindow:
-        self._save_state(window)
-        if self._state is not None:
-            self._state = {**self._state, "window_state": "normal"}
-        self._replace(window.master)
+        state = {**self._state, "window_state": "normal"} if self._state is not None else None
+        self._replace(window.master, state=state)
         # 作り直せなかったときは古い窓が残る（§3.4）。
         return self._window if self._window is not None else window
 
@@ -93,12 +95,21 @@ class HelpWindowController:
         if self._following and self._follow_id is None:
             self._follow_id = self.app.after_idle(self._follow)
 
+    def _on_app_map(self, event: tk.Event) -> None:
+        if event.widget is self.app and self._waiting_for_map:
+            self._waiting_for_map = False
+            self.on_modal_front_changed()
+
     def _follow(self) -> None:
         self._follow_id = None
         if not self._following or self._running:
             return
         if self._window is None and not self._parent_destroyed:
             return
+        if self.app.wm_state() in ("iconic", "withdrawn"):
+            self._waiting_for_map = True
+            return
+        self._waiting_for_map = False
         if self._window is None and self._orphan_parent_alive():
             # 親は生きている = 親と一緒に消えたのではない（暫定 63 §3.5）。作り直さず控えを捨てる。
             self._forget_closed()
@@ -106,24 +117,25 @@ class HelpWindowController:
         try:
             owner = self._owner()
             if self._window is None or self._window.master is not owner:
-                self._replace(owner)
+                self._replace(owner, follow=True)
         except Exception:
             logging.getLogger(__name__).exception("Could not follow modal help owner")
 
-    def _replace(self, owner: tk.Misc) -> None:
+    def _replace(
+        self, owner: tk.Misc, *, follow: bool = False, state: dict | None = None,
+    ) -> None:
         if self._running:
             return
+        initial_owner = self._owner()
         old = self._window
         self._running = True
-        replaced = False
         try:
-            window = self._build(owner)
+            window = self._build(owner, follow=follow, state=state)
             # wait_visibility のイベントループ中の利用者の閉じ・終了を尊重する。
             if self._content is None or not self._following:
                 self._destroy(window, "failed")
                 return
             self._window = window
-            replaced = True
             self._parent_destroyed = False
             self._orphan_parent = None
             if old is not None and old.winfo_exists():
@@ -133,21 +145,21 @@ class HelpWindowController:
             logging.getLogger(__name__).exception("Could not rebuild help window")
         finally:
             self._running = False
-            if replaced:
-                # 失敗したときは古い窓を残す（§3.4）ので、予約し直さない（し直すと失敗を繰り返す）。
-                self._refollow_if_owner_changed()
+            self._reschedule_follow(initial_owner)
 
-    def _refollow_if_owner_changed(self) -> None:
+    def _reschedule_follow(self, initial_owner: tk.Misc) -> None:
         # 作り直しの最中（wait_visibility の間）に持ち主が変わると、その知らせは再入の防止で空振りする。
-        window = self._window
         try:
-            if self._following and window is not None and window.master is not self._owner():
+            if self._following and initial_owner is not self._owner():
                 self.on_modal_front_changed()
         except tk.TclError:
             logging.getLogger(__name__).exception("Could not re-check help owner")
 
-    def _build(self, owner: tk.Misc) -> HelpWindow:
+    def _build(
+        self, owner: tk.Misc, *, follow: bool = False, state: dict | None = None,
+    ) -> HelpWindow:
         assert self._content is not None
+        state = self._state if state is None else state
         children = set(owner.winfo_children())
         self._restoring = True
         window: HelpWindow | None = None
@@ -157,29 +169,36 @@ class HelpWindowController:
                 owner, self._content, initial_focus=self._state is None,
                 suspend_hook=lambda: self.app.hook.suspend_hook_for_dialog(),
                 resume_hook=lambda: self.app.hook.resume_hook_after_dialog(),
-                on_state_changed=lambda: self._schedule_save(window),
+                on_state_changed=lambda: self._save_state(window),
+                on_view_changed=lambda: self._schedule_save(window),
                 on_user_close=self.close,
             )
             window.bind("<Destroy>", self._on_destroy, add="+")
-            window.withdraw()
-            if self._state is not None:
-                window.apply_state(self._state)
-            else:
-                window.deiconify()
-            self._place_window(window, owner)
-            if self._state is not None:
-                # 表示と配置が済んでから、もう一度スクロールを戻す（task_05 の検証で割合がずれた）。
-                window.restore_scroll(self._state)
-            modal.mark_grab_delegate(window)
-            if owner is not self.app:
-                install_grab_handoff(window, owner)
-            window.apply_topmost(self._always_on_top())
+            self._prepare_window(window, owner, follow=follow, state=state)
             return window
         except Exception:
             self._discard_build(owner, children, window)
             raise
         finally:
             self._restoring = False
+
+    def _prepare_window(
+        self, window: HelpWindow, owner: tk.Misc, *, follow: bool, state: dict | None,
+    ) -> None:
+        window.withdraw()
+        if state is not None:
+            window.apply_state(state)
+        else:
+            window.deiconify()
+        if follow:
+            self._place_window(window, owner)
+        if state is not None:
+            # 表示と配置が済んでから、もう一度スクロールを戻す。
+            window.restore_scroll(state)
+        modal.mark_grab_delegate(window)
+        if owner is not self.app:
+            install_grab_handoff(window, owner)
+        window.apply_topmost(self._always_on_top())
 
     def _place_window(self, window: HelpWindow, owner: tk.Misc) -> None:
         if (owner is self.app or not owner.winfo_viewable()
@@ -192,7 +211,7 @@ class HelpWindowController:
             return
         window.lower(owner)
         target = modal.last_input(owner)
-        if target is not None and modal.is_app_foreground(self.app):
+        if target is not None and modal.is_own_process_foreground():
             target.focus_force()
 
     def _discard_build(
@@ -247,6 +266,7 @@ class HelpWindowController:
             return False
 
     def _forget_closed(self) -> None:
+        self._waiting_for_map = False
         self._state = None
         self._content = None
         self._parent_destroyed = False
@@ -270,6 +290,7 @@ class HelpWindowController:
 
     def stop_following(self) -> None:
         self._following = False
+        self._waiting_for_map = False
         if self._follow_id is not None:
             self.app.after_cancel(self._follow_id)
             self._follow_id = None

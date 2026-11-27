@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
-from keyseq.presentation import modal
+from keyseq.presentation import modal, tk_platform
 from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.help.help_content import (
@@ -336,10 +336,12 @@ class HelpFollowTest(unittest.TestCase):
         self.assertEqual(controller._follow_id, scheduled)
 
         build = controller._build
-        def reentrant_build(owner: tk.Misc) -> HelpWindow:
+        def reentrant_build(
+            owner: tk.Misc, *, follow: bool = False, state: dict | None = None,
+        ) -> HelpWindow:
             controller.on_modal_front_changed()
             controller._follow()
-            return build(owner)
+            return build(owner, follow=follow, state=state)
 
         with patch.object(
             controller, "_build", side_effect=reentrant_build,
@@ -406,7 +408,7 @@ class HelpFollowTest(unittest.TestCase):
         target.pack()
         self.app.update_idletasks()
         with patch.object(modal, "last_input", return_value=target), \
-                patch.object(modal, "is_app_foreground", return_value=True), \
+                patch.object(modal, "is_own_process_foreground", return_value=True), \
                 patch.object(target, "focus_force") as focus_force:
             modal.grab_modal(dialog, self.app, focus=target)
             self.app.update()
@@ -423,14 +425,14 @@ class HelpFollowTest(unittest.TestCase):
         target.pack()
         self.app.update_idletasks()
         with patch.object(modal, "last_input", return_value=target), \
-                patch.object(modal, "is_app_foreground", return_value=False), \
+                patch.object(modal, "is_own_process_foreground", return_value=False), \
                 patch.object(target, "focus_force") as focus_force:
             modal.grab_modal(nested, previous, focus=target)
             self.app.update()
             self.assertIs(self.app.help.window.master, nested)
             focus_force.assert_not_called()
         with patch.object(modal, "last_input", return_value=previous_target), \
-                patch.object(modal, "is_app_foreground", return_value=True), \
+                patch.object(modal, "is_own_process_foreground", return_value=True), \
                 patch.object(previous_target, "focus_force") as focus_force:
             self._close_dialog(nested)
             self.assertIs(self.app.help.window.master, previous)
@@ -469,6 +471,196 @@ class HelpFollowTest(unittest.TestCase):
             self._drain()
             self.assertIs(self.app.help.window.master, self.app)
             handoff.assert_not_called()
+
+    def test_reopening_iconic_help_recreates_instead_of_deiconify(self) -> None:
+        dialog = self._modal(self.app)
+        self.app.help.open_for_dialog(dialog, "guide", "")
+        window = self.app.help.window
+        window.filter_var.set("見出し")
+        window.select_tab("faq")
+        self._drain()
+
+        old = window
+        old.iconify()
+        self._drain()
+        self.assertEqual(old.wm_state(), "iconic")
+
+        with patch.object(
+            HelpWindow, "deiconify", autospec=True, side_effect=HelpWindow.deiconify,
+        ) as deiconify, patch.object(tk_platform, "is_aqua", return_value=True):
+            self.app.help.open("guide")
+            self._drain()
+
+        current = self.app.help.window
+        self.assertIsNotNone(current)
+        self.assertEqual(current.wm_state(), "normal")
+        self.assertIsNot(current, old)
+        self.assertFalse(old.winfo_exists())
+        self.assertEqual(current.filter_text, "見出し")
+        self.assertIs(self._child_help(dialog), current)
+        self.assertEqual(
+            sum(call.args[0] is old for call in deiconify.call_args_list), 0,
+        )
+
+    def test_fresh_menu_and_dialog_help_do_not_lower_or_force_focus(self) -> None:
+        dialog = self._modal(self.app)
+        self._drain()
+        for source in ("menu", "dialog"):
+            with self.subTest(source=source):
+                self.app.help.close()
+                with patch.object(HelpWindow, "lower") as lower, \
+                        patch.object(tk.Misc, "focus_force") as force_focus:
+                    if source == "menu":
+                        self.app.help.open("guide")
+                    else:
+                        self.app.help.open_for_dialog(dialog, "guide", "guide.item1")
+                    self._drain()
+                    self.assertIs(self.app.help.window.master, dialog)
+                    self.assertTrue(self.app.help.window.winfo_exists())
+                    lower.assert_not_called()
+                    force_focus.assert_not_called()
+
+    def test_follow_focus_uses_process_foreground_even_when_main_is_not_foreground(self) -> None:
+        self.app.help.open("guide")
+        for foreground in (True, False):
+            with self.subTest(foreground=foreground):
+                owner = self.app.help.window.master
+                dialog = self._modal(owner)
+                target = dialog._test_focus_target
+                with patch.object(modal, "is_app_foreground", return_value=False) as main_front, \
+                        patch.object(modal, "is_own_process_foreground",
+                                     return_value=foreground) as process_front, \
+                        patch.object(modal, "last_input", return_value=target), \
+                        patch.object(target, "focus_force") as force_focus:
+                    self._drain()
+                    self.assertIs(self.app.help.window.master, dialog)
+                    process_front.assert_called_once_with()
+                    main_front.assert_not_called()
+                    self.assertEqual(force_focus.call_count, int(foreground))
+
+    def test_owner_change_during_creation_reschedules_after_success_and_failure(self) -> None:
+        controller = self.app.help
+        for fail in (False, True):
+            with self.subTest(fail=fail):
+                controller.open("guide")
+                first = self._modal(self.app)
+                second: tk.Toplevel | None = None
+                with patch.object(controller, "on_modal_front_changed",
+                                  wraps=controller.on_modal_front_changed) as notify:
+                    def create(
+                        owner: tk.Misc, result: HelpLoadResult, **kwargs: object,
+                    ) -> HelpWindow:
+                        nonlocal second
+                        window = HelpWindow(owner, result, **kwargs)
+                        second = self._modal(self.app)
+                        controller._follow()  # 作成中の知らせは再入防止で消費される。
+                        notify.reset_mock()
+                        if fail:
+                            raise RuntimeError("create failed after owner changed")
+                        return window
+
+                    with patch(
+                        "keyseq.presentation.help.help_window_controller.HelpWindow",
+                        side_effect=create,
+                    ) as create_help:
+                        controller._follow()
+                        create_help.assert_called_once()
+                    notify.assert_called_once_with()
+                    self.assertIsNotNone(controller._follow_id)
+                self._drain()
+                assert second is not None
+                self.assertIs(controller.window.master, second)
+                controller.close()
+                self._close_dialog(second)
+                self._close_dialog(first)
+
+    def test_explicit_non_owner_dialog_help_stays_after_update(self) -> None:
+        owner = self._modal(self.app)
+        explicit = self._modal(self.app, help_follow=False)
+        self._drain()
+        self.assertIs(modal.front_modal(), owner)
+        self.app.help.open_for_dialog(explicit, "guide", "guide.item1")
+        window = self.app.help.window
+        self._drain()
+        self.assertIs(self.app.help.window, window)
+        self.assertIs(window.master, explicit)
+        self.assertIsNone(self.app.help._follow_id)
+
+    def test_filter_change_is_saved_before_parent_is_destroyed(self) -> None:
+        dialog = self._modal(self.app)
+        self.app.help.open_for_dialog(dialog, "guide", "")
+        self._drain()
+        old = self.app.help.window
+        old.filter_var.set("見出し 8")
+        dialog.destroy()  # 変更と親の破棄の間では update しない。
+        self._drain()
+        self.assertIs(self.app.help.window.master, self.app)
+        self.assertIsNot(self.app.help.window, old)
+        self.assertEqual(self.app.help.window.filter_text, "見出し 8")
+
+    def test_failed_iconic_recreation_preserves_old_window_and_snapshot(self) -> None:
+        self.app.help.open("guide")
+        old = self.app.help.window
+        old.iconify()
+        self._drain()
+        self.assertEqual(old.wm_state(), "iconic")
+        saved = copy.deepcopy(self.app.help._state)
+        self.assertEqual(saved["window_state"], "iconic")
+        with patch.object(tk_platform, "is_aqua", return_value=True), \
+                patch.object(self.app.help, "_build",
+                             side_effect=RuntimeError("rebuild failed")) as build:
+            self.app.help.open("guide")
+            build.assert_called_once()
+        self.assertIs(self.app.help.window, old)
+        self.assertTrue(old.winfo_exists())
+        self.assertEqual(old.wm_state(), "iconic")
+        self.assertEqual(self.app.help._state, saved)
+
+    def test_iconic_help_recreates_only_on_aqua(self) -> None:
+        controller = self.app.help
+        for aqua in (False, True):
+            with self.subTest(aqua=aqua):
+                controller.close()
+                controller.open("guide")
+                window = controller.window
+                # Mac の実 Tk には deiconify しない。Windows 分岐は呼び出しだけ記録する。
+                with patch.object(window, "wm_state", return_value="iconic"), \
+                        patch.object(tk_platform, "is_aqua", return_value=aqua), \
+                        patch.object(window, "deiconify") as deiconify, \
+                        patch.object(controller, "_build", wraps=controller._build) as build:
+                    controller.open("guide")
+                    if aqua:
+                        build.assert_called_once()
+                        deiconify.assert_not_called()
+                        self.assertIsNot(controller.window, window)
+                        self.assertEqual(controller.window.wm_state(), "normal")
+                    else:
+                        deiconify.assert_called_once_with()
+                        build.assert_not_called()
+                        self.assertIs(controller.window, window)
+
+    def test_follow_waits_for_app_map_while_minimized(self) -> None:
+        controller = self.app.help
+        controller.open("guide")
+        old = controller.window
+        with patch.object(self.app, "wm_state", return_value="iconic"), \
+                patch.object(controller, "_replace", wraps=controller._replace) as replace, \
+                patch.object(controller, "_follow", wraps=controller._follow) as follow:
+            dialog = self._modal(self.app)
+            self._drain()
+            self.assertGreaterEqual(follow.call_count, 1)
+            replace.assert_not_called()
+            self.assertIs(controller.window, old)
+            self.assertTrue(controller._waiting_for_map)
+            dialog.event_generate("<Map>")
+            self.assertIsNone(controller._follow_id)
+            self.assertTrue(controller._waiting_for_map)
+        self.app.event_generate("<Map>")
+        self.assertIsNotNone(controller._follow_id)
+        self._drain()
+        self.assertIs(controller.window.master, dialog)
+        self.assertFalse(old.winfo_exists())
+        self.assertFalse(controller._waiting_for_map)
 
 
 if __name__ == "__main__":

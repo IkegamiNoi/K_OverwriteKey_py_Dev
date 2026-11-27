@@ -19,9 +19,11 @@ class HelpTabView(ttk.Frame):
     def __init__(
         self, master: tk.Misc, categories: tuple[HelpCategory, ...], *,
         on_state_changed: Callable[[], None] | None = None,
+        on_view_changed: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master)
         self._on_state_changed = on_state_changed
+        self._on_view_changed = on_view_changed if on_view_changed is not None else on_state_changed
         self.categories = categories
         self._open: set[str] = set()
         self._last_top: str | None = None
@@ -37,7 +39,8 @@ class HelpTabView(ttk.Frame):
         scroll = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
         def scrolled(first: str, last: str) -> None:
             scroll.set(first, last)
-            self._state_changed()
+            if self._on_view_changed is not None:
+                self._on_view_changed()
 
         self.text.configure(yscrollcommand=scrolled)
         scroll.pack(side="right", fill="y")

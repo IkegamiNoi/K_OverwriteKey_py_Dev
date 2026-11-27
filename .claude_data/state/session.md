@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-27T23:30:00
+last_updated: 2026-11-28T01:30:00
 phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
 last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_05 完了（2026-11-27・reviewer 採用・Tk の deiconify のクラッシュ対策込み）。次 = task_06（統合確認と実機目視）を起票。probe のため Python の ApplePersistenceIgnoreState を設定中（ユーザーの許可を取って戻す）。**
-mode: implementing
+focus: **phase 83 task_06a 完了（2026-11-27・verifier pass・reviewer 採用）。task_06 は残り = 実機目視（ユーザー・Mac / Windows・`tasks/task_06_integration_and_visual.md` の 4 の 1〜14）。そのあと Python の ApplePersistenceIgnoreState を許可を取って戻し、task_07（正本反映）。**
+mode: pending_review
 
 ## last_action
 ts: 2026-11-27T09:50:00
@@ -32,8 +32,9 @@ verified:
   tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- ユーザーの回答待ち: Python の `ApplePersistenceIgnoreState` を戻すタイミング（推奨 = task_06 の検証のあと）。戻すときは**ユーザーの許可を取ってから** `defaults delete org.python.python ApplePersistenceIgnoreState`。
-- task_06（統合確認と実機目視）を `/task_new` で起票: verifier（tests・tests_ui の関連モジュール・smoke）・deep-reviewer + codex-reviewer・ユーザーの目視（Mac / Windows・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容・最後のダイアログを閉じたあとの入力先 = `task01_measurement.md` §13 の 4）。task_05 の reviewer の参考 3 点（最小化したヘルプを開き直す経路のテスト・`_build` の長さ・作り直しの失敗時は最小化のまま）も扱う。
+- verifier の task_06a の検証結果を見る（tests・tests_ui 全モジュール・smoke・基準 = task_06 の結果）→ reviewer（task_06a の差分）→ `/task_commit`（task_06 のテスト追加と task_06a をまとめて）。
+- そのあと task_06 の実機目視（`tasks/task_06_integration_and_visual.md` の 4 の 1〜13・Mac / Windows・ユーザー）。項目 11 の結果で暫定 63 §3.6（最後のダイアログを閉じたあとの入力先）を決める。
+- Python の `ApplePersistenceIgnoreState` は task_06 の検証のあとで、ユーザーの許可を取ってから戻す。
 - ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
 
 ## blockers

@@ -134,6 +134,15 @@ def is_app_foreground(app: tk.Misc) -> bool:
         return False
 
 
+def is_own_process_foreground() -> bool:
+    """OS の前面窓がこのプロセスの窓である場合だけ真を返す。"""
+    try:
+        return get_backend().window.is_own_process_foreground()
+    except (AttributeError, OSError, tk.TclError, ValueError):
+        # 取得不能ならフォーカスを強制しない。
+        return False
+
+
 def _restore_modal_focus(app: tk.Misc) -> None:
     """表示中の台帳内 grab 保持者へ最後のフォーカスを戻す。"""
     try:

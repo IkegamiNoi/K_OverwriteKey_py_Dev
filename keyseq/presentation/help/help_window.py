@@ -16,10 +16,12 @@ class HelpWindow(tk.Toplevel):
         suspend_hook: Callable[[], None], resume_hook: Callable[[], None],
         initial_focus: bool = True,
         on_state_changed: Callable[[], None] | None = None,
+        on_view_changed: Callable[[], None] | None = None,
         on_user_close: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(master)
         self._on_state_changed = on_state_changed
+        self._on_view_changed = on_view_changed if on_view_changed is not None else on_state_changed
         self._on_user_close = on_user_close
         self._suspend_hook = suspend_hook
         self._resume_hook = resume_hook
@@ -73,7 +75,8 @@ class HelpWindow(tk.Toplevel):
         for name, label_key in tab_labels:
             label = tr(label_key)
             view = HelpTabView(self.notebook, getattr(result.content, name),
-                               on_state_changed=self._state_changed)
+                               on_state_changed=self._state_changed,
+                               on_view_changed=self._view_changed)
             self.tabs[name] = view
             self.notebook.add(view, text=label)
 
@@ -84,6 +87,7 @@ class HelpWindow(tk.Toplevel):
     def select_tab(self, tab: str) -> None:
         if self.notebook is not None:
             self.notebook.select(self.tabs[tab])
+            self._state_changed()
 
     def clear_filter(self) -> None:
         self.filter_var.set("")
@@ -139,7 +143,11 @@ class HelpWindow(tk.Toplevel):
 
     def _window_state_changed(self, event: tk.Event) -> None:
         if event.widget is self:
-            self._state_changed()
+            self._view_changed()
+
+    def _view_changed(self) -> None:
+        if self._on_view_changed is not None:
+            self._on_view_changed()
 
     def export_state(self) -> dict:
         state = {"geometry": self.geometry(), "window_state": self.wm_state(),

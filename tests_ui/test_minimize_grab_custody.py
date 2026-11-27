@@ -750,7 +750,6 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_modal_last_inputs", {})
         dialog = self._action()
         delegate = self._track_window(tk.Toplevel(dialog))
-        delegate.transient(dialog)
         modal.mark_grab_delegate(delegate)
         delegate.grab_set()
         self.assertIs(self.app.grab_current(), delegate)
