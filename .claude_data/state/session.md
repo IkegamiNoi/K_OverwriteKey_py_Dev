@@ -4,10 +4,10 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-27T22:40:00
+last_updated: 2026-11-27T23:30:00
 phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
-last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・7a8ec77d = task_03・04 まで）。push / merge はユーザー
+last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
@@ -32,9 +32,8 @@ verified:
   tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- verifier の task_05 の検証結果を見る（`tasks/task_05_help_follow.md` の「結果」の末尾）→ pass なら reviewer にクラッシュ対策と指摘 1・2 の反映を確認依頼 → `/task_commit`（task_05）。
-- 検証が終わったら、**ユーザーの許可を取ってから** `defaults delete org.python.python ApplePersistenceIgnoreState` で Python の設定を戻す。
-- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15）を起票。
+- ユーザーの回答待ち: Python の `ApplePersistenceIgnoreState` を戻すタイミング（推奨 = task_06 の検証のあと）。戻すときは**ユーザーの許可を取ってから** `defaults delete org.python.python ApplePersistenceIgnoreState`。
+- task_06（統合確認と実機目視）を `/task_new` で起票: verifier（tests・tests_ui の関連モジュール・smoke）・deep-reviewer + codex-reviewer・ユーザーの目視（Mac / Windows・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容・最後のダイアログを閉じたあとの入力先 = `task01_measurement.md` §13 の 4）。task_05 の reviewer の参考 3 点（最小化したヘルプを開き直す経路のテスト・`_build` の長さ・作り直しの失敗時は最小化のまま）も扱う。
 - ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
 
 ## blockers
