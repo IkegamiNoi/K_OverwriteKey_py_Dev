@@ -14,22 +14,22 @@
 - **ユーザーへの提示（応答・報告・文書）は日本語で行う**（2026-09-16 指示・2026-10-05 再確認）。
 
 ## 再開手順
-1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 80 は 2026-11-25 完了〕。次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 81 / 暫定 61 / decisions 81 / 提案書 29 / idea 68（暫定 47 は idea_53 で保留中の番号）
-3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
+1. `.claude_data/state/session.md` を読む（最重要・最新状態）。`presence: away` の行があれば消す（再開 = 戻った合図）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 83**〔`instructions/phase/83_help_input_during_modal/phase.md`〕）。
+   主入力 = 暫定仕様 `instructions/history/63_help_follows_front_dialog.md`（v0.5・ユーザー確定済）。
+   次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72（暫定 47 は idea_53 で保留中の番号）
+3. 今のタスク = `instructions/phase/83_help_input_during_modal/tasks/task_05_help_follow.md`（末尾の「結果」に経緯と残り）。実測の記録 = 同フォルダの `task01_measurement.md`（§11〜§13 が付け替えの要件）
+4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
-4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜60）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+5. 過去の判断は `.claude_data/state/decisions.md`（phase 83 の節は末尾）・「アーカイブ索引」→ `decisions_archive/<phase>.md`。
+   **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md` に従い、`ja.json` と `en.json` の両方にキーを足す**。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜62）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 80 完了（2026-11-25）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
-phase 80 の原因 = Tk 8.6.15（Windows）で transient を 3 段以上つないだ窓（アクション → プリセット管理 → プリセット追加 / 上書き確認）が最小化からの復元で中身の HWND を失い白いまま（Win+D 固有でない）。
-対策（案 X・正本 `features.md` §4.6 に Windows の例外を追加）= `modal.py` が最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。
-Windows 目視 OK・完了判定前レビューの採用 4 点は task_02a で修正済・残存リスクは decisions_archive/80。OS 標準のダイアログと Win+D は idea_67（低優先）。
-worktree = `claude/idea-61-e8649d`（Windows・phase 80 完了までコミット済・未 push）。
-直近の実測（Windows・task_02a・2026-11-25）: compile clean / tests 2282 pass（skip 9）/ tests_ui 1330 pass / smoke pass（verifier）。
+**phase 83 task_05（ヘルプの付け替え本体）は実装・修正済みだが未検証・未コミット。Mac の画面がロックされ GUI テストが止まるため検証できず、ユーザー不在で終了。再開したら画面のロックを解いて verifier を流し直す（task_05 の定義の「結果」の末尾に手順）。**
+phase 83 = ダイアログを開いている間にヘルプを操作できるようにする（idea_60）。task_01（原因 = macOS の Tk 9.1 のローカル grab）・task_02（Mac だけ前面の間 grab をヘルプへ）・task_03（暫定 63 の前提の実測）・task_04（`modal.py` の口と grab の持ち主の解決）は完了・コミット済み（最終 7a8ec77d）。
+暫定 63 = ヘルプを、いちばん手前のダイアログ（なければ App）の子へ作り直して付け替える（状態を引き継ぐ・付け替えたらダイアログの最後の入力先へ `focus_force` で戻す）。
+worktree = `claude/idea-60-be6a81`（Mac・未 push）。直近の実測（Mac・task_05 の最後の修正の前）: compile clean / tests 2247 pass / tests_ui の関連 13 モジュール pass / smoke OK。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -57,11 +57,11 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
-- 出荷時: `packaging/README.md` の手順で各 OS の配布物を棚卸しし、初回の `packaging/inventory/<版>.md` を作る（phase 79 の残件）。
-- **取り込み前の設定の件**: このブランチは取り込み前の設定で起動したセッションで作業した（旧 UserPromptSubmit が task_NN の指示をブロック・旧 Stop が /save_state を繰り返し要求）。メインのリポジトリ（main）の settings.json も旧のまま。**取り込みを main へ merge してから新しいセッションで**、5 スキルが Skill 一覧に出ないこと・UserPromptSubmit が状態の注入になること・SessionStart の branch が worktree 側になることを確かめる（push / merge はユーザー）。
-- ブランチ `claude/idea-61-e8649d`（phase 80）・`claude/license-display-fix-883f07`（phase 79）・`claude/template-import-idea-65-7e55e5`・`claude/idea-03-ec8eea`（phase 78）・`claude/sample-folder-save-path-d3cd34`・`claude/click-timing-issue-79de93` の push / merge はユーザー。保留中: R4・idea_37・idea_45・59・60・62〜64・66・67 は検討段階。
-- **Codex の注意**: CRLF のファイルには apply_patch が当たらず止まる → 依頼前に LF に揃える。`git mv` は Codex では失敗する → メインで。Codex の敵対的レビューは回すたびに新しい角度の指摘が出るので、設計の大筋が固まったらユーザーに打ち切りを相談する。
+- **【ユーザーへ】Mac の画面のロックを解いた状態で再開する**（ロック中は Tk の GUI テストが止まる・AppKit ごと落ちる）。
+- verifier に task_05 の検証を依頼（`tasks/task_05_help_follow.md` の「結果」の末尾の「残り」のとおり。`test_minimize_grab_custody` の既知の 2 件がロック解除後に通るかも見る）→ pass なら reviewer に「指摘 1・2 の反映」を確認依頼 → `/task_commit`（task_05）。
+- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容・最後のダイアログを閉じたあとの入力先 = `task01_measurement.md` §13 の 4）を起票 → verifier・deep-reviewer + codex-reviewer → ユーザーの目視（Mac / Windows）→ task_07（正本反映・spike 削除・/refactor_check）。
+- ユーザーはタスクの連続実行を許可済み（2026-11-27）。判断の要る所（仕様の改訂・Codex レビューの採否・目視）では止まる。
+- ブランチ `claude/idea-60-be6a81`（phase 83）ほか（`claude/idea-58-be6d8d`〔phase 82〕・`claude/idea-62-048dd1`〔phase 81〕・`claude/idea-61-e8649d`〔phase 80〕等）の push / merge はユーザー。
 
 ## 運用インフラ
 

@@ -4,39 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-27T00:40:00
-phase: **83_help_input_during_modal**（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
+last_updated: 2026-11-27T09:50:00
+phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
-last_commit_location: `claude/idea-58-be6d8d`（worktree `idea-58-be6d8d`・Mac・phase 82 完了）。push / merge はユーザー
+last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・7a8ec77d = task_03・04 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 未定・2026-11-27 から）
-focus: **phase 83 task_04 完了（2026-11-27・verifier pass・reviewer 採用）。次は task_05（ヘルプの付け替え本体）を起票して実装。連続実行の許可あり・ユーザー不在（presence 行）。**
-mode: implementing
+focus: **phase 83 task_05（ヘルプの付け替え本体）は実装・修正済みだが未検証・未コミット。Mac の画面がロックされ GUI テストが止まるため検証できず、ユーザー不在で終了。再開したら画面のロックを解いて verifier を流し直す（task_05 の定義の「結果」の末尾に手順）。**
+mode: blocked
 
 ## last_action
-ts: 2026-11-26T20:00:00
+ts: 2026-11-27T09:50:00
 who: main
 summary: |
-  ユーザー判断「current.md に溜めた情報は持ち主のファイルへ移しリンクで辿れるようにし、今後の更新も持ち主へ」。
-  current.md 456 行 → 70 行: 別タスク化候補 → instructions/backlog/deferred_tasks.md / 提案書の台帳 → instructions/modified_proposal/INDEX.md / 暫定仕様の状態 → instructions/history/README.md 末尾 / 完了フェーズの要約・過去の領域・次採番の完了の行 → instructions/phase/past_areas.md（凍結）。本文はそのまま・相対リンクを新しい置き場所から解決するよう書き換え（全件実在を確認）・元の行の欠落なしを機械的に確認。
-  reviewer 採用（欠落なし・リンク BROKEN 0・次採番はフォルダ実体と一致・台帳を current.md へ書かせる指示の残りなし・モード管理対象外）。
-  運用の追随: current.md のフェーズ完了時の指示・注意 / .claude/skills/{refactor_check,phase_start,spec_draft}/SKILL.md / .claude/rules/task_execution.md / .claude/template_pull_state.md（意図的差分）。モード管理対象外（追随不要）。
+  実施: task_03 完了（Windows も OK・reviewer 修正して採用）→ task_04 完了（modal.py の口・最後の入力先・grab の代わりの持ち主の解決・verifier pass・reviewer 採用・7a8ec77d）→ task_05 を起票し codex-delegating-implementer で実装。
+  task_05 のメインの修正: 親が生きている破棄は作り直さない（_orphan_parent）/ App.state は AppState で上書き → wm_state / 新テストに fix_language / スクロールは先頭の位置（@0,0）も控え置き終えてから restore_scroll / 新しく開くときは初期フォーカスを入れる（reviewer 指摘 1）/ 作り直し後に持ち主を確かめ直す（reviewer 指摘 2・失敗時はし直さない形に修正済み）。
+  verifier: 修正前の 4 回目までで tests 2247・関連 13 モジュール pass（test_minimize_grab_custody の 2 件はロック中は task_04 前のコミットでも落ちる）。最後の修正後の検証は画面のロックで GUI テストが止まり無効。
+  ユーザー判断: タスクの連続実行を許可（2026-11-27）・/away（戻る予定 未定）。
 result_files:
-  - instructions/phase/current.md・past_areas.md（新規）・instructions/backlog/deferred_tasks.md（新規）・instructions/modified_proposal/INDEX.md（新規）・instructions/history/README.md
-  - .claude/skills/refactor_check/SKILL.md・phase_start/SKILL.md・spec_draft/SKILL.md・.claude/rules/task_execution.md・.claude/template_pull_state.md
+  - keyseq/presentation/help/help_window_controller.py・help_window.py・help_tab_view.py・keyseq/presentation/modal.py・keyseq/presentation/app.py（task_05・未コミット）
+  - tests_ui/test_help_follow.py（新規）・test_help_window.py・test_dialog_help_buttons.py・test_minimize_grab_custody.py・test_modal_app_foreground.py（task_05・未コミット）
+  - instructions/phase/83_help_input_during_modal/tasks/task_05_help_follow.md
 verified:
-  compile: not_run（文書のみ）
-  tests: not_run
+  compile: clean（最後の修正の前）
+  tests: pass 2247（同上）
+  tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- task_05（ヘルプの付け替え・暫定 63 §3・§4・§5）を起票 → 実装（codex-delegating-implementer）→ verifier → reviewer → コミット。引き継ぎ = `task01_measurement.md` §13。
-- task_06（統合確認・実機目視）はユーザーの目視が要る → 不在なら終了処理（/away の規則）。
-- ブランチ `claude/idea-60-be6a81`（phase 83）ほかの push / merge はユーザー。
+- **【ユーザーへ】Mac の画面のロックを解いた状態で再開する**（ロック中は Tk の GUI テストが止まる・AppKit ごと落ちる）。再開したら `presence` 行を消す。
+- verifier に task_05 の検証を依頼（`tasks/task_05_help_follow.md` の「結果」の末尾の「残り」のとおり。`test_minimize_grab_custody` の既知の 2 件がロック解除後に通るかも見る）→ pass なら reviewer に「指摘 1・2 の反映」を確認依頼 → `/task_commit`（task_05）。
+- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容）を起票 → verifier・deep-reviewer + codex-reviewer → ユーザーの目視（Mac / Windows）。
+- ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
 
 ## blockers
-- なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- **Mac の画面のロック**（2026-11-27 朝・ユーザー不在）で GUI テストを流せない → task_05 の検証が止まっている。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints
