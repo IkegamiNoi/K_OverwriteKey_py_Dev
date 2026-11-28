@@ -6,6 +6,7 @@
 import tkinter as tk
 from tkinter import ttk
 
+from keyseq.presentation import modal
 from keyseq.presentation.modal import grab_modal
 
 
@@ -66,7 +67,7 @@ def ask_choice(
 def _grab_holder(app) -> tk.Misc:
     """grab を持つウィンドウ（入れ子で開く経路の親）を返す。無ければ App。"""
     try:
-        holder = app.grab_current()
+        holder = modal.resolve_grab_holder(app.grab_current())
     except (tk.TclError, KeyError):
         # 終了中や tkinter 管理外の保持者は解決できないため、App を親にする。
         return app

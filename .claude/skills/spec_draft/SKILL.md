@@ -80,6 +80,8 @@ description: 暫定仕様書を instructions/history/ へ起票する（暫定�
 
 ## 付随更新
 
+- `instructions/history/README.md`「暫定仕様の一覧と状態・次採番」に 1 行足し、`instructions/phase/current.md`「次採番」節の暫定仕様の番号を進める（以後、確定・凍結・保留のたびに同じ行を更新する）。
+
 - idea からの昇格時: `instructions/backlog/INDEX.md` の該当行の状態を
   「**着手**（→ 暫定仕様 [NN]）」へ更新する（**暫定仕様リンクのみ**。この時点で phase
   フォルダは未存在のため、phase リンクは `/phase_start` の前提 4 で補完する）。

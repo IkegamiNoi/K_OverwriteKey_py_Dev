@@ -1,5 +1,6 @@
 """Text のタグで開閉・絞り込みを表示するヘルプの一タブ。"""
 
+from collections.abc import Callable
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
@@ -15,10 +16,17 @@ BULLET = "・"
 
 
 class HelpTabView(ttk.Frame):
-    def __init__(self, master: tk.Misc, categories: tuple[HelpCategory, ...]) -> None:
+    def __init__(
+        self, master: tk.Misc, categories: tuple[HelpCategory, ...], *,
+        on_state_changed: Callable[[], None] | None = None,
+        on_view_changed: Callable[[], None] | None = None,
+    ) -> None:
         super().__init__(master)
+        self._on_state_changed = on_state_changed
+        self._on_view_changed = on_view_changed if on_view_changed is not None else on_state_changed
         self.categories = categories
         self._open: set[str] = set()
+        self._last_top: str | None = None
         self._matches: set[str] = set()
         self._headings: dict[str, tuple[str, str]] = {}
         self._body_indices: dict[str, list[str]] = {}
@@ -29,7 +37,12 @@ class HelpTabView(ttk.Frame):
         self.text = tk.Text(self, wrap="char", font="TkDefaultFont", cursor="arrow",
                             exportselection=False, takefocus=True, padx=8, pady=8)
         scroll = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
-        self.text.configure(yscrollcommand=scroll.set)
+        def scrolled(first: str, last: str) -> None:
+            scroll.set(first, last)
+            if self._on_view_changed is not None:
+                self._on_view_changed()
+
+        self.text.configure(yscrollcommand=scrolled)
         scroll.pack(side="right", fill="y")
         self.text.pack(fill="both", expand=True)
         self._build_text()
@@ -111,7 +124,37 @@ class HelpTabView(ttk.Frame):
         self.no_matches = not self._matches
         self.text.tag_configure("no_matches", elide=not self.no_matches)
         self._refresh()
+        self._state_changed()
         return len(self._matches)
+
+    def _state_changed(self) -> None:
+        if self._on_state_changed is not None:
+            self._on_state_changed()
+
+    def export_state(self) -> dict:
+        # 画面に出ていない（選ばれていない）タブは先頭の位置が取れないので、前に控えた位置を使う。
+        if self.text.winfo_viewable():
+            self._last_top = self.text.index("@0,0")
+        return {"open": sorted(self._open), "selected": self._selected,
+                "scroll": self.text.yview()[0], "top": self._last_top}
+
+    def restore_scroll(self, state: dict) -> None:
+        """先頭に見えていた位置を先頭へ戻す（割合だけだと折り返しの変化でずれる）。"""
+        top = state.get("top")
+        self._last_top = top
+        if top is not None:
+            self.text.yview(top)
+        else:
+            self.text.yview_moveto(state["scroll"])
+
+    def apply_state(self, state: dict, *, restore_scroll: bool = True) -> None:
+        self._open = set(state["open"])
+        self._selected = state["selected"]
+        self._refresh()
+        if restore_scroll:
+            self.update_idletasks()
+            self.restore_scroll(state)
+        self._state_changed()
 
     def on_font_changed(self) -> None:
         # TkDefaultFont is a named font; rebind it without rebuilding tags or text state.
@@ -133,6 +176,7 @@ class HelpTabView(ttk.Frame):
                 self._selected = target_id
                 self._refresh()
                 self.text.yview(self._headings[target_id][0])
+                self._state_changed()
                 return True
         return False
 
@@ -197,6 +241,7 @@ class HelpTabView(ttk.Frame):
             self._open.add(identifier)
         self._selected = identifier
         self._refresh()
+        self._state_changed()
 
     def _visible_headings(self) -> list[str]:
         result: list[str] = []
@@ -223,6 +268,7 @@ class HelpTabView(ttk.Frame):
             self._selected = headings[max(0, min(position + step, len(headings) - 1))]
             self._mark_selected()
             self.text.see(self._headings[self._selected][0])
+            self._state_changed()
         return "break"
 
     def _toggle_selected(self, _event: tk.Event) -> str:

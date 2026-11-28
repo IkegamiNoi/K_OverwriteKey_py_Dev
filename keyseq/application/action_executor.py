@@ -24,6 +24,9 @@ from keyseq.application.held_inputs import HeldInputs
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.domain.key_hold import EDGE_DOWN, is_repeat_enabled, parse_key_hold
 from keyseq.domain.mouse_scroll import (
+    NO_SCROLL_INVERT,
+    ScrollInvert,
+    apply_scroll_invert,
     describe_mouse_scroll,
     parse_mouse_scroll,
     scroll_deltas,
@@ -86,6 +89,7 @@ class ActionExecutor:
         on_keymap_switch_blocked: Callable[[], None] | None = None,
         keymap_switch_in_progress: threading.Event | None = None,
         held_inputs: HeldInputs | None = None,
+        get_scroll_invert: Callable[[], ScrollInvert] | None = None,
     ) -> None:
         self.input_gateway = input_gateway
         self._validate_hotkey = validate_hotkey
@@ -97,6 +101,7 @@ class ActionExecutor:
         self._on_trigger = on_trigger
         self._resolve_file_line_path = resolve_file_line_path
         self._get_counter = get_counter
+        self._get_scroll_invert = get_scroll_invert
         self._file_line_loader = file_line_loader
         self._on_shadowed_action = on_shadowed_action
         self._can_switch_keymap = can_switch_keymap or (lambda _keymap_id: True)
@@ -340,6 +345,8 @@ class ActionExecutor:
             return False
         try:
             vertical, deltas = scroll_deltas(parsed)
+            invert = self._get_scroll_invert() if self._get_scroll_invert is not None else NO_SCROLL_INVERT
+            deltas = apply_scroll_invert(vertical, deltas, invert)
             self.input_gateway.scroll_mouse(
                 vertical=vertical, deltas=deltas, position=parsed.position,
             )

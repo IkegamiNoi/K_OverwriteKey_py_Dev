@@ -190,6 +190,18 @@ class ChoiceDialogTest(unittest.TestCase):
         self.assertIs(observed["master"], holder)
         self.assertEqual(observed["transient"], str(holder))
 
+    def test_parent_resolves_delegate_grab_to_dialog(self):
+        dialog = tk.Toplevel(self.app)
+        self.addCleanup(lambda: dialog.winfo_exists() and dialog.destroy())
+        delegate = tk.Toplevel(dialog)
+        self.addCleanup(lambda: delegate.winfo_exists() and delegate.destroy())
+        self.app.update()
+        choice_dialog_module.modal.mark_grab_delegate(delegate)
+        delegate.grab_set()
+
+        self.assertIs(self.app.grab_current(), delegate)
+        self.assertIs(choice_dialog_module._grab_holder(self.app), dialog)
+
 
 if __name__ == "__main__":
     unittest.main()

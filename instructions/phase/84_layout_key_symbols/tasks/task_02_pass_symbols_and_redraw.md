@@ -2,7 +2,7 @@
 
 ## 目的
 
-選んでいるレイアウトの上書きの表（task_01 の `KeyboardLayout.key_symbol_map`）を、記号の表示を使う全箇所へ渡す。あわせて、レイアウトが変わる操作でトリガー一覧と出力シーケンス一覧を描き直す（暫定 62 §4・§5・§6）。
+選んでいるレイアウトの上書きの表（task_01 の `KeyboardLayout.key_symbol_map`）を、記号の表示を使う全箇所へ渡す。あわせて、レイアウトが変わる操作でトリガー一覧と出力シーケンス一覧を描き直す（暫定 64 §4・§5・§6）。
 **presentation 限定**。domain・application・infrastructure は変えない。JSON・保存するキー名・送信・逆引き（`tk_keys.py:73`）は変えない。`key_symbols` の無いレイアウト（内蔵の US TKL を含む）では表示を変えない。
 
 ## 対象範囲（presentation 限定）
@@ -49,7 +49,7 @@
 
 ## 読むファイル
 
-- 暫定 62: `instructions/history/62_layout_key_symbols.md` §4〜§6
+- 暫定 64: `instructions/history/64_layout_key_symbols.md` §4〜§6
 - 編集対象（全体）: `keyseq/presentation/controllers/action_list_rendering.py`
 - `keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:190-345`・`:480-520`
 - `keyseq/presentation/controllers/call_view_controller.py:215-240`

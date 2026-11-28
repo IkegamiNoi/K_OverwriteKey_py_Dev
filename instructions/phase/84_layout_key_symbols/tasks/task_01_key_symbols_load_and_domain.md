@@ -2,7 +2,7 @@
 
 ## 目的
 
-レイアウトの JSON の任意キー `key_symbols` を読み込み（不正なら表だけを使わず理由を持つ）、domain の記号の表示と一覧の整形の関数が上書きの表を引数で受け取れるようにする（暫定 62 §3 の読込・§4・§5）。
+レイアウトの JSON の任意キー `key_symbols` を読み込み（不正なら表だけを使わず理由を持つ）、domain の記号の表示と一覧の整形の関数が上書きの表を引数で受け取れるようにする（暫定 64 §3 の読込・§4・§5）。
 **domain と presentation の `keyboard_layouts.py` 限定**。domain はレイアウトを参照しない（表は引数だけ）。表を実際に渡す配線（一覧・キーボードUI）は task_02、警告の表示は task_03。保存するキー名・送信・逆引き（`tk_keys.py:73`）は変えない。既存の呼び出し（引数なし）の表示は変えない。
 
 ## 対象範囲（domain + presentation/keyboard_layouts.py・新規の引数は既定 None）
@@ -50,7 +50,7 @@
 
 ## 読むファイル
 
-- 暫定 62: `instructions/history/62_layout_key_symbols.md` §3〜§5
+- 暫定 64: `instructions/history/64_layout_key_symbols.md` §3〜§5
 - `keyseq/domain/key_symbols.py`（全体）・`keyseq/domain/config.py:1-20`・`:117-125`・`:487-555`・`keyseq/domain/key_hold.py:80-145`
 - `keyseq/presentation/keyboard_layouts.py:1-45`・`:140-300`（`key_display_names` の読込が手本）
 - `keyseq/shared/i18n/locales/ja.json:200-210`・`en.json` の同じキー
@@ -67,7 +67,7 @@
 
 - `..\..\..\.venv\Scripts\python.exe -m compileall -q keyseq tests` が clean
 - `..\..\..\.venv\Scripts\python.exe -m unittest tests.test_key_symbols tests.test_domain_config tests.test_key_hold tests.test_keyboard_layout_files` が pass（追加分を含む）
-- `..\..\..\.venv\Scripts\python.exe -m unittest discover -s tests` が全 pass（既存の期待値は不変・暫定 62 §8-2・§8-9）
+- `..\..\..\.venv\Scripts\python.exe -m unittest discover -s tests` が全 pass（既存の期待値は不変・暫定 64 §8-2・§8-9）
 - i18n の静的テスト（ja / en のキーの一致・ソースに日本語を書かない）が tests に含まれて pass
 
 ## 完了条件

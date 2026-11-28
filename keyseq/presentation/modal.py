@@ -14,6 +14,9 @@ _hidden_by_minimize: list[tk.Toplevel] = []
 _minimize_check_id: str | None = None
 _restore_check_id: str | None = None
 _modal_presence_listener: Callable[[], None] | None = None
+_modal_front_listener: Callable[[], None] | None = None
+_modal_help_follow: dict[tk.Toplevel, bool] = {}
+_modal_last_inputs: dict[tk.Misc, tk.Misc] = {}
 _message_boxes: int = 0
 _detached_transients: dict[tk.Toplevel, str] = {}
 _reattach_transients_id: str | None = None
@@ -23,6 +26,72 @@ _REATTACH_DELAY_MS = 300
 def set_modal_presence_listener(callback: Callable[[], None] | None) -> None:
     global _modal_presence_listener
     _modal_presence_listener = callback
+
+
+def set_modal_front_listener(callback: Callable[[], None] | None) -> None:
+    global _modal_front_listener
+    _modal_front_listener = callback
+
+
+def _notify_modal_front_changed() -> None:
+    if _modal_front_listener is None:
+        return
+    try:
+        _modal_front_listener()
+    except Exception:
+        logging.getLogger(__name__).exception("Could not notify modal front listener")
+
+
+def front_modal() -> tk.Toplevel | None:
+    for window in reversed(_active_modals):
+        try:
+            if window.winfo_exists() and _modal_help_follow.get(window, True):
+                return window
+        except tk.TclError:
+            continue
+    return None
+
+
+def last_input(window: tk.Misc) -> tk.Misc | None:
+    target = _modal_last_inputs.get(window)
+    try:
+        return target if target is not None and target.winfo_exists() else None
+    except tk.TclError:
+        return None
+
+
+def _remember_modal_input(
+    window: tk.Toplevel, focus: tk.Misc | None, help_follow: bool
+) -> None:
+    _modal_help_follow[window] = help_follow
+    _modal_last_inputs[window] = window if focus is None else focus
+
+    def remember(event: tk.Event) -> None:
+        if window not in _modal_last_inputs or event.widget is window:
+            return
+        try:
+            if event.widget.winfo_toplevel() is window:
+                _modal_last_inputs[window] = event.widget
+        except tk.TclError:
+            # 破棄中の部品は最後の入力先にしない。
+            pass
+
+    window.bind("<FocusIn>", remember, add="+")
+
+
+def mark_grab_delegate(window: tk.Toplevel) -> None:
+    window._keyseq_grab_delegate = True
+
+
+def resolve_grab_holder(holder: tk.Misc | None) -> tk.Misc | None:
+    try:
+        while holder is not None and getattr(holder, "_keyseq_grab_delegate", False) is True:
+            holder = getattr(holder, "master", None)
+            if holder is not None and not holder.winfo_exists():
+                return None
+    except tk.TclError:
+        return None
+    return holder
 
 
 def is_modal_active() -> bool:
@@ -54,7 +123,7 @@ def _notify_modal_presence_changed() -> None:
         logging.getLogger(__name__).exception("Could not notify modal presence listener")
 
 
-def _is_app_foreground(app: tk.Misc) -> bool:
+def is_app_foreground(app: tk.Misc) -> bool:
     """OS の前面窓が App のメイン窓である場合だけ真を返す。"""
     try:
         backend = get_backend().window
@@ -65,10 +134,19 @@ def _is_app_foreground(app: tk.Misc) -> bool:
         return False
 
 
+def is_own_process_foreground() -> bool:
+    """OS の前面窓がこのプロセスの窓である場合だけ真を返す。"""
+    try:
+        return get_backend().window.foreground_own_window() is not None
+    except (AttributeError, OSError, tk.TclError, ValueError):
+        # 取得不能ならフォーカスを強制しない。
+        return False
+
+
 def _restore_modal_focus(app: tk.Misc) -> None:
     """表示中の台帳内 grab 保持者へ最後のフォーカスを戻す。"""
     try:
-        window = app.grab_current()
+        window = resolve_grab_holder(app.grab_current())
         if not any(active is window for active in _active_modals):
             return
         if any(opened is window for opened in _opened_while_minimized):
@@ -77,7 +155,7 @@ def _restore_modal_focus(app: tk.Misc) -> None:
             return
         target = window.focus_lastfor() or window
         target.focus_set()
-        if app.focus_get() is None and _is_app_foreground(app):
+        if app.focus_get() is None and is_app_foreground(app):
             target.focus_force()
     except (tk.TclError, KeyError):
         # 破棄中や tkinter 管理外の名前解決失敗は復元を妨げない。
@@ -142,7 +220,8 @@ def _deferred_check(app: tk.Misc) -> None:
     opened_order = {id(window): index for index, window in enumerate(_active_modals)}
     _hidden_by_minimize.sort(key=lambda window: opened_order.get(id(window), len(opened_order)))
     try:
-        holder = app.grab_current()
+        current = app.grab_current()
+        holder = resolve_grab_holder(current)
     except (tk.TclError, KeyError):
         return
     if holder is None:
@@ -150,6 +229,9 @@ def _deferred_check(app: tk.Misc) -> None:
     try:
         if not holder.winfo_exists() or holder.winfo_viewable():
             return
+        if current is not None and current is not holder:
+            # 代わりの持ち主（ヘルプ）の grab は、預かると決まったときだけ外す。
+            current.grab_release()
         holder.grab_release()
     except tk.TclError:
         return
@@ -313,7 +395,11 @@ def _apply_initial_focus(window: tk.Toplevel, focus: tk.Misc | None) -> None:
 
 
 def grab_modal(
-    window: tk.Toplevel, parent: tk.Misc | None = None, *, focus: tk.Misc | None = None
+    window: tk.Toplevel,
+    parent: tk.Misc | None = None,
+    *,
+    focus: tk.Misc | None = None,
+    help_follow: bool = True,
 ) -> None:
     """window をモーダル化し、破棄されたら直前の grab 保持者へ戻す。
 
@@ -331,7 +417,7 @@ def grab_modal(
             # 終了中や tkinter 管理外の保持者は解決できないため、保持者なしと扱う。
             return None
 
-    previous = current_holder()
+    previous = resolve_grab_holder(current_holder())
     if previous is window or _custody_window is window:
         # 二重呼び出しでは最初の保持者と破棄ハンドラを維持する（預かり中の窓も同じ扱い）。
         return
@@ -345,8 +431,10 @@ def grab_modal(
     _apply_initial_focus(window, focus)
     was_active = is_modal_active()
     _active_modals.append(window)
+    _remember_modal_input(window, focus, help_follow)
     if was_active != is_modal_active():
         _notify_modal_presence_changed()
+    _notify_modal_front_changed()
     if _app_minimized:
         _opened_while_minimized.append(window)
     restored = False
@@ -370,22 +458,27 @@ def grab_modal(
             if active_modal is window:
                 del _active_modals[index]
                 break
+        _modal_help_follow.pop(window, None)
+        _modal_last_inputs.pop(window, None)
         if was_active != is_modal_active():
             _notify_modal_presence_changed()
-        if previous is None:
-            return
-        current = current_holder()
-        if current is not None and current is not window:
-            return
         try:
-            if previous.winfo_exists() and previous.winfo_viewable():
-                previous.grab_set()
+            if previous is None:
                 return
-        except tk.TclError:
-            # アプリ終了中や確認後の破棄・非表示化では復元できないため終了を妨げない。
-            pass
+            current = current_holder()
+            if current is not None and current is not window:
+                return
+            try:
+                if previous.winfo_exists() and previous.winfo_viewable():
+                    previous.grab_set()
+                    return
+            except tk.TclError:
+                # アプリ終了中や確認後の破棄・非表示化では復元できないため終了を妨げない。
+                pass
 
-        if _app_minimized and _custody_window is None:
-            _custody_window = previous
+            if _app_minimized and _custody_window is None:
+                _custody_window = previous
+        finally:
+            _notify_modal_front_changed()
 
     window.bind("<Destroy>", restore_grab, "+")

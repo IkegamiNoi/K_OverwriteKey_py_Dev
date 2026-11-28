@@ -32,6 +32,37 @@ class MouseScrollSpec:
     position: tuple[int, int] | None
 
 
+@dataclass(frozen=True)
+class ScrollInvert:
+    vertical: bool = False
+    horizontal: bool = False
+
+
+NO_SCROLL_INVERT = ScrollInvert()
+
+
+def coerce_scroll_invert(value: object) -> ScrollInvert:
+    if not isinstance(value, Mapping):
+        return NO_SCROLL_INVERT
+    vertical = value.get("vertical")
+    horizontal = value.get("horizontal")
+    return ScrollInvert(
+        vertical=vertical if type(vertical) is bool else False,
+        horizontal=horizontal if type(horizontal) is bool else False,
+    )
+
+
+def scroll_invert_to_json(invert: ScrollInvert) -> dict[str, bool]:
+    return {"vertical": invert.vertical, "horizontal": invert.horizontal}
+
+
+def apply_scroll_invert(
+    vertical: bool, deltas: tuple[int, ...], invert: ScrollInvert
+) -> tuple[int, ...]:
+    should_invert = invert.vertical if vertical else invert.horizontal
+    return tuple(-delta for delta in deltas) if should_invert else deltas
+
+
 def parse_mouse_scroll(action: Mapping[str, Any]) -> MouseScrollSpec | str:
     direction_value = action.get("direction")
     if not isinstance(direction_value, str):

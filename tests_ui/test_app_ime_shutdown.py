@@ -21,6 +21,7 @@ class AppImeShutdownTests(unittest.TestCase):
             destroy=trace.destroy,
             _closing=False,
             menu_commands=Mock(),
+            help=SimpleNamespace(stop_following=lambda: None, close=lambda: None),
         )
         trace.confirm.return_value = True
         trace.release.return_value = []
@@ -45,6 +46,7 @@ class AppImeShutdownTests(unittest.TestCase):
             destroy=trace.destroy,
             _closing=False,
             menu_commands=Mock(),
+            help=SimpleNamespace(stop_following=lambda: None, close=lambda: None),
         )
         trace.confirm.return_value = True
         trace.release.return_value = []

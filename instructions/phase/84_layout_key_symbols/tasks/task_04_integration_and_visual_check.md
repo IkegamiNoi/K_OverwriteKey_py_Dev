@@ -2,7 +2,7 @@
 
 ## 目的
 
-task_01〜03 を通しで確かめる。テストスイート全体・smoke・統合レビュー（複数タスクを跨ぐ差分）と、Windows の実機目視（ユーザー）で、暫定 62 §8 の受け入れ条件を満たすことを確認する。
+task_01〜03 を通しで確かめる。テストスイート全体・smoke・統合レビュー（複数タスクを跨ぐ差分）と、Windows の実機目視（ユーザー）で、暫定 64 §8 の受け入れ条件を満たすことを確認する。
 **コードの変更は原則しない**（統合レビューや目視で問題が出たら、採否をユーザーに確かめてから枝番のタスクで直す）。
 
 ## 対象範囲（確認のみ）
@@ -14,11 +14,11 @@ task_01〜03 を通しで確かめる。テストスイート全体・smoke・�
 
 ### 統合レビュー
 
-- `deep-reviewer`（Claude 側）と `codex-reviewer`（Codex 側）。対象 = phase 82 の差分全体（`7dc202ff..HEAD` のうち keyseq・tests・tests_ui・config の見本）。観点 = 暫定 62 §3〜§7 との整合・タスク間のつなぎ目（読込 → 表の受け渡し → 描き直し → 警告）・既存の表示を変えていないか。
+- `deep-reviewer`（Claude 側）と `codex-reviewer`（Codex 側）。対象 = phase 84 の差分全体（`7dc202ff..HEAD` のうち keyseq・tests・tests_ui・config の見本）。観点 = 暫定 64 §3〜§7 との整合・タスク間のつなぎ目（読込 → 表の受け渡し → 描き直し → 警告）・既存の表示を変えていないか。
 
-### Windows の実機目視（ユーザー・暫定 62 §8）
+### Windows の実機目視（ユーザー・暫定 64 §8）
 
-開発時の構成はリポジトリの `config/` を使うので、見本の jis.json の変更がそのまま効く（暫定 62 §1）。
+開発時の構成はリポジトリの `config/` を使うので、見本の jis.json の変更がそのまま効く（暫定 64 §1）。
 
 1. レイアウトに見本の **JIS** を選ぶ。キー置換の置換先・トリガー・key_hold に `backslash`・`\`・`ro` を使った行があれば（無ければ作る）、トリガー一覧・出力シーケンス一覧（詳細表示・簡易表示）・呼び出し先の表示枠・キーボードUIのキー置換の枠に **`＼`（全角）** で出て、`yen` は `¥` のまま（§8-1・§8-10）。
 2. レイアウトを **US TKL** に切り替えると、トリガー一覧と出力シーケンス一覧もすぐ `\`（フォントにより ¥ に見える）に戻る。JIS に戻すと `＼` に戻る（§8-2・§8-7）。
@@ -28,13 +28,13 @@ task_01〜03 を通しで確かめる。テストスイート全体・smoke・�
 
 ## 読むファイル
 
-- 暫定 62: `instructions/history/62_layout_key_symbols.md` §8
-- `.claude_data/state/decisions.md` の phase 82 の節（task_02 の偶発の失敗）
+- 暫定 64: `instructions/history/64_layout_key_symbols.md` §8
+- `.claude_data/state/decisions.md` の phase 84 の節（task_02 の偶発の失敗）
 
 ## 含まない
 
-- 正本の更新・暫定 62 の凍結・decisions_archive・current.md の完了記載・INDEX_done・refactor_check（task_05）
-- macOS の実機目視（jis_mac.json には書かない・暫定 62 §2）
+- 正本の更新・暫定 64 の凍結・decisions_archive・current.md の完了記載・INDEX_done・refactor_check（task_05）
+- macOS の実機目視（jis_mac.json には書かない・暫定 64 §2）
 
 ## 確認
 

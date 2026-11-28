@@ -67,7 +67,7 @@ class GridEditorWindow(tk.Toplevel):
         self.switch_monitor(self.monitor.id)
         begin_key_capture(self, self, self._record_key)
         self._capture_active = True
-        grab_modal(self, parent, focus=self.canvas)
+        grab_modal(self, parent, focus=self.canvas, help_follow=False)
 
     def _on_destroy(self, event) -> None:
         if event.widget is self:

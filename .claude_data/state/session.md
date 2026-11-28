@@ -4,37 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-26T12:00:00
-phase: なし（phase 82 = レイアウトごとのキー名の記号の上書き は 2026-11-26 完了・`decisions_archive/82_layout_key_symbols.md`）。次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 31 / idea 72
-直前の完了フェーズ = **phase 82**（レイアウトごとのキー名の記号の上書き・`decisions_archive/82_layout_key_symbols.md`）
-last_commit_location: `claude/idea-63-jis-layout-2d47d5`（worktree `idea-63-jis-layout-2d47d5`・Windows・phase 82 完了）。push / merge はユーザー
+last_updated: 2026-11-28T18:00:00
+phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74 ※ 別端末で「phase 82」として完了済だったレイアウトごとのキー名の記号の上書きは、2026-11-28 のマージで phase 84（暫定 64・decisions 84・idea_72 / 73）へ振り直し済（`decisions_archive/84_layout_key_symbols.md`）。
+直前の完了フェーズ = **phase 83**（ダイアログを開いている間にヘルプを操作できるようにする・`decisions_archive/83_help_input_during_modal.md`）
+last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 82 完了（2026-11-26）。提案書 30 は task_05_refactor で実施済。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+focus: **phase 83 完了（2026-11-28・正本反映・暫定 63 凍結・refactor_check 不要）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
 mode: completed
 
 ## last_action
-ts: 2026-11-26T13:00:00
+ts: 2026-11-27T09:50:00
 who: main
 summary: |
-  task_05_refactor（提案書 30 = `App._show_flash_area` に一時メッセージ欄の書き込みを一本化・挙動不変）を codex-implementer（Luna high）で実施。reviewer 採用。
-  verifier でテストの偽物に新しい補助が無く 6 件エラー → メインが結び付けの一覧に 1 つ足して tests 2333 OK（skip 9）。tests_ui は `test_minimize_grab_custody` が 1 件 fail するが基準 8f1a7b8d でも 3 回中 2 回 fail → 既存の不安定さ（current.md「テスト負債」に追記）。smoke pass。
+  実施: task_03 完了（Windows も OK・reviewer 修正して採用）→ task_04 完了（modal.py の口・最後の入力先・grab の代わりの持ち主の解決・verifier pass・reviewer 採用・7a8ec77d）→ task_05 を起票し codex-delegating-implementer で実装。
+  task_05 のメインの修正: 親が生きている破棄は作り直さない（_orphan_parent）/ App.state は AppState で上書き → wm_state / 新テストに fix_language / スクロールは先頭の位置（@0,0）も控え置き終えてから restore_scroll / 新しく開くときは初期フォーカスを入れる（reviewer 指摘 1）/ 作り直し後に持ち主を確かめ直す（reviewer 指摘 2・失敗時はし直さない形に修正済み）。
+  verifier: 修正前の 4 回目までで tests 2247・関連 13 モジュール pass（test_minimize_grab_custody の 2 件はロック中は task_04 前のコミットでも落ちる）。最後の修正後の検証は画面のロックで GUI テストが止まり無効。
+  ユーザー判断: タスクの連続実行を許可（2026-11-27）・/away（戻る予定 未定）。
 result_files:
-  - keyseq/presentation/app.py・tests/test_app_control_sync.py・instructions/phase/82_layout_key_symbols/tasks/task_05_refactor.md・phase.md
-  - instructions/modified_proposal/30_*.md・.claude_data/state/decisions_archive/82_layout_key_symbols.md・instructions/phase/current.md・instructions/common/codebase_map.md
+  - keyseq/presentation/help/help_window_controller.py・help_window.py・help_tab_view.py・keyseq/presentation/modal.py・keyseq/presentation/app.py（task_05・未コミット）
+  - tests_ui/test_help_follow.py（新規）・test_help_window.py・test_dialog_help_buttons.py・test_minimize_grab_custody.py・test_modal_app_foreground.py（task_05・未コミット）
+  - instructions/phase/83_help_input_during_modal/tasks/task_05_help_follow.md
 verified:
-  compile: clean
-  tests: pass 2333（skip 9・Windows）
-  tests_ui: 1341 中 1 fail（test_minimize_grab_custody・既存の不安定さ）
-  smoke: pass
+  compile: clean（最後の修正の前）
+  tests: pass 2247（同上）
+  tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`。idea_70・idea_71 を含む）。
-- ブランチ `claude/idea-63-jis-layout-2d47d5`（phase 82）・`claude/idea-62-048dd1`（phase 81）ほかの push / merge はユーザー。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- ブランチ `claude/idea-60-be6a81`（phase 83・最終 = task_07 のコミット）ほか（`claude/idea-58-be6d8d`〔phase 82〕・`claude/idea-62-048dd1`〔phase 81〕等）の push / merge はユーザー。
+- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`。
 
 ## blockers
-- なし。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- なし。注記: Mac で落ちうる probe・GUI テストを流すときは、画面のロック中は Tk が止まる・Python が落ちると次の起動で「ウインドウを再度開きますか？」で止まる（decisions_archive/83 の残存リスク）。 **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 import unittest
 from unittest.mock import patch
 from keyseq.shared.i18n import fix_language, tr_in
@@ -12,6 +13,10 @@ from keyseq.domain.mouse_scroll import (
     describe_mouse_scroll,
     format_mouse_scroll_value,
     parse_mouse_scroll,
+    ScrollInvert,
+    coerce_scroll_invert,
+    scroll_invert_to_json,
+    apply_scroll_invert,
     scroll_deltas,
 )
 
@@ -129,6 +134,36 @@ class MouseScrollFormattingTests(unittest.TestCase):
                 self.assertTrue(formatted[lang].startswith("[scroll] "))
         self.assertEqual(formatted["ja"], "[scroll] 下3")
         self.assertEqual(formatted["en"], "[scroll] Down3")
+
+
+class ScrollInvertTests(unittest.TestCase):
+    def test_coerce_values(self) -> None:
+        for value in (None, [], "true", {}):
+            with self.subTest(value=value):
+                self.assertEqual(coerce_scroll_invert(value), ScrollInvert())
+        self.assertEqual(coerce_scroll_invert({"vertical": True}), ScrollInvert(vertical=True))
+        self.assertEqual(coerce_scroll_invert({"vertical": True, "horizontal": "true"}),
+                         ScrollInvert(vertical=True))
+        self.assertEqual(coerce_scroll_invert({"vertical": 1, "horizontal": True}),
+                         ScrollInvert(horizontal=True))
+        self.assertEqual(coerce_scroll_invert({"other": True}), ScrollInvert())
+
+    def test_coerced_value_is_frozen(self) -> None:
+        with self.assertRaises(FrozenInstanceError):
+            coerce_scroll_invert({}).vertical = True
+
+    def test_json_always_has_both_keys(self) -> None:
+        self.assertEqual(scroll_invert_to_json(ScrollInvert(vertical=True)),
+                         {"vertical": True, "horizontal": False})
+
+    def test_apply_axis_sign_and_empty_tuple(self) -> None:
+        vertical = ScrollInvert(vertical=True)
+        horizontal = ScrollInvert(horizontal=True)
+        self.assertEqual(apply_scroll_invert(True, (-120, 120), vertical), (120, -120))
+        self.assertEqual(apply_scroll_invert(True, (-120,), horizontal), (-120,))
+        self.assertEqual(apply_scroll_invert(False, (120, 120, 60), horizontal),
+                         (-120, -120, -60))
+        self.assertEqual(apply_scroll_invert(False, (), horizontal), ())
 
 
 if __name__ == "__main__":

@@ -103,6 +103,7 @@ from keyseq.domain.config import (
     normalize_key_name,
     safe_deepcopy,
 )
+from keyseq.domain.mouse_scroll import ScrollInvert, coerce_scroll_invert, scroll_invert_to_json
 from keyseq.domain.numpad_keys import numpad_name_from_event
 from keyseq.infrastructure.input_gateway import (
     InputGateway, keyboard_repeat_timing,
@@ -147,6 +148,7 @@ class App(tk.Tk):
             self.startup_path,
             on_read_error=startup_read_errors.append,
         )
+        self._scroll_invert = coerce_scroll_invert(self._startup_settings.get("scroll_invert"))
         set_language(resolve_language(self._startup_settings.get("ui_language")))
         for exc in startup_read_errors:
             messagebox.showwarning(
@@ -165,6 +167,7 @@ class App(tk.Tk):
         self.ui_vars = UiVars(
             self, ui_font_delta_pt=self._ui_font_delta_pt,
             ui_language=self._startup_settings.get("ui_language"),
+            scroll_invert=self._scroll_invert,
         )
         self._retained_hook_keys: dict[str, str] | None = None
         self.restart_requested = False
@@ -222,6 +225,7 @@ class App(tk.Tk):
             ),
             on_keymap_switch_blocked=lambda: self.keymap_panel.show_keymap_switch_blocked(),
             keymap_switch_in_progress=self._keymap_switch_in_progress,
+            get_scroll_invert=lambda: self._scroll_invert,
         )
         self.screen_grid = ScreenGridController(self)
         self.input_router = InputRouter(
@@ -387,6 +391,7 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
         modal.set_modal_presence_listener(self._on_modal_presence_changed)
+        modal.set_modal_front_listener(self.help.on_modal_front_changed)
 
     def _prepare_first_launch(self) -> None:
         result = run_first_launch_welcome(self)
@@ -624,6 +629,20 @@ class App(tk.Tk):
         )
         if choice == "restart":
             self.restart()
+
+    def set_scroll_invert(self) -> None:
+        chosen = ScrollInvert(
+            vertical=bool(self.ui_vars.scroll_invert_vertical_var.get()),
+            horizontal=bool(self.ui_vars.scroll_invert_horizontal_var.get()),
+        )
+        saved = coerce_scroll_invert(self._startup_settings.get("scroll_invert"))
+        if chosen == saved:
+            return
+        if not self.startup_io.write_startup({"scroll_invert": scroll_invert_to_json(chosen)}):
+            self.ui_vars.scroll_invert_vertical_var.set(saved.vertical)
+            self.ui_vars.scroll_invert_horizontal_var.set(saved.horizontal)
+            return
+        self._scroll_invert = chosen
 
     def restart(self) -> None:
         self.restart_requested = True
@@ -938,6 +957,7 @@ class App(tk.Tk):
             self.pane_layout.cancel_window_width_save()
             self.compact_window.cancel_save()
             self.hook.begin_shutdown()
+            self.help.stop_following()
         except Exception:
             self._closing = False
             raise

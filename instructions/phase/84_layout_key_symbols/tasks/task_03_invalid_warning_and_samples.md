@@ -2,7 +2,7 @@
 
 ## 目的
 
-選んでいるレイアウトの `key_symbols` が不正で使えないとき、ステータスバー中央の一時メッセージ欄の「下敷き」として警告を出す（ほかの一時メッセージが消えたら戻す）。レイアウトの追加で読んだレイアウトの `key_symbols` が使えないときは、追加できたことと警告の両方を出す。見本の jis.json / us_tkl.json に `key_symbols` を書く（暫定 62 §3 の警告・§7）。
+選んでいるレイアウトの `key_symbols` が不正で使えないとき、ステータスバー中央の一時メッセージ欄の「下敷き」として警告を出す（ほかの一時メッセージが消えたら戻す）。レイアウトの追加で読んだレイアウトの `key_symbols` が使えないときは、追加できたことと警告の両方を出す。見本の jis.json / us_tkl.json に `key_symbols` を書く（暫定 64 §3 の警告・§7）。
 **presentation と見本の JSON 限定**。domain・application・infrastructure・`keyboard_layouts.py` の読込（task_01 で済み）は変えない。新しい部品は作らず、ダイアログも使わない。
 
 ## 対象範囲（presentation + 見本 JSON）
@@ -42,7 +42,7 @@
 
 ## 読むファイル
 
-- 暫定 62: `instructions/history/62_layout_key_symbols.md` §3（警告）・§7
+- 暫定 64: `instructions/history/64_layout_key_symbols.md` §3（警告）・§7
 - `keyseq/presentation/app.py:360-372`・`:510-560`
 - `keyseq/presentation/controllers/layout_controller.py:215-245`・`:345-375`
 - `keyseq/presentation/controllers/hook_controller.py:283-300`（`_flash_message` の読み方を変えないための確認）

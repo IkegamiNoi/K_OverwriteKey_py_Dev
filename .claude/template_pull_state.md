@@ -71,6 +71,10 @@ template を直すか差分のままにするかは別途判断する。
   （codebase_map は対象節のみ。ファイル単位除外済みだが記録として残す）
 - `.claude/skills/template_pull/SKILL.md` / 本ファイル — こちらで新設（逆同期用）。
   順方向で template へ取り込むかは template 側の判断
+- **`current.md` の台帳の分離（2026-11-26・ユーザー判断）**: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` /
+  提案書の一覧 = `instructions/modified_proposal/INDEX.md` / 暫定仕様の一覧 = `instructions/history/README.md` へ分け、
+  `current.md` はルーティングと次採番だけ（完了フェーズのリンクは直近 3 件）。追随した稼働ファイル = `.claude/skills/{refactor_check,phase_start,spec_draft}/SKILL.md`
+  と `.claude/rules/task_execution.md`「フェーズ完了時」。template は `current.md` の各節へ追記する形のまま
 
 **意図的差分ではないもの**: `.claude/rules/output_style.md`「委任量の抑制」節の例外と
 `.claude/rules/task_execution.md`「タスク開始時」節の調査エージェント記述は、template と同じ中立表記

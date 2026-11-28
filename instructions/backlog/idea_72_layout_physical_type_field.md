@@ -1,4 +1,4 @@
-# idea_70_layout_physical_type_field.md
+# idea_72_layout_physical_type_field.md
 
 ## 概要
 

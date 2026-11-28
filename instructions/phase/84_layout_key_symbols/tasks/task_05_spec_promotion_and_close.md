@@ -2,7 +2,7 @@
 
 ## 目的
 
-暫定 62（v0.4・task_04 の受容を §6 に追記済み）を正本へ昇格して凍結し、フェーズ 82 を閉じる（`.claude/rules/task_execution.md`「フェーズ完了時」）。文書のみ（メインが直接行う）。
+暫定 64（v0.4・task_04 の受容を §6 に追記済み）を正本へ昇格して凍結し、フェーズ 84 を閉じる（`.claude/rules/task_execution.md`「フェーズ完了時」）。文書のみ（メインが直接行う）。
 
 ## 対象範囲（文書のみ）
 
@@ -14,14 +14,14 @@
   - 新しい節「レイアウトの JSON の `key_symbols`」（読込の規則と判定の順〔T5〕・JSON の同じキーの重複・警告・描き直し〔削除の後の保存失敗を含む〕・受容）
   - 「記号キーのキー名の表示」の使う箇所（T1）・配列固有のキーの書き分け・逆引き
   - 「選び直すまで反映しない」から受容への参照
-- 正本 `instructions/common/codebase_map.md`: phase 82 の節（T4）
+- 正本 `instructions/common/codebase_map.md`: phase 84 の節（T4）
 - `ui_terms.md` は変更なし（文言の一覧と新しい用語を持たない）・`data_schema.md` は対象外（レイアウトの JSON の書式が無い）
-- 暫定 62 の凍結・`decisions_archive/82_layout_key_symbols.md`・decisions.md の索引・current.md の完了記載（次採番 phase 83 / 暫定 63 / decisions 83 / 提案書 31 / idea 72）・idea_63 を `INDEX_done.md` へ
+- 暫定 64 の凍結・`decisions_archive/84_layout_key_symbols.md`・decisions.md の索引・current.md の完了記載（次採番 phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74）・idea_63 を `INDEX_done.md` へ
 - 完了判定前レビュー（deep-reviewer・Codex 敵対的）と `/refactor_check`
 
 ## 読むファイル
 
-- 暫定 62・`.claude_data/state/decisions.md` の phase 82 の節・`instructions/phase/82_layout_key_symbols/task_04_pending_decisions.md` §3
+- 暫定 64・`.claude_data/state/decisions.md` の phase 84 の節・`instructions/phase/84_layout_key_symbols/task_04_pending_decisions.md` §3
 
 ## 含まない
 

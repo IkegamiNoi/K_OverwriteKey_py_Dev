@@ -7,223 +7,26 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 82 は 2026-11-26 完了）。次フェーズはユーザー判断で `/phase_start`（候補は `../backlog/INDEX.md`）。
-  **次採番 = phase 83 / 暫定 63 / decisions 83 / 提案書 31 / idea 72**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = キー名の記号の表示とレイアウトの JSON（phase 82・`domain/key_symbols.display_key_name` の上書きの表・`keyboard_layouts._read_key_symbols` / `KeyboardLayout.key_symbols`・`TriggerPanelController._current_key_symbols`・`LayoutController._refresh_lists_after_layout_change`・`App.set_flash_underlay`〔一時メッセージ欄の下敷き〕・見本 `config/user/keylayout/jis.json`・正本 `features.md` §4.5・§4.6）。残件 = [idea_70](../backlog/idea_70_layout_physical_type_field.md)（配列の種類の項目・macOS の JIS 判別）・[idea_71](../backlog/idea_71_key_symbols_minor_cleanups.md)（軽い気づき 4 点・優先度 低）・残存リスク（macOS の目視なし・既存の利用者のフォルダに見本が入らない）は decisions_archive/82。  その前の領域 = キー置換の置換先と送信の Shift（phase 81・`domain/config.normalize_mapping_target`・`InputGateway.send_mapped_key`・`KeyboardBackend.resolve_send` / `needs_shift` / `sent_modifiers_down`（両 OS）・`keyboard_window._record_key` と枠の表示・正本 `key_input.md` §7.4・`data_schema.md` §5.6）。残件 = [idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md)（macOS でフックの開始前から押している修飾が置換の送信に付かない・未実測）・[idea_68](../backlog/idea_68_shift_layer_replacement_source.md)（置換元の Shift の面）・残存リスク（macOS の Caps Lock ON は未確認・リピート停止は間接の確認のみ）は decisions_archive/81。  その前の領域 = 最小化とモーダル（phase 80・`keyseq/presentation/modal.py` の最小化の処理・`WindowBackend.detaches_deep_transients_during_minimize`・`tests_ui/test_minimize_grab_custody.py`・正本 `features.md` §4.6 の例外（Windows））。残件 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md)（OS 標準のダイアログが前面のとき Win+D・低優先の確認）・残存リスク（付け直しで withdrawn になる機構は未解明・待ち 300ms の最小値は未検証・付け直し後の再検証の仕組みは保留・最小化の間に開いた深い窓は外さない）は decisions_archive/80。その前の同梱の C ライブラリのライセンス（phase 79・`keyseq/presentation/help/content/third_party/`・`tests/test_third_party.py`・`packaging/README.md`）。残件 = 出荷ごとの棚卸しの記録 `packaging/inventory/<版>.md` は初回の出荷時に作る・残存リスク（義務の判定は法律の確認ではない・VC++ の Distributable Code の条文は未確認・ソースごとの表示の走査は Zstandard のみ）は decisions_archive/79。その前の hotkey アクションの保存時の検査（phase 78）の残件 = macOS の `option+comma`（[idea_45](../backlog/idea_45_tk_key_capture_symbol_names.md)）・features.md への hotkey の OK の検査（保留）。その前の初回起動のサンプルの書き出し（phase 77）の残件 = preview と書き込みの子の並びの二重記述（「別タスク化候補」・保留）。カウンター機能の拡張（phase 76）の残件 = [idea_37](../backlog/idea_37_counter_conditional_branch.md)（後送り）。macOS 対応（phase 75）の残件 = 検討段階の idea（idea_45・idea_59・60・63〜66。idea_61 は phase 80 で完了・idea_62 は phase 81 で完了・idea_63 は phase 82 で完了）・2 枚目のモニタの目視と中クリックの確認（保留）・JIS キーボードでの記号キーの実測・右 Option / 右 Control の実測。
-- 直前の完了フェーズ = [phase 82](82_layout_key_symbols/phase.md)（2026-11-26・レイアウトごとのキー名の記号の上書き = レイアウトの JSON の任意キー `key_symbols` で記号の表示を上書き〔日本語のフォントで `\` が ¥ に見える問題・配列は判別しない〕・不正な表は使わず一時メッセージ欄の下敷きで警告。暫定仕様先行モード〔暫定 62 v0.4 凍結〕・**JSON スキーマ = レイアウトの JSON に任意キーの追加**・起票元 [idea_63](../backlog/idea_63_backslash_display_fullwidth.md)・判断は [decisions_archive/82](../../.claude_data/state/decisions_archive/82_layout_key_symbols.md)・refactor_check 推奨 → 提案書 30 を task_05_refactor で実施済）。
-- その前の完了フェーズ = [phase 81](81_uppercase_replacement_target/phase.md)（2026-11-25・キー置換の置換先に英字の大文字 = `A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る〔phase 74 の送り方・macOS は送信済みの修飾も判定に含める〕・キーボードUI は Shift + 英字で大文字。暫定仕様先行モード〔暫定 61 v0.3 凍結〕・JSON スキーマの型は不変・起票元 [idea_62](../backlog/idea_62_uppercase_replacement_target.md)・判断は [decisions_archive/81](../../.claude_data/state/decisions_archive/81_uppercase_replacement_target.md)・refactor_check 推奨 → 提案書 29 を task_05_refactor で実施済）。
-- その前の完了フェーズ = [phase 80](80_win_d_restore_blank_dialog/phase.md)（2026-11-25・Win+D から戻したときに入れ子のダイアログが白いまま = 原因は Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失うこと〔Win+D 固有でない〕・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す。直接改訂モード〔暫定なし・正本 `features.md` §4.6 に例外（Windows）〕・presentation + os_backend の窓の契約に 1 メソッド・JSON スキーマ不変・起票元 [idea_61](../backlog/idea_61_win_d_restore_blank_dialog.md)・判断は [decisions_archive/80](../../.claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md)・refactor_check 不要）。
-- その前の完了フェーズ = [phase 78](78_action_hotkey_save_validation/phase.md)（2026-11-23・アクションの hotkey の保存時の検査と正規化。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)・判断は [decisions_archive/78](../../.claude_data/state/decisions_archive/78_action_hotkey_save_validation.md)・refactor_check 不要）。
-- その前の完了フェーズ = [phase 77](77_sample_in_user_folder/phase.md)（2026-11-23・サンプルを config/user/ へ書き出す。暫定仕様先行モード〔暫定 59 v0.2 凍結〕・JSON スキーマ不変・判断は [decisions_archive/77](../../.claude_data/state/decisions_archive/77_sample_in_user_folder.md)・refactor_check 不要）。
-- その前の完了フェーズ = [phase 76](76_counter_expansion/phase.md)（2026-11-23・カウンター機能の拡張。判断は [decisions_archive/76](../../.claude_data/state/decisions_archive/76_counter_expansion.md)）。
-- その前の完了フェーズ = [phase 75](75_mac_support/phase.md)（2026-11-22・macOS 対応。判断は [decisions_archive/75](../../.claude_data/state/decisions_archive/75_mac_support.md)）。
-- その前の完了フェーズ = [phase 74](74_key_symbol_display/phase.md)（2026-11-09・記号キーのキー名の表示〔表 36 個・キーボードUIの枠 / トリガー一覧 / key_hold の一覧〕+ 置換先の Shift+¥ / Shift+ろ の保存と Shift の要る文字の送信。直接改訂モード・JSON スキーマ不変・判断は [decisions_archive/74](../../.claude_data/state/decisions_archive/74_key_symbol_display.md)・refactor_check 不要）。
-- その前の完了フェーズ = [phase 73](73_welcome_first_launch/phase.md)（2026-11-09）。
-- その前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
-- その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
-  [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。
-  [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
-  [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
-- その前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
-  [phase 66](66_capture_jis_special_keys/phase.md)（2026-10-21・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す・アプリの窓が前面のときだけ〕。暫定仕様先行モード〔暫定 49 v0.5 凍結〕・JSON スキーマ不変・起票元 idea_50・判断は [decisions_archive/66](../../.claude_data/state/decisions_archive/66_capture_jis_special_keys.md)）。
-  [phase 65](65_layout_snapshot_for_hook/phase.md)（2026-10-21・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ・外部レイアウトの JSON の変更は選び直し〔同じレイアウトでも〕・読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード〔暫定 48 v0.3 凍結〕・JSON スキーマ不変・起票元 idea_51・判断は [decisions_archive/65](../../.claude_data/state/decisions_archive/65_layout_snapshot_for_hook.md)）。
-  [phase 64](64_external_layout_path_base/phase.md)（2026-10-21・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を修正〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 idea_13。既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕・判断は [decisions_archive/64](../../.claude_data/state/decisions_archive/64_external_layout_path_base.md)）。
-  [phase 63](63_make_only_keys/phase.md)（2026-10-20・押下だけが続けて届くキー〔無変換 241・変換 242 を「押した / 離した」に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑・名前は `extra_scan_codes`〕。暫定仕様先行モード〔暫定 46 v0.5 凍結〕・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕・判断は [decisions_archive/63](../../.claude_data/state/decisions_archive/63_make_only_keys.md)）。
-  [phase 62](62_special_keys_from_layout_only/phase.md)（2026-10-18・特殊キーの名前をレイアウトだけが決める。暫定仕様先行モード〔暫定 45 v0.5 凍結〕・判断は [decisions_archive/62](../../.claude_data/state/decisions_archive/62_special_keys_from_layout_only.md)）。
-  [phase 61](61_keyboard_ui_vk_to_scan_code/phase.md)（2026-10-17・キーボードUI の取得で VK を走査コードへ変換する。直接改訂モード・判断は [decisions_archive/61](../../.claude_data/state/decisions_archive/61_keyboard_ui_vk_to_scan_code.md)）。
-  [phase 60](60_ime_off_during_key_capture/phase.md)（2026-10-16・キーの取得中は IME を OFF にする〔取得の 8 入口で取得の間だけアプリ自身の IME を OFF・終了で復元 / `??` を全入口で記録せず取得を続ける〕。暫定仕様先行モード〔暫定 44 v0.4 凍結〕・JSON スキーマ不変・判断は [decisions_archive/60](../../.claude_data/state/decisions_archive/60_ime_off_during_key_capture.md)）。
-  [phase 59](59_keyboard_ui_left_right_modifiers/phase.md)（2026-10-16・キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔左右の Shift・Ctrl・Alt・Win の枠を左右別のキー名で表示・編集 / Windows キー・Caps Lock・AltGr 配列の右 Alt〔標準の id `alt_gr`〕をキーマップの元キーと切替キーに割り当て禁止 / 切替キーの取得で判別できないキー〔`??`〕は案内 / jis.json・de.json の見本〕。暫定仕様先行モード〔暫定 43 v0.6 凍結〕・JSON スキーマ不変・判断は [decisions_archive/59](../../.claude_data/state/decisions_archive/59_keyboard_ui_left_right_modifiers.md)）。
-  [phase 58](58_window_size_fit/phase.md)（2026-10-15・画面サイズの調整〔フル表示の 3 枠を枠ごとに縦スクロール・最小の高さ = 要求高さ − メイン領域 + ceil(H/2)〔+3 で 931 → 635px〕・各枠の最小幅にスクロールバーの幅 / 省略表示の「フック」「表示」を Expander で開閉・保存・見出しはキーでも開閉 / ステータス欄のフックを ON・OFF・一時停止の 3 状態に〕。暫定仕様先行モード〔暫定 42 v0.3 凍結〕・**JSON スキーマ変更あり**〔config.json の任意キー `compact_header_view`〕・判断は [decisions_archive/58](../../.claude_data/state/decisions_archive/58_window_size_fit.md)）。
-  [phase 57](57_grid_crosshair_nudge/phase.md)（2026-10-14・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔選んだ枠のクリック点に十字・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可〔Esc = 戻る・num enter = クリックは固定〕・編集の窓のドラッグ中の十字・パネルの 2 列化とスクロール〕。暫定仕様先行モード〔暫定 41 v0.4 凍結〕・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕・判断は [decisions_archive/57](../../.claude_data/state/decisions_archive/57_grid_crosshair_nudge.md)） /
-  [phase 56](56_screen_grid_cursor/phase.md)（2026-10-13・画面の枠でカーソル移動・クリック〔枠 ON のキーマップがアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置〕。暫定仕様先行モード〔暫定 40 v0.7 凍結〕・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕・判断は [decisions_archive/56](../../.claude_data/state/decisions_archive/56_screen_grid_cursor.md)） /
-  [phase 55](55_keyboard_ui_window/phase.md)（2026-10-12・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / 縦横比固定〕。暫定仕様先行モード〔暫定 39 v0.6 凍結〕・判断は [decisions_archive/55](../../.claude_data/state/decisions_archive/55_keyboard_ui_window.md)） /
-  [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別。暫定 38 v0.5 凍結・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)） /
-  [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
-  [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
-  [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)） /
-  [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）/
-  [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）/
-  [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）/
-  [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）/
-  [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
-  [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
-  判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）/
-  [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
-  判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
-  [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
-  判断は [decisions_archive/43](../../.claude_data/state/decisions_archive/43_list_reorder_range_copy.md)）/
-  [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
-  判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
-  [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
-  判断は [decisions_archive/41](../../.claude_data/state/decisions_archive/41_ime_off_while_typing.md)）/
-  [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
-  判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
-  **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
-  `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = 画面の文言の多言語対応**（phase 72）。正本 = `features.md` §4.6「言語」「一覧の表示形式」「ヘルプの窓」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1「多言語の扱い」・§2 英語の列・§3「英語の表記の規則」/ `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」。**新しい文言は `ja.json` と `en.json` の両方にキーを足し、ソースに日本語を書かない**（静的テストが検出）。残件 = 3 言語目以降（idea_56）/ 保留 D5（実行時に組み立てるキーは照合の対象外）・D6（静的検査が全角記号・半角カナを拾わない）。次の予定 = Mac 対応
-- その前の領域 = **ヘルプ・バージョン情報・ライセンスとカーソルグリッドの呼び名**（phase 70）。正本 = `features.md` §4.6（メニュー「ヘルプ」・ヘルプの窓・「?」・モーダルダイアログの作法の例外・バージョン情報・ライセンス）/ `key_input.md` §7.2 / `ui_terms.md` A22 / 本文 = `presentation/help/content/help_ja.json`（多言語化ではここを言語別に増やす）/ 地図 = `codebase_map.md` の `presentation/help/`。
-- その前の領域 = **キーボードUIのキーの文字・最小の大きさ・幅の記録**（phase 69）。正本 = `features.md` §4.6「キーボード表示のウィンドウ」（最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`）/ `data_schema.md` §5.4 `keyboard_window_widths` / 地図 = `codebase_map.md` の phase 69。保留 = `decisions_archive/69` の指摘 6・7・9。
-  さらに前 = **UI 文言の用語と表記**（phase 68）。正本 = `spec_detail/ui_terms.md`（新しい文言はここに従う）/ 確認ダイアログ = `features.md` §4.6「保存先の確認ダイアログ」・地図 = `codebase_map.md` の `choice_dialog.py`。**残件** = 提案書 25 は 2026-10-25 実施済（表は `presentation/child_kind_labels.py` に 1 つ。多言語化ではこの表を辞書へ移す）/ アクションの種類の内部名の表示名化（多言語化で）/ 下記「別タスク化候補 > 保存・確認ダイアログ」。
-- その前の領域 = **出力シーケンスのマウススクロール**（phase 67）。正本 = `data_schema.md` §5.11.1・§5.11.10 / `features.md` §4.2 冒頭・§4.2.12・§4.6（一覧の表示形式・出力シーケンスの編集）/ 地図 = `codebase_map.md`「アクションの実行」「マウス操作」の phase 67 の項。**残件** = decisions_archive/67 の保留（L6 = executor のテストの抜け・L7 = `amount` の文字列の受け入れの広さ）・暫定 50 §10 のスコープ外（間隔・速度・押したまま・画面の枠でのスクロール）。
-- その前の領域 = **キーの名前（取得・フック・送信）と押下だけのキー**（phase 60〜63）。phase 63 = 押下だけが届くキーの組み直し（正本 `key_input.md` §7.1「押下だけが届くキー」・§7.3「押下だけのキーの組み直し」・`features.md` §4.6「レイアウトの JSON の `extra_scan_codes`」「押下だけのキーの直接置換の枠」/ 地図 = `codebase_map.md` の phase 63 の項）。**残件（phase 63）** = idea_53（送信の最中の物理の入力の素通り・直ればリピートを戻せる）/ idea_54（IME の切り替え・再発時）/ decisions_archive/63 の保留（L4〜L7）。計測用のデバッグ出力（`debug_jis_special_key_events`）は残している。phase 62 = フックの実行時と送信のキー名をレイアウトだけが決める（正本 `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・`features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md` の `keyboard_layouts.py`・`LayoutController`・キーの送信の節）。**残件（phase 62）** = idea_50 は phase 66 で完了（残件 = decisions_archive/66 の保留 deep 8・9）/ idea_51 は phase 65 で完了（残件 = decisions_archive/65 の保留 低 3・5・10）/ idea_52 は phase 63 で完了 / 下記「別タスク化候補 > キーの名前の解決と送信」。phase 61 = キーボードUI の編集のキーの名前（VK → 走査コード → レイアウトだけ・正本 `key_input.md` §7.4）。phase 60 = キーの取得中の IME と判別できないキー。正本 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」/ 地図 = `codebase_map.md`（phase 60 の節）。**残件** = idea_48（取得中のフック再開）/ decisions_archive/60 の保留（L4〜L6）・入口の重なりは実機未確認（受容）。
-- その前の領域 = **キーボードUI の左右の修飾キーと割り当て禁止のキー**（phase 59）。正本 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4 / 地図 = `codebase_map.md`（phase 59 の節）。**残件** = （idea_47 は phase 61 で対応済み）/ decisions_archive/59 の保留（低-1〜3）・JIS の Caps 単独のフック側の名前は未実測（受容）。
-- その前の領域 = **画面サイズの調整**（phase 58）。正本 = `features.md` §4.5（ステータス欄のフックの 3 状態）・§4.6「フル表示の幅配分」「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_header_view`）/ 地図 = `codebase_map.md`（`views/full_view/scroll_area.py`・`controllers/compact_header_controller.py`・`pane_measure`）。**残件** = decisions_archive/58 の保留（スクロールバーの出し入れで枠の要求幅が約 17px 増減・3 枠同時のスクロールバー / 一覧のスクロールバーの上のホイールの自動テストなし・開いた見出しと閉じた見出しの様式の違い）。
-- その前の領域 = **カーソルグリッドでカーソル移動・クリック**（phase 56・57。phase 70 で「画面の枠」から改名）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「カーソルグリッドの座標系」/ 地図 = `codebase_map.md`「カーソルグリッド（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
-- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
-  phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
-  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
-  phase 39 で system に停止（`op: stop`・連続実行の区切り）を加えた（`features.md` §4.2.8）。
-  phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
-  phase 45 で呼び出しの行ごとにステップ（既定）/ 一括（`all`・**JSON スキーマ変更あり**）を選べるようにし、写しをやめて参照中の印で呼び出し元と呼び出し先を連動させ、呼び出し先の表示枠（`call_view_heights`）を加えた（§4.2.6・§4.2.8・§4.2.9・§4.2.10・§4.6）。
-  phase 46 で戻す・先頭への行に任意キー `target`（**JSON スキーマ変更あり**）を加え、指定があれば直前のトリガーに関係なく指定先を戻す / 先頭へ移す（§4.1・§4.2.6・§4.6）。
-  phase 50 で確認して実行（§4.2.11・`select_before_run`・**JSON スキーマ変更あり**）を加え、`target` の無い戻す・先頭への対象を一覧の選択へ（使えなければ直前のトリガー・§4.2.6）・待機明けに選択が変わっていれば選び直さない（§4.2.5）とした。
-  **残件** = カウンター条件分岐（idea_37）/ 直前のトリガーの廃止ほか（idea_39 の残り）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
-  phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
-  phase 42 で一覧のクリックで選択と下線がずれる不具合を直した（presentation の `listbox_utils.py`。押している間は帯だけ・離したときに反映）。
-- その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
-  トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
-  正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
-  （優先順位 **停止 > トグル > 直接切替 > トリガー > 置換**・重なりの表・切替中の受け付け停止）/ `features.md` §4.1・§4.3・§4.5。
-  実装の地図 = `codebase_map.md`「キーマップとトリガーセット（phase 34）」節
-  （口 = `domain/keymap_triggers.py`・重なり = `application/key_overlap.py`・UI = `controllers/keymap_panel/`）。
-  phase 35 で旧形式の読込元が**存在しないファイル**なら移行しない（§5.13.3-8）と定め、移行の境界値をテストで固定した。
-  phase 36 で保存・読込まわりを挙動不変で分割した（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・`split_loading.py` 787 → 559 行。地図は `codebase_map.md` の ConfigService 節）。
-  **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
-  共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
-  その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**29 まで起票済**・次採番は「次採番」節が正）。
-  実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
-  **提案書由来の計画はフェーズ番号を消費していない**。
+- **アクティブなフェーズ = なし**（phase 84 は 2026-11-26 完了・phase 83 は 2026-11-28 完了）。次フェーズはユーザー判断で `/phase_start`（候補は `../backlog/INDEX.md`）。
+  **次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74**（暫定 47 は idea_53 で保留中の番号）。
+  **phase 84 は別の端末で「phase 82」として進め push し忘れていたもの**。2026-11-28 のマージで採番の重複を避けるため phase 82 → 84・暫定 62 → 64・decisions 82 → 84・idea_70 / 71 → idea_72 / 73 へ振り直した（提案書 30 は重複なし。コミットメッセージの番号は旧番号のまま）。
+- 直近の一連の作業の領域（phase 84）= キー名の記号の表示とレイアウトの JSON（`domain/key_symbols.display_key_name` の上書きの表・`keyboard_layouts._read_key_symbols` / `KeyboardLayout.key_symbols`・`TriggerPanelController._current_key_symbols`・`LayoutController._refresh_lists_after_layout_change`・`App.set_flash_underlay` / `App._show_flash_area`〔一時メッセージ欄の下敷き〕・見本 `config/user/keylayout/jis.json`・正本 `features.md` §4.5・§4.6）。残件 = [idea_72](../backlog/idea_72_layout_physical_type_field.md)（配列の種類の項目・macOS の JIS 判別）・[idea_73](../backlog/idea_73_key_symbols_minor_cleanups.md)（軽い気づき 4 点・優先度 低）・残存リスク（macOS の目視なし・既存の利用者のフォルダに見本が入らない）は decisions_archive/84。
+- 直近の一連の作業の領域（phase 83）= ダイアログを開いている間のヘルプ（phase 83・`presentation/help/help_window_controller.py` の付け替え・`help/grab_handoff.py`〔macOS の grab の受け渡し〕・`modal.py` の `set_modal_front_listener` / `front_modal` / `last_input` / `resolve_grab_holder`・`WindowBackend.hands_grab_to_active_child_window`・正本 `features.md` §4.6「ヘルプの窓」の「ダイアログとの関係」・「モーダルダイアログの作法」）。残件 = 残存リスク（Tk 9.1〔macOS〕の deiconify の不具合への回避・開いた順と違う順で閉じると grab が戻らない〔既存〕ほか）は decisions_archive/83。
+  それ以前の領域の残件は各 `decisions_archive/<phase>.md`（phase 82 = [idea_70](../backlog/idea_70_config_overwrite_on_multiple_instances.md)・[idea_71](../backlog/idea_71_unreadable_config_overwritten_on_save.md) / phase 81 = [idea_68](../backlog/idea_68_shift_layer_replacement_source.md)・[idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md) / phase 80 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md) / phase 75 = 検討段階の idea〔idea_45・59・63〜66〕ほか）。
+- 直前の完了フェーズ = [phase 84](84_layout_key_symbols/phase.md)（2026-11-26・判断は [decisions_archive/84](../../.claude_data/state/decisions_archive/84_layout_key_symbols.md)・refactor_check 推奨 → 提案書 30 を task_05_refactor で実施済）。
+- その前の完了フェーズ = [phase 83](83_help_input_during_modal/phase.md)（2026-11-28・判断は [decisions_archive/83](../../.claude_data/state/decisions_archive/83_help_input_during_modal.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 82](82_scroll_direction_setting/phase.md)（2026-11-26・判断は [decisions_archive/82](../../.claude_data/state/decisions_archive/82_scroll_direction_setting.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 81](81_uppercase_replacement_target/phase.md)（2026-11-25・判断は [decisions_archive/81](../../.claude_data/state/decisions_archive/81_uppercase_replacement_target.md)）。
+- **それ以前の完了フェーズ**は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md` が正（要約はここに積まない）。2026-11-26 より前にここへ溜めていた要約と過去の「直近の領域」は [past_areas.md](past_areas.md)（凍結）。
+- 台帳の置き場: 暫定仕様の一覧と状態 = [history/README.md](../history/README.md) / リファクタ提案書の一覧と実施状況 = [modified_proposal/INDEX.md](../modified_proposal/INDEX.md) / 別タスク化候補 = [backlog/deferred_tasks.md](../backlog/deferred_tasks.md) / idea = [backlog/INDEX.md](../backlog/INDEX.md)。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
 
 ## 次採番
 
-- **phase 31 は 2026-09-24 完了**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・凍結〕/ decisions 31〔アーカイブ済〕）。
-  **phase 32 は 2026-09-24 完了**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32〔アーカイブ済〕）。
-  **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
-  **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
-  **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
-  **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
-  **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
-  **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
-  **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
-  **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
-  **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
-  **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
-  **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
-  **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
-  **phase 45 は 2026-10-05 完了**（`45_call_step_and_view` / 暫定 31〔v0.6・凍結〕/ decisions 45〔アーカイブ済〕）。
-  **phase 46 は 2026-10-06 完了**（`46_back_rewind_target` / 暫定 32〔v0.3・凍結〕/ decisions 46〔アーカイブ済〕）。
-  **phase 47 は 2026-10-06 完了**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47〔アーカイブ済〕）。
-  **phase 48 は 2026-10-07 完了**（`48_compact_sequence_view` / 暫定 33〔v0.6・凍結〕/ decisions 48〔アーカイブ済〕）。
-  **phase 49 は 2026-10-07 完了**（`49_status_truncation_tooltip` / 暫定なし〔直接改訂モード〕/ decisions 49〔アーカイブ済〕）。
-  **phase 50 は 2026-10-09 完了**（`50_select_before_run` / 暫定 34〔v0.6・凍結〕/ decisions 50〔アーカイブ済〕）。
-  **phase 51 は 2026-10-11 完了**（`51_key_press_release_actions` / 暫定 35〔v0.9・凍結〕/ decisions 51〔アーカイブ済〕）。
-  **phase 52 は 2026-10-11 完了**（`52_key_hold_auto_repeat` / 暫定 36〔v0.4・凍結〕/ decisions 52〔アーカイブ済〕）。
-  **phase 53 は 2026-10-11 完了**（`53_repeat_stop_on_own_foreground` / 暫定 37〔v0.4・凍結〕/ decisions 53〔アーカイブ済〕）。
-  **phase 54 は 2026-10-11 完了**（`54_numpad_key_distinction` / 暫定 38〔v0.5・凍結〕/ decisions 54〔アーカイブ済〕）。
-  **phase 55 は 2026-10-12 完了**（`55_keyboard_ui_window` / 暫定 39〔v0.6・凍結〕/ decisions 55〔アーカイブ済〕）。
-  **phase 56 は 2026-10-13 完了**（`56_screen_grid_cursor` / 暫定 40〔v0.7・凍結〕/ decisions 56〔アーカイブ済〕）。
-  **phase 57 は 2026-10-14 完了**（`57_grid_crosshair_nudge` / 暫定 41〔v0.4・凍結〕/ decisions 57〔アーカイブ済〕）。
-  **phase 58 は 2026-10-15 完了**（`58_window_size_fit` / 暫定 42〔v0.3・凍結〕/ decisions 58〔アーカイブ済〕）。
-  **phase 59 は 2026-10-16 完了**（`59_keyboard_ui_left_right_modifiers` / 暫定 43〔v0.6・凍結〕/ decisions 59〔アーカイブ済〕）。
-  **phase 60 は 2026-10-16 完了**（`60_ime_off_during_key_capture` / 暫定 44〔v0.4・凍結〕/ decisions 60〔アーカイブ済〕）。
-  **phase 61 は 2026-10-17 完了**（`61_keyboard_ui_vk_to_scan_code` / 暫定なし〔直接改訂モード〕/ decisions 61〔アーカイブ済〕）。
-  **phase 62 は 2026-10-18 完了**（`62_special_keys_from_layout_only` / 暫定 45〔v0.5・凍結〕/ decisions 62〔アーカイブ済〕）。
-  **phase 63 は 2026-10-20 完了**（`63_make_only_keys` / 暫定 46〔v0.5・凍結〕/ decisions 63〔アーカイブ済〕）。
-  **phase 64 は 2026-10-21 完了**（`64_external_layout_path_base` / 暫定なし〔直接改訂モード〕/ decisions 64〔アーカイブ済〕）。
-  **phase 65 は 2026-10-21 完了**（`65_layout_snapshot_for_hook` / 暫定 48〔v0.3・凍結〕/ decisions 65〔アーカイブ済〕）。
-  **phase 66 は 2026-10-21 完了**（`66_capture_jis_special_keys` / 暫定 49〔v0.5・凍結〕/ decisions 66〔アーカイブ済〕）。
-  **phase 67 は 2026-10-21 完了**（`67_mouse_scroll_action` / 暫定 50〔v0.4・凍結〕/ decisions 67〔アーカイブ済〕）。
-  **phase 68 は 2026-10-24 完了**（`68_ui_terminology` / 暫定 51〔v0.8・凍結〕/ decisions 68〔アーカイブ済〕）。
-  **phase 69 は 2026-10-26 完了**（`69_keyboard_ui_key_labels` / 暫定 52〔v0.4・凍結〕/ decisions 69〔アーカイブ済〕）。
-  **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
-  **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
-  **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
-  **phase 75 は 2026-11-22 完了**（`75_mac_support` / 暫定 57〔v0.25・凍結〕/ decisions 75〔アーカイブ済〕）。
-  **phase 76 は 2026-11-23 完了**（`76_counter_expansion` / 暫定 58〔v1.1・凍結〕/ decisions 76〔アーカイブ済〕）。**phase 77 は 2026-11-23 完了**（`77_sample_in_user_folder` / 暫定 59〔v0.2・凍結〕/ decisions 77〔アーカイブ済〕）。**phase 78 は 2026-11-23 完了**（`78_action_hotkey_save_validation` / 暫定なし〔直接改訂モード〕/ decisions 78〔アーカイブ済〕）。**phase 79 は 2026-11-24 完了**（`79_bundled_c_library_licenses` / 暫定 60〔v0.9・凍結〕/ decisions 79〔アーカイブ済〕）。**phase 80 は 2026-11-25 完了**（`80_win_d_restore_blank_dialog` / 暫定なし〔直接改訂モード〕/ decisions 80〔アーカイブ済〕）。**phase 81 は 2026-11-25 完了**（`81_uppercase_replacement_target` / 暫定 61〔v0.3・凍結〕/ decisions 81〔アーカイブ済〕）。次の phase は `82_<topic>`。
-  次フェーズは **`82_<topic>`**・decisions も **82** を使う（欠番が出た場合はここに明記し、再利用しない）。
-  （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
-  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
-  → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
-- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜24 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
-  10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
-  11=config_service の公開面〔**v0.3・凍結**〕/
-  12=ネストしたモーダルの grab 復元〔**v0.5・凍結**〕/
-  13=ダイアログ後始末の確実な実行〔**v0.4・凍結**〕/
-  14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
-  15=最小化中の grab 預かり〔**v0.7・凍結**〕/
-  16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
-  17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
-  18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
-  19=マウスのドラッグ操作〔**v0.5・凍結**〕/
-  20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
-  21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
-  22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
-  23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕/
-  24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
-  25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
-  26=出力シーケンスの制御アクション〔**v0.6・凍結**〕/
-  27=file_line の非同期読込〔**v0.8・凍結**〕/
-  28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
-  29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
-  30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
-  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕 /
-  32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕 /
-  33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕 /
-  34=確認して実行〔**v0.6・凍結**〕 /
-  35=キーの押下 / 解放アクション〔**v0.9・凍結**〕 /
-  36=key_hold のキーリピート〔**v0.4・凍結**〕 /
-  37=アプリの窓が前面のときはキーリピートしない〔**v0.4・凍結**〕 /
-  38=テンキーの区別〔**v0.5・凍結**〕 /
-  39=キーボードUIのウィンドウ改善〔**v0.6・凍結**〕 /
-  40=画面の枠でカーソル移動・クリック〔**v0.7・凍結**〕 /
-  41=画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔**v0.4・凍結**〕 /
-  42=画面サイズの調整〔**v0.3・凍結**〕 /
-  43=キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔**v0.6・凍結**〕 /
-  44=キーの取得中は IME を OFF にする〔**v0.4・凍結**〕 /
-  45=特殊キーの名前をレイアウトだけが決める〔**v0.5・凍結**〕 /
-  46=押下だけが続けて届くキー〔**v0.5・凍結**〕 /
-  47=送信の最中の物理の入力を素通りさせない〔**v0.2・保留**・2026-10-21 ユーザー判断・phase 未起票・idea_53〕 /
-  48=受け取りと送信が同じレイアウトの写しを使う〔v0.3・ユーザー確定・phase 65 の主入力〕）。
-  49〜52 = phase 66〜69 の主入力〔いずれも**凍結**・52 = キーボードUIのキー名の表示と最小サイズ v0.4〕 /
-  53 = ヘルプの作成〔**v0.7・凍結**・phase 70 の主入力〕 /
-  54 = タスクバーのアイコンで状態を表示〔**v0.4・凍結**・phase 71 の主入力〕 /
-  55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
-  56 = 初回起動の Welcome とサンプルの作り直し〔**v0.7・凍結**・phase 73 の主入力〕 /
-  57 = macOS 対応〔**v0.25・凍結**・phase 75 の主入力〕 /
-  58 = カウンター機能の拡張〔**v1.1・凍結**・phase 76 の主入力〕 /
-  59 = サンプルを config/user/ へ書き出す〔**v0.2・凍結**・phase 77 の主入力〕 /
-  60 = 同梱の C ライブラリのライセンス〔**v0.9・凍結**・phase 79 の主入力〕 /
-  61 = キー置換の置換先に英字の大文字〔**v0.3・凍結**・phase 81 の主入力〕 /
-  次採番は **`62_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**28 まで起票済**
-  （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
-  **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
-  **10 = phase 19 由来・実施済＝phase 19 task_07** /
-  **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕 /
-  **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
-  **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
-  **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕 /
-  **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕 /
-  **16 = phase 38 由来・実施済＝phase 38 task_08**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕 /
-  **17 = phase 40 由来・実施済＝phase 40 task_11_refactor**〔上限 10000 の定数化・待機の mixin `send_wait.py`・file_line 未設定の判定の一本化〕）・
-  **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
-  **19 = phase 45 由来・実施済＝phase 45 task_12_refactor**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
-  **20 = phase 48 由来・実施済＝phase 48 task_07_refactor**〔`CallViewController` の省略表示の分岐を置き場の配置役へ・保存の待ち時間の定数共有〕 /
-  **21 = phase 55 由来・実施済＝phase 55 task_06_refactor**〔Win32 の窓・マウスの問い合わせを `infrastructure/win32_window.py` へ・初回だけ記録の同型 4 個を共通補助へ〕 /
-  **22 = phase 56 由来・実施済＝phase 56 task_09_refactor**〔keymap の任意キーの受け渡しの 3 か所を 1 定義へ・振り直しの段を自動割当の順から作る〕 /
-  **23 = phase 57 由来・実施済＝phase 57 task_08_refactor**〔矢印の操作キーの集合を 1 か所に・選択の解除を 1 つの呼び出しに・パネルのボタンの色を定数に〕 /
-  **24 = phase 58 由来・実施済＝phase 58 task_07_refactor**〔省略表示の上部の見出しの文言を 1 関数に・区画の題名と配置を登録時に受け取る・フル表示の 3 枠のタプルを 1 か所に〕 /
-  **25 = phase 68 由来・実施済**（2026-10-25・フェーズ外で単独実施）〔子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ〕 /
-  **26 = phase 69 由来・保留**（2026-10-26 ユーザー判断）〔`KeyboardWindow.redraw` 100 行からキーの文字の描画を抽出・キーが無いレイアウトの大きさの定数化〕 /
-  **27 = phase 70 由来・保留**（2026-10-29 ユーザー判断）〔`app.py` の「呼んで失敗をログに残す」同型の try/except 5 個を 1 関数へ〕
-  **28 = phase 75 由来・実施済＝phase 75 task_15**（2026-11-22）〔`macos/backend.py` を 1 クラス 1 ファイルへ・`modal.install_minimize_grab_custody` の入れ子の関数を外へ〕
-  **29 = phase 81 由来・実施済＝phase 81 task_05_refactor**（2026-11-25）〔英字 1 文字の大文字の判定を domain の 1 関数へ・Windows の press / release の送る名前を 1 つの補助へ〕
-  次採番は **`30_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
-  規範は `.claude/skills/spec_split/SKILL.md`。**提案書 09 とは別物**）。
+- **phase**: 次は **`85_<topic>`**・decisions も **85**（欠番が出た場合はここに明記し、再利用しない）。
+- **暫定仕様**（`instructions/history/NN_<topic>.md`・フェーズと独立採番）: 次は **`65_<topic>`**。**47 は idea_53 で保留中の番号**（再利用しない）。一覧と状態は [history/README.md](../history/README.md)。
+- **リファクタ提案書**（`instructions/modified_proposal/NN_*.md`・独立採番）: 次は **`31_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割・規範は `.claude/skills/spec_split/SKILL.md`。提案書 09 とは別物）。提案書由来の計画はフェーズ番号を消費しない。一覧は [modified_proposal/INDEX.md](../modified_proposal/INDEX.md)。
+- **idea**: 次は **`idea_74`**（`instructions/backlog/` のフォルダ実体が正・`/idea`）。
 
 ## 次フェーズ候補（参考）
 
@@ -237,189 +40,8 @@
 
 ## 別タスク化候補
 
-（継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ。
-**領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
-idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32 を昇格〕）
+[backlog/deferred_tasks.md](../backlog/deferred_tasks.md) に置く（`/refactor_check` の追記先もそちら・2026-11-26 に分離）。
 
-### 多言語対応（phase 72 由来）
-
-- phase 72 の /refactor_check の境界の候補: `controllers/config_io/keymap_set_io.py` の `save_keymap_set_to` が 80 → 約 90 行（文言を `tr` の複数行の呼び出しへ置き換えた分の増加・処理は不変）/ `dialogs/action_dialog.py` は 597 → 643 行（+105 / −59・純増 46）。次に処理を足すときに再判定する
-
-### タスクバーのアイコン（phase 71 由来）
-
-- `presentation/status_icon/status_icon.py` の `_STATES` は `HookDisplayState` の値の再列挙（`typing.get_args` で導ける）・対応する大きさの直値 `(16, 32, 48)` / `[16, 32]` が同ファイルに 3 か所。状態を足すフェーズが来たら定数へ寄せる（refactor_check M4・M6 の境界事例・phase 71）
-- 保留（ユーザー判断 2026-11-01）: `update_status` が文言の組み立て中に例外で終わるとアイコンだけ先に変わる（反映を文言の後へ移すなら暫定 54 §3.2 の位置の変更）/ 土台が 1 つの大きさだけのとき足りない大きさを印だけで補うか（phase 71）
-
-### 保存・確認ダイアログ（phase 68 由来）
-
-- `features.md` §4.6「未使用ファイルの整理…」の①が「保存する / 中止する」の 2 択と書かれているが、実装は askyesno「整理の前に保存が必要です。保存しますか？」（`orphan_sweep_io.py`。phase 68 より前からのずれ・phase 68 完了判定前レビューで発見）
-- `/refactor_check` の参考: `config_io/choice_dialog.py`（ボタン名で選ぶ確認）と `config_io/hotkey_presets_io.py` の `confirm_overwrite` が同じ形（2 か所）。3 か所目が出たら共通化（phase 68）
-
-### カーソルグリッド（phase 56 由来・旧称「画面の枠」）
-
-- task_07 統合レビューの保留: L1（`ScreenGridController.sync` のたびに枠を描き直す）/ L5（`cell_label.py` の中央の文字のフォントを描くたびに作る）/ L6（`keymap_panel_controller.py` 671 行に枠の編集の文脈とキー名の解決がある → idea_45 と一緒に移す）。色の直値の重複（`#202028` が `dialogs/grid_editor_window.py` と `screen_grid/grid_overlay_window.py`）→ idea_44 の配色の見直しで定数化（phase 56）
-
-### キーの名前の解決と送信（phase 62 由来）
-
-- phase 66 の /refactor_check の境界: `presentation/screen_grid/grid_editor_panel.py` の「記録先の選択が変わったら `editor._capture_target_changed()`」が 5 か所（`op_selected` 2・`sub_selected` 3）。選択の変更を 1 か所に集める余地（増えたら共通化）。直値 200 ms / 100 ms / 5 秒は `key_capture_hook.py` に名前なし（意味は既存定数と別）
-- phase 65 の /refactor_check M3（ユーザー判断で保留）: `application/held_inputs.py` の `resolve_send` → `identity_of` → `("key", scan, extended)` の 3 行組が 3 か所（`_key_identity`・`press_key`・`release_key`）。`(identity, send)` を返す内部関数 1 つにまとめられる。4 か所目が出たら実施
-- `/refactor_check` M6 の参考: 走査コードの範囲 1〜255 の直値が `infrastructure/input_gateway._resolve_key` と `presentation/keyboard_layouts.resolve_layout_scan_code_from_key_name` の 2 か所（既存の定数と同値ではなく非該当・増えたら定数化）/ `LayoutController.should_debug_special_key_event` の未使用の引数 `resolved_key`（phase 62）
-
-### キーボード表示（phase 55・59 由来）
-
-- `presentation/keyboard_window.py`（523 行）の「マウスのボタンが押されていれば置き直す」が `_settle_size` / `_apply_pending_ratio` で同型 2 個・表示欄 2 つの「キーボードUIを常に手前」Checkbutton が同一 2 個（3 個目が出たら共通化。Win32 問い合わせの同型 4 個は提案書 21）（phase 55）
-- phase 59 の /refactor_check の境界の候補: 切替キーの 2 つのダイアログで取得の無視の分岐（修飾キー単独・禁止のキー）が同形 / エラー文言「Windows キー・Caps Lock・AltGr は切替キーにできません」が application（`keymap_switch_batch.py:35`）と presentation（`keymap_panel_controller.py:181`）に重複。3 か所目が増えたら共通化（元からの修飾キー単独の判定 `("ctrl", "shift", "alt", "windows")` は 6 か所〔`key_capture.py`・`action_dialog.py`・`trigger_dialog.py`・`keyboard_window.py`・上の 2 つ〕）（phase 59）。
-  phase 60 で再評価: 取得の入口は共通化しない（decisions_archive/60 の設計判断 #3）。`??` の判定は `tk_keys.is_unresolved_capture_key` に集約済み（案内の分岐は 4 入口だが文言は定数 1 つ）。残る同形の分岐は修飾キー単独・禁止のキーで、上の条件のまま
-
-### ダイアログ・モーダル
-
-- **同型スケルトンの共通化**。`suspend_hook_for_dialog` が **9 ファイル**、
-  `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` が **4 クラスで完全同型**
-  （`keymap_set_history` / `orphan_sweep` / `quarantine_manage` / `reference_cleanup`。2026-09-22 実測）。
-  phase 14 で `transient` + `grab_set` は `grab_modal` へ集約済、phase 15 で `destroy()` override は解消済で、
-  **残るのはこの 2 種**。**phase 28（idea_26 の案 B）へは合流させないとユーザーが判断済**
-  （2026-09-22。フォーカス集約とは別の責務でスコープが倍近くなるため）。
-  なお phase 28 で**群 C の 5 経路・群 A の 4 経路へ Escape を追加した**ため、
-  `bind("<Escape>")` の同型箇所は**増えた**
-  （着手判断は再評価が要る）（phase 11 / 14 / 28 由来）
-- `presentation/modal.py`（**187 行**・phase 29 で +54）で `grab_current()` の try/except と
-  `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**（M3 の境界）。
-  **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、
-  預かり側は**解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、
-  他 2 箇所は「生存かつ表示中」）。**4 箇所目が同じ意味で増えたら**判定ヘルパ抽出を再判定（phase 17 由来）。
-  phase 29 の `_restore_modal_focus` も `grab_current()` の解決不能を握り「生存かつ表示中」を判定する＝**4 箇所目相当**。
-  ただし台帳・最小化中の記録の判定と 1 つの try に同居しており、**再判定の結果、据え置き**（phase 29 由来）
-- `modal.py` の `_transient_depth`（phase 80）と `_belongs_to_app` が transient の連鎖を辿る同型の処理（2 か所・`_belongs_to_app` は `_transient_depth(...) is not None` にまとめられる・phase 80 の refactor_check で M3 非該当・deep-reviewer 10 で保留）。
-- `tests_ui/test_minimize_grab_custody.py` が **603 行**（phase 29 で +282。a1〜a13 / b1〜b6・b8〜b11 / c10〜c13〔c13 は 2 件〕。phase 80 で 9 件追加し745 行）。
-  テストは `/refactor_check` の判定対象外だが、組み立て（`_action` / `_manager` / `_minimize` / `_with_confirmation`）と
-  a / b / c 系の分割を次に増えたら検討（phase 29 由来）
-- `dialogs/action_dialog.py` が **418 行**で実装目安 300 行を超過（M1 の 600 行には未達）。
-  `ActionDialog.__init__` も **113 行**（既存の巨大関数）。次に増えたら再判定（phase 22 由来）
-- `controllers/config_io/child_save_dialog.py` が **369 行**（M1 非該当だが実装目安超過）+
-  `_add_text_cell` の戻り値が素の dict（Phase β 由来）
-
-### application / config_service
-
-- `keyseq/application/config_service/__init__.py` は **840 行**（phase 36 で 1135 → 840。2026-09-27 実測）。残る実ロジックは起動時ロード・個別キーマップの読込と計画なし保存・
-  シーケンスの正規化・パス基盤・`relocate_individual_hotkey_presets`。**パス基盤は動かしてよい**（`config_service.os.path` の patch は `os.path` をプロセス全体で
-  差し替えるため名前空間の位置に依存しない。制約は「`__init__.py` が `os` を import」「`from os.path import` で事前束縛しない」だけ・phase 36 で判明）。
-  次に増えたら、パス基盤（`__init__.py` の 1017-1121 行付近だった約 105 行）の切り出しを検討（phase 09〜11 / 36 由来）
-- 個別 JSON IO の共通化は [idea_06](../backlog/idea_06_individual_json_io_unification.md) が保持
-  （**残る着手条件は「共通化の実需」1 つ**）。以下は**その近接領域**としてここで追跡する:
-  - `config_io/` の `try/except Exception → messagebox.showerror → return False` が
-    **6 ファイル・14 箇所**規模（2026-09-22 実測）。各箇所はメッセージ・保存対象が独立のため M3 非該当に
-    倒しているが、さらに増えるなら共通化の再検討対象（phase 08 由来）
-  - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
-    `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
-
-- トリガー / シーケンスの属性（`run_to_end`・`select_before_run`）の読み書きの列挙が `domain/config.py`・`config_service/__init__.py`・`split_loading.py`・`split_payloads.py` の 4 モジュールに分かれている。
-  phase 50 は既存の列挙箇所に 1 属性を並べただけで箇所数は不変（M4 非該当）。属性がさらに増えるなら属性の表から読み書きする形を検討（phase 50 由来）
-- `split_payloads.py` の既存の 80 行超の関数 2 つ: `build_keymap_payloads`（100 行）/ `build_trigger_set_payloads`（106 行）。phase 36 では未変更（phase 36 由来）
-- 引数の多い位置指定の補助関数（phase 36 の分割で生じた）: `split_payloads.py::_append_split_trigger_set_payloads` / `_build_split_trigger_set_entry`（13〜15 個）/
-  `child_save_rows.py::_append_trigger_set_row`（13 個・同型の str を位置で並べる）/ `domain/config.py` の内部キー 4 要素タプル。
-  次に触るときに keyword-only 化または文脈用の dataclass を検討（phase 36 由来）
-- **phase 34 統合レビューの保留**: L-1 移行先キーマップと一覧を共有する別キーマップを個別保存すると移行先も一緒に書かれる（「移行先は必ず保存」の副作用・害なし）/
-  L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）（phase 34 由来）
-- `infrastructure/input_gateway.py` が 408 行に増え、送信（keyboard・拡張キー・テンキーの `SendInput`）・OS のリピート設定の取得・前面判定・名前の検査の責務が 1 ファイルに並ぶ。`_send_extended_event` と `_send_numpad_event` の `is_replaying` の退避が同型（2 個目）。次に送信系を足すときに送信の補助を別モジュールへ分けるかを再判定（phase 54 の /refactor_check・境界事例として不要に倒した）
-
-### 定数・直値の重複（M6 の境界）
-
-- `domain/config.py` の「キーがあれば `coerce_label`」2 行が **5 箇所**（`normalize_actions` の `type` / `button`、
-  `ensure_config_compatibility` の内部キー 3 種）。内部キー名の文字列直値も同ファイル内で各 3 回（`_trigger_set_*` は phase 34 task_09 で定数化済・`_keymap_source_path` / `_sequence_source_path` は直値のまま）。
-  提案書 [12](../modified_proposal/12_refactor_action_and_internal_key_type_coercion.md) は**見送り**（効果小・同一ファイル内で近接）。
-  **同型がさらに増えたら** `_coerce_label_if_present(dst, src, key)` への集約を再判定（phase 30 由来）
-
-- 履歴ファイル名の語幹が 2 箇所に直値（`config_service/__init__.py:27` の
-  `KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"` と
-  `config_service/keymap_set_history.py:23` の `f"keymap_set_history.broken{suffix}.json"`）。
-  **同値ではないため M6 非該当**だが、相対パス定数を変えると退避先の命名だけ黙ってずれる。
-  語幹を定数化するか退避先を相対パス定数から導出する（挙動不変の小修正・数行）（phase 27 由来）
-- `pane_width_rules.DEFAULT_LIST_CHARS = 26` が**未使用**で、`views/full_view/keymap_box.py:19` /
-  `views/full_view/trigger_box.py:20` / `views/compact_view/trigger_box.py:18` が
-  `width=26` の直値のまま（**compact 側も同値**。2026-09-22 実測）（phase 18 由来）
-- 子カテゴリ列挙（`CHILD_KEYMAP` / `CHILD_TRIGGER_SET` / `CHILD_SEQUENCE`）が 8 ファイルに散在し、
-  うち phase 10 の 2 ファイル（`config_service/parent_refs_cleanup.py` /
-  `presentation/reference_cleanup_text.py`）は **`save_plan.CHILD_*` を import せず同値の文字列直値**。
-  子の種類は仕様上 3 種で固定のため**優先度低**。まとめて触るときはここも対象にする（Phase β / phase 10 由来）
-- `KEYBOARD_LAYOUT_COMBO_WIDTH` がボタン文言のモジュール `hook_button_texts.py` に同居
-  （使う側は full_view / compact_view の 2 箇所）（phase 19 由来）
-- `controllers/hook_controller.py` の `register_hook_buttons` と `apply_fixed_button_widths` の
-  幅適用 2 行が同型（軽微）（phase 19 由来）
-- `infrastructure/input_gateway.py` の `press_key` / `release_key` の「拡張キー判定 → 分岐」が同型
-  （**2 箇所**。M3 の 3 箇所目が出たらヘルパ抽出を再判定する）（phase 21 由来）
-- `application/sequence_runner.py` の `_run_to_end_step` で `stop_run_to_end()` → `_select_trigger(key)` → `return` が **3 箇所**
-  （phase 31 で 1 箇所追加）。うち 2 箇所は直前に index を 0 へ戻し、phase 31 の 1 箇所は**意図して戻さない**（不正な行に残す）。
-  共通部は既存メソッド 2 つの呼び出しのみのため `/refactor_check` は**不要**と判定。停止時の後処理が増えたら集約を再判定（phase 31 由来）
-
-### デッドコード・据え置き（実害なし）
-
-- `InputGateway.register_key_hook` の未使用は
-  [idea_31](../backlog/idea_31_input_gateway_dead_register_key_hook.md)
-- `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
-  （production は書き込み 3 箇所のみで読むのはテストだけ。2026-09-22 実測）（Phase β 由来）
-- `views/full_view/full_view.py:57` の `action_list` alias（`self.action_list = self.sequence_box.action_list`）は
-  **据え置き**。`trigger_list` と違い production（`controllers/trigger_panel_controller.py` が
-  `app.full_view.action_list` を 13 箇所で使用）の**生きた参照経路**であり、計画04 §1.3-2 の
-  「App → View → Widget のパス」を満たす。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
-  統一したくなった場合のみ単独タスク化する
-  （判断根拠は [decisions_archive/01](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）（phase 01 由来）
-- `presentation/app.py:77` の `self.keymap_set_path = self.paths.resolve_keymap_set_path()` と、
-  `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**
-  （起動時に `startup_io` が必ず上書きするため）。`DEFAULT_KEYMAP_SET_FILENAME` を ConfigPaths 側へ
-  寄せる代替案も挙動同値のため据え置き。まとめて触りたくなった時のみ単独タスク化する
-  （判断根拠は [decisions_archive/05](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)）（phase 05 由来）
-- `controllers/config_io/startup_io.py:19` の `keymap_set_path`（`str(startup.get(...) or "").strip()`）は
-  config.json の生値を読むが**presentation 層**のため phase 25 のスコープ外。実害は
-  「存在しないパスとして無視される」のみ。あわせて**「空」の定義が字面上非対称**
-  （`split_payloads.py:363` の据え置き条件は `.strip()` しない）だが、
-  **`entry_loaded=True` かつ値が空白のみ**という組み合わせは 3 経路のいずれからも生成されず**到達不能**
-  （config.json を手編集した場合のみ）。触るなら `.strip()` 側へ揃える 1 行修正（phase 25 / 26 由来）
-- `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる（実行はエラーになる）（phase 22 由来）
-
-### 出力シーケンスの制御アクション（phase 37 由来）
-
-- 統合レビュー Low（詳細は decisions_archive/37）: L3 `rekey_trigger_set` で移動先側の既存の保留を破棄 / L4 範囲外の位置の丸め方が旧実装（`% len`）と違う /
-  L6 ループの対を削除しても「次に実行」を補正しない / L8 対応崩れが別の場所にあると張り直さず正しい終わりもエラー / L9 既に深さ超過があるとどこにも追加できない /
-  L11 file_line は `_write_text` の例外も捕捉（text は外へ抜ける）/ L13 削除確認ダイアログの表示中はフックが止まらず待機の続きが発火しうる / L14 待機の続きの id 不一致時に記録しない（上流で取り消すので実害なし）
-- `application/sequence_runner.py` 359 行で先行処理の呼び出しが単発・連続に重複（完了判定前レビュー L-8）。次に触るなら `sequence_steps` / `sequence_history` へ寄せる
-- phase 38 由来（詳細は decisions_archive/38）: 通常アクション（hotkey 等）のエラー通知ダイアログ中の停止・別の連続実行の開始の後に続く処理を再照合していない（file_line だけ task_07a で対処）/
-  統合 L2 `execute()` に file_line を渡したときの防御文言に内部名 `begin_file_line / poll_file_line` が出る（本番で到達しない・保留）
-- phase 40 由来（詳細は decisions_archive/40）: file_line の開始・poll が「単発 / 連続実行 × 通常 / 呼び出し」の 4 組で並行構造（`file_line_wait.py` / `call_wait.py` / `call_run_to_end.py`。
-  照合が経路ごとに違い統合のリスクが高いため提案書 17 から除外）/ 完了判定前レビュー L8 キーマップの切替・削除が失敗しても一時停止中のものは捨て済み（受容）/
-  `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用（コメント追加は任意）
-- phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
-- phase 43 由来（完了判定前の deep-reviewer）: `domain/sequence_editing.py` の `can_move` が未使用（`can_move_block` へ置き換え済み）/ `KeymapEditDialog` の `validate` 引数が未使用（追加フローがまとめて設定へ移ったため）/ `KeymapSwitchBatchDialog` の Escape 処理が `bind_escape_close` を使わず同じ判定順を自前で持つ
-- phase 46 由来（`/refactor_check` の M4 境界）: `(OP_BACK, OP_REWIND)` の所属判定が 3 → 8 か所（`action_control_fields.py` 4・`sequence_steps.py` 3・`sequence_control.py` 1）。戻す・先頭へのまとまりを表す定数か判定関数を `sequence_control` に置くか次に触るフェーズで再判定
-- phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
-
-### テスト負債
-- tests_ui で 1 回だけ `write_startup` が呼ばれた失敗（`compact_window_size` の保存・テスト名は未取得）。同じ実行を繰り返すと再現せず（phase 52 task_01 の検証で 2026-10-11 に発生・task_01 の変更とは無関係）。再発したらテスト名を取って切り分ける。**2026-10-14 再発（phase 57 task_02 の検証・tests_ui 全体の実行時のみ）: `tests_ui.test_compact_window.CompactWindowTest.test_automatic_full_view_and_maximized_sizes_are_not_saved`**（単独・モジュール単独では pass・実行順依存）
-- `tests_ui/test_action_dialog_control.py` の 2 件（`test_focus_moves_to_type_combo_when_*_is_hidden`）は、Tk のルートを作るモジュール（`test_modal_grab`・`test_action_dialog_key_hold` 等）の**後に同じプロセスで走らせると**フォーカスが取れず落ちる（実行順への依存。名前順の一括実行では先に走るので落ちない。phase 51 task_05 で判明・既存）
-- `tests_ui/test_minimize_grab_custody.py`（`MinimizeGrabCustodyTest`）が単独の実行でも 1 件落ちることがある（落ちるテストは回ごとに変わる・a4 / a6 / `test_repeated_restore_cancels_previous_reattach_reservation` 等）。2026-11-26 に phase 82 の変更の無い基準 8f1a7b8d でも 3 回中 2 回落ちたので既存の不安定さ（実際の窓の最小化・復元のタイミング・環境の状態に左右される）。phase 82 task_04 の全体の実行では通った。続くなら待ち方を見直す。
-
-- phase 36 の完了判定前レビューで判明したテストの無い経路: `save_runtime_data` の `keep_legacy_copy=True`（本番の呼び出し元 `keymap_set_io.py:136` は常に False・実質未使用の引数）/  `post_save_warnings=None` のときの `warnings.warn`（`assertWarns` の検査なし）/ `build_runtime_data_from_split` のアクティブキーマップ補完（一覧に無い `active_keymap_path` を読む分岐・専用テスト未確認）（phase 36 由来）
-- `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
-  **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
-- `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
-  延ばしていない（現状は予約取消で実害なし・揺れたら phase 19 task_03 と同じ対処）（phase 19 由来）
-
-### レビュー保留（判断待ち・判断は decisions_archive が正）
-
-- phase 72 統合レビューの D5（実行時に組み立てる文言キー 93 か所は完全性テストの照合の対象外。足りないと画面にキーがそのまま出るので実機目視で気づける）/ D6（日本語リテラルの静的検査の正規表現が全角記号・半角カナを拾わない。今残るのは全角空白 5 か所だけ）。判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)
-- phase 28 統合レビューの M4（`modal.py` の `_apply_initial_focus` が `grab_set()` と `<Destroy>` 登録の間にあり、
-  ここで例外が抜けると復元ハンドラ未登録の窓が残る。現実的な失敗は `TclError` で握っており実害は低い）。
-  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)
-- phase 18 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 /
-  `pane_measure.py` の SequenceBox 構造依存 / phase 18 以前の tests_ui が実 config を読む）。
-  判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
-- 一時メッセージのラベルを App 属性で直接参照する案（phase 01 の「生やし」解消と衝突）。
-  判断は [decisions_archive/20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
-- `controllers/pane_layout/pane_layout_controller.py` は **281 行**でドラッグ・レイアウト適用・
-  ウィンドウ幅の保存の 3 まとまりを持つ。phase 20 で「高さの処理は独立したまとまりではない」として
-  **分割不要と再判定済**。次にまとまりが増えたら再判定する（phase 18 / 20 由来）
-
-- `application/action_executor.py` の counter_text 分岐（phase 76）: `counter_text_error` だけが `_labeled` のキーを f-string で組み立てる（他の分岐は明示キー）・`"counter_text"` は定数 `ACTION_TYPE_COUNTER_TEXT` があるのに他の種別と同じく直値で並ぶ。種別の直値を定数へ寄せるときに一緒に直す（phase 76 の refactor_check は不要判定）
-- `application/config_service/save_plan_execution.py` の `preview_child_payloads` と `_write_runtime_payloads`: 子の並び（sequences → trigger_sets → keymaps）とキーマップのパスの解決が 2 か所に書かれている（片方だけ変えるとサンプルの衝突判定がずれる）。次に保存の書き出し順を触るとき、子を `(path, payload)` で並べる処理を 1 つにして書き込み側もそれを使う（phase 77 task_02 の deep-reviewer 指摘①・保留）
 ## 作業開始時の指示
 
 Claude は作業開始時に、このファイルで指定された参照先の `phase.md` を必ず読んでください。
@@ -433,6 +55,8 @@ Claude は作業開始時に、このファイルで指定された参照先の 
   要約は書かない**（要約は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正）。
   代わりに「**直近の一連の作業が扱っている領域**」を数行で置き、**いま何の続きを見ているのか**と
   **その領域の残件**が分かるようにする（2026-09-08 のユーザー判断。過去フェーズの要約を並べない）。
+- **完了フェーズのリンクは直近 3 件だけ**残し、4 件目は消す（索引が正のため移さない）。「直近の領域」は新しいフェーズの分に差し替え、前の領域の残件は「それ以前の領域の残件」の 1 行に idea 等のリンクだけ足す。
+- **台帳は持ち主のファイルを更新する**（ここへ書き写さない・2026-11-26 ユーザー判断）: 暫定仕様の状態 = `instructions/history/README.md` / 提案書の状態 = `instructions/modified_proposal/INDEX.md` / 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / idea = `instructions/backlog/INDEX.md`・`INDEX_done.md`。本ファイルは「次採番」節の番号だけ進める。
 
 起票元 idea があるフェーズは、`instructions/backlog/INDEX.md` の該当行を完了 / クローズ状態に
 更新して `instructions/backlog/INDEX_done.md` へ移動すること
@@ -449,3 +73,4 @@ Claude は作業開始時に、このファイルで指定された参照先の 
 このファイルには、実装順序・タスク詳細・チェック内容・完了フェーズの経緯を書かないでください
 （**「直近の一連の作業が扱っている領域」の数行だけは例外**。「フェーズ完了時の指示」節を参照）。
 それらは各フェーズフォルダ内の `phase.md` および `decisions_archive/<phase>.md` に記載してください。
+台帳（暫定仕様・提案書の一覧・別タスク化候補）も書かない（置き場は「現在の参照先」の「台帳の置き場」）。

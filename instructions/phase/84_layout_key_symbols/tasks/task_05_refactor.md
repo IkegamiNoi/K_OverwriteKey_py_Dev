@@ -23,7 +23,7 @@
 ## 含まない
 
 - `hook_controller.py` の `_flash_message` の読み方・一時メッセージを出す呼び出し元の変更
-- idea_71（L1〜L4）の内容
+- idea_73（L1〜L4）の内容
 
 ## 確認
 

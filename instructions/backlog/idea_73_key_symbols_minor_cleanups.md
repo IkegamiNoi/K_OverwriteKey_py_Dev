@@ -1,12 +1,12 @@
-# idea_71_key_symbols_minor_cleanups.md
+# idea_73_key_symbols_minor_cleanups.md
 
 ## 概要
 
-**phase 82（レイアウトの `key_symbols`）の統合レビューで挙がった軽い気づき 4 点（L1〜L4）を、まとめて整える。** どれも害は無く、優先度は低い。
+**phase 84（レイアウトの `key_symbols`）の統合レビューで挙がった軽い気づき 4 点（L1〜L4）を、まとめて整える。** どれも害は無く、優先度は低い。
 
 ## 起票経緯（2026-11-26）
 
-出所: phase 82 task_04 の統合レビュー（deep-reviewer）の低の指摘。ユーザー判断で保留とし、優先度 低の idea として残す。
+出所: phase 84 task_04 の統合レビュー（deep-reviewer）の低の指摘。ユーザー判断で保留とし、優先度 低の idea として残す。
 
 ## 現状
 
