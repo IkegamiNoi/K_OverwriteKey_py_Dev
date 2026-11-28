@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-28T01:30:00
+last_updated: 2026-11-28T09:00:00
 phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
 直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
 last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_06a 完了（2026-11-27・verifier pass・reviewer 採用）。task_06 は残り = 実機目視（ユーザー・Mac / Windows・`tasks/task_06_integration_and_visual.md` の 4 の 1〜14）。そのあと Python の ApplePersistenceIgnoreState を許可を取って戻し、task_07（正本反映）。**
+focus: **phase 83 task_06 完了（2026-11-28・実機目視 Mac / Windows とも 14 項目 OK）。次 = Python の ApplePersistenceIgnoreState を許可を取って戻す → task_07（正本反映・暫定 63 の凍結・spike の削除・decisions_archive/83・/refactor_check）。**
 mode: pending_review
 
 ## last_action
