@@ -11,6 +11,7 @@ from unittest.mock import patch
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.save_plan import compose_sequence_key, ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
 from keyseq.presentation import app as app_module
+from keyseq.presentation import modal as modal_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 from keyseq.presentation.controllers.config_io import child_save_columns as child_save_columns_module
@@ -293,6 +294,16 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        # _FakeSaveDialog は本物の grab_modal を通るが <Destroy> が起きず台帳から外れないため、
+        # テストごとに空の台帳へ差し替えて後続のモジュールへ残さない。
+        for name, value in (
+            ("_active_modals", []),
+            ("_modal_help_follow", {}),
+            ("_modal_last_inputs", {}),
+        ):
+            registry_patch = patch.object(modal_module, name, value)
+            registry_patch.start()
+            self.addCleanup(registry_patch.stop)
         self._child_save_actions_guard = patch.object(
             child_save_dialog_module.ChildSaveDialog,
             "ask_child_save_actions",

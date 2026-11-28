@@ -21,6 +21,7 @@ from keyseq.application.save_plan import (
 )
 from keyseq.presentation import app as app_module
 from keyseq.presentation import message_box as message_box_module
+from keyseq.presentation import modal as modal_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 from keyseq.shared.i18n import fix_language
@@ -171,6 +172,16 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         parent_patch = patch.object(message_box_module, "_default_parent", return_value=None)
         parent_patch.start()
         self.addCleanup(parent_patch.stop)
+        # _FakeDialog は本物の grab_modal を通るが <Destroy> が起きず台帳から外れないため、
+        # テストごとに空の台帳へ差し替えて後続のモジュールへ残さない。
+        for name, value in (
+            ("_active_modals", []),
+            ("_modal_help_follow", {}),
+            ("_modal_last_inputs", {}),
+        ):
+            registry_patch = patch.object(modal_module, name, value)
+            registry_patch.start()
+            self.addCleanup(registry_patch.stop)
         self._history_record_patch = patch.object(
             app_module.ConfigService, "record_keymap_set_history", return_value=(True, "")
         )
