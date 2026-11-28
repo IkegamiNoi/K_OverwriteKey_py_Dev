@@ -15,19 +15,20 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 83 は 2026-11-28 完了〕。次フェーズはユーザー判断で `/phase_start`）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 84 は 2026-11-26・phase 83 は 2026-11-28 完了〕。次フェーズはユーザー判断で `/phase_start`）。
    次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md` に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜63）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜64）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 83 完了（2026-11-28）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
-2026-11-28: 別端末の「phase 82」（レイアウトごとのキー名の記号の上書き・Windows）を push し忘れていたため、マージ時に phase 84 / 暫定 64 / decisions 84 / idea_72・73 へ振り直した（提案書 30 は重複なし）。
-phase 83 = ダイアログを開いている間もヘルプを操作できるようにする（idea_60）。原因 = macOS の Tk 9.1 のローカル grab の間、grab の窓以外にクリックが届かない。対策 = macOS は前面のヘルプへ grab を受け渡す（`help/grab_handoff.py`）・ヘルプをいちばん手前のダイアログ（なければ App）の子へ作り直して付け替える（`help/help_window_controller.py`・`modal.py` の `set_modal_front_listener` / `front_modal` / `last_input` / `resolve_grab_holder`）。Tk 9.1（macOS）はこのヘルプへの `deiconify` で内部が落ちることがあり回避済み。正本 = `features.md` §4.6「ヘルプの窓」の「ダイアログとの関係」。残存リスクは decisions_archive/83。
-worktree = `claude/idea-60-be6a81`（Mac・phase 83 完了までコミット済・未 push）。直近の実測（Mac・task_06a）: tests 2247 pass / tests_ui 84 モジュール 1388 件・失敗 0 / smoke OK。
+**アクティブなフェーズなし（phase 84・83 とも完了）。push し忘れのマージと tests_ui の台帳漏れの修正まで完了・push 済。次フェーズはユーザー判断で `/phase_start`。**
+2026-11-28: 別端末の「phase 82」（レイアウトごとのキー名の記号の上書き・Windows）を push し忘れていたため、マージ時に phase 84 / 暫定 64 / decisions 84 / idea_72・73 へ振り直した（提案書 30 は重複なし・コミットメッセージの番号は旧番号のまま）。
+同日、tests_ui を通しで流すとヘルプ系 48 件が落ちる件を修正（テストのみ）: `_FakeDialog`（test_config_io_characterization）・`_FakeSaveDialog`（test_child_save_dialog）が本物の `grab_modal` を通り `modal._active_modals` に残る → phase 83 の `front_modal()` の `winfo_exists` で AttributeError。setUp で台帳 3 つをテストごとに空へ差し替え。
+phase 84 = レイアウトの JSON の任意キー `key_symbols` で記号のキー名の表示を上書き（不正な表は一時メッセージ欄の下敷きで警告）。phase 83 = ダイアログを開いている間もヘルプを操作できる（macOS は grab を受け渡す・ヘルプをいちばん手前のダイアログの子へ作り直す）。詳細と残存リスクは decisions_archive/84・83。
+現在地 = `Operation_check`（origin へ push 済・d31bcbd8）。
 **Mac の注意（phase 83 で実測）**: 画面のロック中は Tk が止まる。Python が落ちると次の起動で「ウインドウを再度開きますか？」の確認で止まる（落ちうる probe を流すなら `defaults write org.python.python ApplePersistenceIgnoreState -bool YES` をユーザーの許可を得て入れ、終わったら許可を得て `defaults delete` で戻す）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -39,7 +40,7 @@ worktree = `claude/idea-60-be6a81`（Mac・phase 83 完了までコミット済�
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 Mac では `../../../.venv/bin/python` に読み替え、**tests_ui は通しで走らせない**（`mac_test_baseline.md` の手順でモジュールごと）。
-直近の実測（**Windows = phase 80 完了時・2026-11-25**）: compile **clean** / tests **2282 pass**（skip 9）/ tests_ui **1330 pass** / smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
+直近の実測（**Windows = 2026-11-28 のマージ後**）: compile **clean** / tests **2350 pass**（skip 9）/ tests_ui **1397 件・失敗 2**（`test_help_follow` の geometry の 1 件〔Windows で単独でも落ちる・テスト負債〕と `test_minimize_grab_custody` の既知の不安定）/ smoke **pass**（verifier）。tests_ui の `invalid command name "..."` は破棄後の after のノイズで失敗ではない。
 **Mac（task_13b 完了時・2026-11-22・`../../../.venv/bin/python`・Homebrew 3.13.18 + Tk 9.1.0）**: compile clean / tests 2157 件・失敗 0・エラー 0・skip 32 / smoke OK。**Mac の窓の不具合は実際の App で本物のクリック（Quartz の CGEventPost）を送る probe で実測する**（プログラムからの呼び出しでは再現しないことが多い・scratchpad の probe は消える）。**画面のロック中は `tkinter.Tk()` が返らず tests_ui が止まる**（ロックを解いてから流す）。
 **件数が減ったら退行を疑う**（tests: 2065〔phase 75 task_08b〕→ 2219〔task_15・Windows〕→ 2267〔phase 76〕→ 2278〔phase 77〕→ 2279〔phase 79 task_01〕→ 2282〔phase 80〕 / tests_ui: 1270 → 1300〔phase 75〕→ 1316〔phase 76〕→ 1319〔phase 78〕→ 1330〔phase 80〕）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
@@ -57,7 +58,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
-- ブランチ `claude/idea-60-be6a81`（phase 83）・`claude/idea-58-be6d8d`（phase 82）・`claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）ほかの push / merge はユーザー。
+- 任意: `test_help_follow` の `test_failed_content_result_is_reused_when_parent_changes`（Windows で geometry が反映前に読まれる疑い・未確認）の切り分け（`deferred_tasks.md` テスト負債）。
+- Operation_check は push 済。ほかのブランチ（`claude/idea-60-be6a81`〔phase 83〕・`claude/idea-58-be6d8d`〔phase 82〕等）の push / merge はユーザー。
 
 ## 運用インフラ
 
@@ -133,7 +135,7 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 80_win_d_restore_blank_dialog / 79_bundled_c_library_licenses / 78_action_hotkey_save_validation）。
+  （直近 3 件: 84_layout_key_symbols / 83_help_input_during_modal / 82_scroll_direction_setting）。
 - 未着手・保留の idea は `instructions/backlog/INDEX.md` を見る。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。
 - 別タスク化候補: 「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/

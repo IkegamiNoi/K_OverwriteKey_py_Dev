@@ -4,36 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-28T18:00:00
-phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74 ※ 別端末で「phase 82」として完了済だったレイアウトごとのキー名の記号の上書きは、2026-11-28 のマージで phase 84（暫定 64・decisions 84・idea_72 / 73）へ振り直し済（`decisions_archive/84_layout_key_symbols.md`）。 同日、tests_ui を通しで流すとヘルプ系 48 件が落ちる件（偽物のダイアログ `_FakeDialog` / `_FakeSaveDialog` がモーダルの台帳に残る）をテスト側で修正（8a8fb1bf・tests_ui 1397 件 失敗 2 = geometry の 1 件〔テスト負債〕と既知の不安定なテスト）。
-直前の完了フェーズ = **phase 83**（ダイアログを開いている間にヘルプを操作できるようにする・`decisions_archive/83_help_input_during_modal.md`）
-last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
+last_updated: 2026-11-28T21:00:00
+phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74 ※ 別端末で「phase 82」として完了済だったレイアウトごとのキー名の記号の上書きは、2026-11-28 のマージで phase 84（暫定 64・decisions 84・idea_72 / 73）へ振り直し済（`decisions_archive/84_layout_key_symbols.md`）。
+直前の完了フェーズ = **phase 84**（レイアウトごとのキー名の記号の上書き・2026-11-26 完了・番号は 11-28 の振り直し）/ その前 = phase 83（11-28 完了）
+last_commit_location: `Operation_check`（origin へ push 済・d31bcbd8）。作業 worktree = `claude/resolve-push-conflict-eaa607`（同じコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 完了（2026-11-28・正本反映・暫定 63 凍結・refactor_check 不要）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+focus: **アクティブなフェーズなし（phase 84・83 とも完了）。push し忘れのマージと tests_ui の台帳漏れの修正まで完了・push 済。次フェーズはユーザー判断で `/phase_start`。**
 mode: completed
 
 ## last_action
-ts: 2026-11-27T09:50:00
+ts: 2026-11-28T21:00:00
 who: main
 summary: |
-  実施: task_03 完了（Windows も OK・reviewer 修正して採用）→ task_04 完了（modal.py の口・最後の入力先・grab の代わりの持ち主の解決・verifier pass・reviewer 採用・7a8ec77d）→ task_05 を起票し codex-delegating-implementer で実装。
-  task_05 のメインの修正: 親が生きている破棄は作り直さない（_orphan_parent）/ App.state は AppState で上書き → wm_state / 新テストに fix_language / スクロールは先頭の位置（@0,0）も控え置き終えてから restore_scroll / 新しく開くときは初期フォーカスを入れる（reviewer 指摘 1）/ 作り直し後に持ち主を確かめ直す（reviewer 指摘 2・失敗時はし直さない形に修正済み）。
-  verifier: 修正前の 4 回目までで tests 2247・関連 13 モジュール pass（test_minimize_grab_custody の 2 件はロック中は task_04 前のコミットでも落ちる）。最後の修正後の検証は画面のロックで GUI テストが止まり無効。
-  ユーザー判断: タスクの連続実行を許可（2026-11-27）・/away（戻る予定 未定）。
+  実施: origin/Operation_check（phase 82 = スクロールの向き / phase 83 = ダイアログ中のヘルプ）を取り込み、push し忘れていたローカルの「phase 82 = レイアウトごとのキー名の記号の上書き」と採番が重複 → ローカル側を phase 84 / 暫定 64 / decisions 84 / idea_72・73 へ振り直し（提案書 30 は重複なし・23f09fb6）。current.md は origin の分割後の形を採用。
+  続けて tests_ui の 48 件の失敗を修正（テストのみ・8a8fb1bf）: tests_ui/test_config_io_characterization.py の `_FakeDialog` と test_child_save_dialog.py の `_FakeSaveDialog` が本物の grab_modal を通り modal._active_modals に残る（phase 17 以降）→ phase 83 の front_modal() の winfo_exists で後続のヘルプ系が AttributeError。両 setUp で _active_modals / _modal_help_follow / _modal_last_inputs をテストごとに空へ差し替え。reviewer 採用。
+  ユーザー判断: マージ結果を Operation_check へ反映して push（2026-11-28）。
 result_files:
-  - keyseq/presentation/help/help_window_controller.py・help_window.py・help_tab_view.py・keyseq/presentation/modal.py・keyseq/presentation/app.py（task_05・未コミット）
-  - tests_ui/test_help_follow.py（新規）・test_help_window.py・test_dialog_help_buttons.py・test_minimize_grab_custody.py・test_modal_app_foreground.py（task_05・未コミット）
-  - instructions/phase/83_help_input_during_modal/tasks/task_05_help_follow.md
+  - tests_ui/test_config_io_characterization.py・tests_ui/test_child_save_dialog.py（台帳の差し替え）
+  - instructions/backlog/deferred_tasks.md（テスト負債 2 行）・instructions/phase/current.md・decisions.md 索引・backlog INDEX / INDEX_done（マージ）
 verified:
-  compile: clean（最後の修正の前）
-  tests: pass 2247（同上）
-  tests_ui: 最後の修正後は未検証（画面のロックで止まる）
+  compile: clean（Windows・マージ後）
+  tests: pass 2350（skip 9）
+  tests_ui: 1397 件・失敗 2（test_help_follow の geometry の 1 件〔Windows で単独でも落ちる・テスト負債〕・test_minimize_grab_custody の既知の不安定）・エラー 0
+  smoke: pass
 
 ## next_action
 - 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
-- ブランチ `claude/idea-60-be6a81`（phase 83・最終 = task_07 のコミット）ほか（`claude/idea-58-be6d8d`〔phase 82〕・`claude/idea-62-048dd1`〔phase 81〕等）の push / merge はユーザー。
+- 任意: `test_help_follow` の `test_failed_content_result_is_reused_when_parent_changes`（Windows で geometry が反映前に読まれる疑い・未確認）の切り分け（`deferred_tasks.md` テスト負債）。
+- Operation_check は push 済。ほかのブランチ（`claude/idea-60-be6a81`〔phase 83〕・`claude/idea-58-be6d8d`〔phase 82〕等）の push / merge はユーザー。
 - 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`。
 
 ## blockers
