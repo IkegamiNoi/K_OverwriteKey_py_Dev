@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_06 完了（2026-11-28・実機目視 Mac / Windows とも 14 項目 OK）。次 = Python の ApplePersistenceIgnoreState を許可を取って戻す → task_07（正本反映・暫定 63 の凍結・spike の削除・decisions_archive/83・/refactor_check）。**
+focus: **phase 83 task_06 完了（2026-11-28・実機目視 Mac / Windows とも 14 項目 OK）。Python の ApplePersistenceIgnoreState はユーザーの許可を得て元に戻した（2026-11-28）。次 = task_07（正本反映・暫定 63 の凍結・spike の削除・decisions_archive/83・/refactor_check）。**
 mode: pending_review
 
 ## last_action
@@ -34,11 +34,9 @@ verified:
 ## next_action
 - verifier の task_06a の検証結果を見る（tests・tests_ui 全モジュール・smoke・基準 = task_06 の結果）→ reviewer（task_06a の差分）→ `/task_commit`（task_06 のテスト追加と task_06a をまとめて）。
 - そのあと task_06 の実機目視（`tasks/task_06_integration_and_visual.md` の 4 の 1〜13・Mac / Windows・ユーザー）。項目 11 の結果で暫定 63 §3.6（最後のダイアログを閉じたあとの入力先）を決める。
-- Python の `ApplePersistenceIgnoreState` は task_06 の検証のあとで、ユーザーの許可を取ってから戻す。
 - ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
 
 ## blockers
-- **【元に戻す・ユーザーの許可を取ってから】2026-11-27 に probe のため `defaults write org.python.python ApplePersistenceIgnoreState -bool YES` を入れた（元は未設定）。検証が終わったら、ユーザーの許可を取って `defaults delete org.python.python ApplePersistenceIgnoreState` で戻す**（ユーザー指示）
 - （解消）Mac の画面のロック・再起動後の Python の再オープン確認のダイアログ。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
