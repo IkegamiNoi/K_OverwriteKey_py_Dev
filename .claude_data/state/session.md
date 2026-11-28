@@ -5,7 +5,7 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-11-28T18:00:00
-phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74 ※ 別端末で「phase 82」として完了済だったレイアウトごとのキー名の記号の上書きは、2026-11-28 のマージで phase 84（暫定 64・decisions 84・idea_72 / 73）へ振り直し済（`decisions_archive/84_layout_key_symbols.md`）。
+phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 85 / 暫定 65 / decisions 85 / 提案書 31 / idea 74 ※ 別端末で「phase 82」として完了済だったレイアウトごとのキー名の記号の上書きは、2026-11-28 のマージで phase 84（暫定 64・decisions 84・idea_72 / 73）へ振り直し済（`decisions_archive/84_layout_key_symbols.md`）。 同日、tests_ui を通しで流すとヘルプ系 48 件が落ちる件（偽物のダイアログ `_FakeDialog` / `_FakeSaveDialog` がモーダルの台帳に残る）をテスト側で修正（8a8fb1bf・tests_ui 1397 件 失敗 2 = geometry の 1 件〔テスト負債〕と既知の不安定なテスト）。
 直前の完了フェーズ = **phase 83**（ダイアログを開いている間にヘルプを操作できるようにする・`decisions_archive/83_help_input_during_modal.md`）
 last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
