@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-28T09:00:00
-phase: instructions/phase/83_help_input_during_modal（起票元 idea_60・2026-11-26 に暫定仕様先行モードへ切り替え・主入力 = 暫定 63 v0.5）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
-直前の完了フェーズ = **phase 82**（スクロールのアクションの向きの反転・`decisions_archive/82_scroll_direction_setting.md`）
+last_updated: 2026-11-28T18:00:00
+phase: なし（phase 83 = ダイアログを開いている間にヘルプを操作できるようにする は 2026-11-28 完了・`decisions_archive/83_help_input_during_modal.md`）。次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72
+直前の完了フェーズ = **phase 83**（ダイアログを開いている間にヘルプを操作できるようにする・`decisions_archive/83_help_input_during_modal.md`）
 last_commit_location: `claude/idea-60-be6a81`（worktree `idea-60-be6a81`・Mac・8fcee257 = task_05 まで）。push / merge はユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 83 task_06 完了（2026-11-28・実機目視 Mac / Windows とも 14 項目 OK）。Python の ApplePersistenceIgnoreState はユーザーの許可を得て元に戻した（2026-11-28）。次 = task_07（正本反映・暫定 63 の凍結・spike の削除・decisions_archive/83・/refactor_check）。**
-mode: pending_review
+focus: **phase 83 完了（2026-11-28・正本反映・暫定 63 凍結・refactor_check 不要）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+mode: completed
 
 ## last_action
 ts: 2026-11-27T09:50:00
@@ -32,12 +32,12 @@ verified:
   tests_ui: 最後の修正後は未検証（画面のロックで止まる）
 
 ## next_action
-- verifier の task_06a の検証結果を見る（tests・tests_ui 全モジュール・smoke・基準 = task_06 の結果）→ reviewer（task_06a の差分）→ `/task_commit`（task_06 のテスト追加と task_06a をまとめて）。
-- そのあと task_06 の実機目視（`tasks/task_06_integration_and_visual.md` の 4 の 1〜13・Mac / Windows・ユーザー）。項目 11 の結果で暫定 63 §3.6（最後のダイアログを閉じたあとの入力先）を決める。
-- ブランチ `claude/idea-60-be6a81`（phase 83）の push / merge はユーザー。
+- 次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- ブランチ `claude/idea-60-be6a81`（phase 83・最終 = task_07 のコミット）ほか（`claude/idea-58-be6d8d`〔phase 82〕・`claude/idea-62-048dd1`〔phase 81〕等）の push / merge はユーザー。
+- 台帳の置き場: 別タスク化候補 = `instructions/backlog/deferred_tasks.md` / 提案書 = `instructions/modified_proposal/INDEX.md` / 暫定仕様 = `instructions/history/README.md`。
 
 ## blockers
-- （解消）Mac の画面のロック・再起動後の Python の再オープン確認のダイアログ。注記: **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
+- なし。注記: Mac で落ちうる probe・GUI テストを流すときは、画面のロック中は Tk が止まる・Python が落ちると次の起動で「ウインドウを再度開きますか？」で止まる（decisions_archive/83 の残存リスク）。 **Mac で tests_ui を通しで走らせない**（モーダルで止まるモジュールがある・モジュール指定で流す。verifier にも明記）。Mac の python は `../../../.venv/bin/python`
 - **【解消・2026-11-22】Codex の書き込み実行（2026-10-14 以降の不具合）**: ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `elevated` に戻し、Codex 0.171.0 で書き込みのテスト OK（`setup refresh ... errors=[]`）。再発したら `unelevated` に変えて回避（ユーザー操作・常駐の broker〔`app-server-broker.mjs`〕と app-server を止めないと効かない）
 
 ## resume_hints

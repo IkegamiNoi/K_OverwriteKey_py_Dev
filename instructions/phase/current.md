@@ -7,14 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 83](83_help_input_during_modal/phase.md)**（ダイアログを開いている間にヘルプの絞り込み欄へ入力できない・2026-11-26 起票・起票元 [idea_60](../backlog/idea_60_help_input_during_modal.md)）。
-  2026-11-26 に暫定仕様先行モードへ切り替え（主入力 = [暫定 63](../history/63_help_follows_front_dialog.md)）・phase 83 / 暫定 63 / decisions 83。
+- **アクティブなフェーズ = なし**（phase 83 は 2026-11-28 完了）。次フェーズはユーザー判断で `/phase_start`（候補は `../backlog/INDEX.md`）。
   **次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72**（暫定 47 は idea_53 で保留中の番号）。
-- 直近の一連の作業の領域 = スクロールの向きの反転（phase 82・`domain/mouse_scroll.py` の `ScrollInvert` / `coerce_scroll_invert` / `apply_scroll_invert`・`ActionExecutor` の `get_scroll_invert`・`App.set_scroll_invert` と設定 > スクロールの向き・config.json の `scroll_invert`・正本 `data_schema.md` §5.4・§5.11.10 / `features.md` §4.6・§4.8）。残件 = [idea_70](../backlog/idea_70_config_overwrite_on_multiple_instances.md)（多重起動で config.json が上書き）・[idea_71](../backlog/idea_71_unreadable_config_overwritten_on_save.md)（読めなかった config.json を次の保存で上書き）・残存リスク（実際の向き・macOS の遅延は実機目視のみ）は decisions_archive/82。
-  それ以前の領域の残件は各 `decisions_archive/<phase>.md`（phase 81 = [idea_68](../backlog/idea_68_shift_layer_replacement_source.md)・[idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md) / phase 80 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md) / phase 75 = 検討段階の idea〔idea_45・59・60・63〜66〕ほか）。
-- 直前の完了フェーズ = [phase 82](82_scroll_direction_setting/phase.md)（2026-11-26・判断は [decisions_archive/82](../../.claude_data/state/decisions_archive/82_scroll_direction_setting.md)・refactor_check 不要）。
+- 直近の一連の作業の領域 = ダイアログを開いている間のヘルプ（phase 83・`presentation/help/help_window_controller.py` の付け替え・`help/grab_handoff.py`〔macOS の grab の受け渡し〕・`modal.py` の `set_modal_front_listener` / `front_modal` / `last_input` / `resolve_grab_holder`・`WindowBackend.hands_grab_to_active_child_window`・正本 `features.md` §4.6「ヘルプの窓」の「ダイアログとの関係」・「モーダルダイアログの作法」）。残件 = 残存リスク（Tk 9.1〔macOS〕の deiconify の不具合への回避・開いた順と違う順で閉じると grab が戻らない〔既存〕ほか）は decisions_archive/83。
+  それ以前の領域の残件は各 `decisions_archive/<phase>.md`（phase 82 = [idea_70](../backlog/idea_70_config_overwrite_on_multiple_instances.md)・[idea_71](../backlog/idea_71_unreadable_config_overwritten_on_save.md) / phase 81 = [idea_68](../backlog/idea_68_shift_layer_replacement_source.md)・[idea_69](../backlog/idea_69_mac_premod_lost_on_mapped_send.md) / phase 80 = [idea_67](../backlog/idea_67_win_d_with_os_file_dialog.md) / phase 75 = 検討段階の idea〔idea_45・59・63〜66〕ほか）。
+- 直前の完了フェーズ = [phase 83](83_help_input_during_modal/phase.md)（2026-11-28・判断は [decisions_archive/83](../../.claude_data/state/decisions_archive/83_help_input_during_modal.md)・refactor_check 不要）。
+- その前の完了フェーズ = [phase 82](82_scroll_direction_setting/phase.md)（2026-11-26・判断は [decisions_archive/82](../../.claude_data/state/decisions_archive/82_scroll_direction_setting.md)・refactor_check 不要）。
 - その前の完了フェーズ = [phase 81](81_uppercase_replacement_target/phase.md)（2026-11-25・判断は [decisions_archive/81](../../.claude_data/state/decisions_archive/81_uppercase_replacement_target.md)）。
-- その前の完了フェーズ = [phase 80](80_win_d_restore_blank_dialog/phase.md)（2026-11-25・判断は [decisions_archive/80](../../.claude_data/state/decisions_archive/80_win_d_restore_blank_dialog.md)）。
 - **それ以前の完了フェーズ**は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md` が正（要約はここに積まない）。2026-11-26 より前にここへ溜めていた要約と過去の「直近の領域」は [past_areas.md](past_areas.md)（凍結）。
 - 台帳の置き場: 暫定仕様の一覧と状態 = [history/README.md](../history/README.md) / リファクタ提案書の一覧と実施状況 = [modified_proposal/INDEX.md](../modified_proposal/INDEX.md) / 別タスク化候補 = [backlog/deferred_tasks.md](../backlog/deferred_tasks.md) / idea = [backlog/INDEX.md](../backlog/INDEX.md)。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。

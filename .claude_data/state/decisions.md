@@ -92,6 +92,7 @@
 | 80_win_d_restore_blank_dialog | [80_win_d_restore_blank_dialog.md](decisions_archive/80_win_d_restore_blank_dialog.md) | Win+D から戻したときに入れ子のダイアログが白いまま（2026-11-25 完了・直接改訂モード〔正本 features.md §4.6 に例外（Windows）〕・JSON スキーマ不変・起票元 idea_61）。原因 = Tk 8.6.15（Windows）で transient 3 段以上の窓が最小化からの復元で中身の HWND を失う（Win+D 固有でない）・Windows では最小化の間だけ深さ 3 以上のモーダルの transient を外して隠し、復元で表示し直して grab を戻した 300ms 後に付け直す（`WindowBackend.detaches_deep_transients_during_minimize`）。OS 標準のダイアログと Win+D は idea_67（低優先）。refactor_check: 不要 |
 | 81_uppercase_replacement_target | [81_uppercase_replacement_target.md](decisions_archive/81_uppercase_replacement_target.md) | キー置換の置換先に英字の大文字（2026-11-25 完了・暫定 61 v0.3 凍結・JSON スキーマの型は不変・起票元 idea_62）。`A`〜`Z` だけ大文字を保ち、小文字と同じキーで解いて Shift を足して送る（phase 74 の送り方・macOS は送信済みの修飾も判定に含める）・キーボードUI は Shift + 英字で大文字。分離 = idea_68（置換元の Shift の面）・idea_69（macOS の開始前からの修飾）。refactor_check: 推奨 → 提案書 29 を task_05_refactor で実施済 |
 | 82_scroll_direction_setting | [82_scroll_direction_setting.md](decisions_archive/82_scroll_direction_setting.md) | スクロールのアクションの向きの反転（2026-11-26 完了・暫定 62 v0.4 凍結・JSON スキーマ = config.json の任意キー `scroll_invert` の追加・起票元 idea_58）。縦・横別に符号を反転・設定 > スクロールの向き・保存が成功した後の行から効く。分離 = idea_70（多重起動で config.json が上書き）・idea_71（読めなかった config.json を次の保存で上書き）。refactor_check: 不要（M4 は新しい型の境界・別タスク化候補に記録） |
+| 83_help_input_during_modal | [83_help_input_during_modal.md](decisions_archive/83_help_input_during_modal.md) | ダイアログを開いている間にヘルプを操作できるようにする（2026-11-28 完了・暫定 63 v0.6 凍結・JSON スキーマ不変・起票元 idea_60）。macOS は前面のヘルプへ grab を受け渡す・ヘルプをいちばん手前のダイアログの子へ作り直して付け替える（状態を引き継ぐ・入力先を戻す）・Tk 9.1（macOS）の deiconify の不具合を回避。refactor_check: 不要（help_window_controller.py の責務の境界を別タスク化候補に記録） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -657,45 +658,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 経緯: phase 81 で Luna 単独（codex-implementer）の失敗が続いた。量が原因 = task_01（本体 9・3 層・両 OS・テスト 6 前後でテストを書き終える前に 2 回停止）。依頼文の不足が原因 = テストを既存テストの途中に差し込む・既存の期待値の直し漏れ・属性をメソッドとして呼ぶ・準備の呼び出しまで数えるテスト。
 - 決定: `agent_selection.md` に目安（本体 5 ファイル以上 / 3 層以上か両 OS の backend / テスト 3 ファイル以上か既存の期待値の変更 のどれかで delegating）と、期待値を変える既存テストの `ファイル:行` の列挙を追加。2 つの Codex 実装エージェントの転送文に「テストの書き方の注意」4 点を追加。codex / codex_medium の変種へ追随（claude_only は対象外）。
 - 試行扱い: 目安で delegating に回したタスクは、子が実際に起動されたかと結果をそのフェーズの decisions に 1 行残す。
-
-## 2026-11-26〜 (phase 83: ダイアログを開いている間にヘルプの絞り込み欄へ入力できない)
-
-### 【task_01】原因 = macOS の Tk 9.1 のローカル grab の間、grab の窓以外の Toplevel にクリックが届かない（2026-11-26・実測）
-- 素の tkinter でも再現（ダイアログの子・transient の子・App の子のどれも入らない）。Windows は「?」から開いたヘルプを操作でき、ダイアログとも行き来できる（ユーザー確認）。記録 = `instructions/phase/83_help_input_during_modal/task01_measurement.md`
-- 正本 `features.md` §4.6「ヘルプの窓」の「ダイアログの「?」がこれを補う」が Mac で成り立っていない（検出基準 A）
-### 【task_01】案 A'（Mac だけ「?」から開いたヘルプをダイアログの transient のモーダルにし、閉じたら grab をダイアログへ戻す）→ **除外**（2026-11-26・ユーザーが一度選んだのち保留にし、案 D を選択。ヘルプの間はダイアログを操作できないため）
-- 理由: Mac でヘルプを操作できるようになり、モーダルの意味（App 本体を操作できない）を保てる。Windows の今の動き（ダイアログとヘルプの行き来）を変えない
-- 案 A（両 OS）→ **除外**: Windows で今できる行き来がなくなる / 案 B（ヘルプの間は grab を外す）→ **除外**: モーダルの意味が崩れる / 案 C（受け入れ）→ **除外**: Mac ではダイアログの間にヘルプを使う手段がない
-- 影響範囲: presentation（help の開き方）+ infrastructure（`WindowBackend` に OS の差の 1 メソッド）・正本 `features.md` §4.6 に Mac の例外（`/spec_update`）・直接改訂モードのまま（単一ファイル・タスク 2〜3）
-### 【task_01】案 D（Mac で、ヘルプの `<Activate>` で grab をヘルプへ・`<Deactivate>` でダイアログへ戻す）を素の tkinter で実測 → **成り立つ**（2026-11-26）
-- 行き来でき、App 本体は操作できないまま。窓を切り替えた直後の 1 回目のクリックは前面にするだけ。`<FocusIn>` を合図にする形は戻れず不可。記録 = task01_measurement.md §8
-### 【task_01】Mac の直し方 = 案 D → **採用**（2026-11-26・ユーザー判断）
-- 理由: ダイアログとヘルプを行き来でき、App 本体は操作できないまま（モーダルの意味を保つ）。1 回目のクリックが前面にするだけになるのは受容
-- 影響範囲: presentation（ヘルプの開き方・grab の受け渡し）+ infrastructure（`WindowBackend` に OS の差の 1 メソッド）・正本 `features.md` §4.6（`/spec_update`）・実アプリとの組み合わせ（入れ子・最小化・フォーカスの戻し・他アプリへの切り替え）は task_02 の最初に確かめる
-### 【task_01】正本 `features.md` §4.6「ヘルプの窓」に macOS の例外を追加（2026-11-26・ユーザー承認「その案で改訂」・`/spec_update`）
-- 1054 行に例外の注記、「?」の項に grab の受け渡しの条項を追加。ヘルプは transient にしない（Mac で transient の子は親より常に上になり、ダイアログが隠れるおそれ）。transient なしで案 D が成り立つかは task_02 の最初に確かめ、成り立たなければ止めて相談する
-### 【task_02 目視の別件】ヘルプを開いたあとに別のダイアログ（`grab_modal`）を開くとヘルプが操作できない（Mac・Windows・2026-11-26 ユーザー報告）→ 案 E **採用**（2026-11-26・ユーザー判断）
-- 場面: メニューから開いたヘルプ → アクションの追加 / 「?」から開いたヘルプ → プリセット編集。新しいダイアログの grab の外にヘルプが出るため（Windows は grab の部分木の外・Mac は grab の窓以外）
-- 案 E = ヘルプを、いちばん手前のダイアログの子へ作り直して付け替える（状態を引き継ぐ・閉じたら 1 つ前の親へ戻す）。Mac 実測は task01_measurement.md §10（66〜150 ms・状態は保たれる）。目視用の一時スクリプト = `spike/help_follow_spike.py`
-- 「閉じる」（親でないダイアログが開いたらヘルプを閉じる）→ **除外**: ヘルプの本文が見えなくなり、戻っても再表示されない / 自動で開き直す（新しい親の子にするだけ）→ 案 E に含む / 別プロセス化・grab を使わないモーダル → **除外**: 規模が見合わない
-- 影響: 正本 §4.6「ヘルプの窓」の複数の条項（メニューから開いたヘルプの制限・「?」の項・macOS の例外の相手）。task_02 の受け渡し（相手 = 固定の親）は相手を「その時点の親」に変える
-### 【暫定 63 起票】v0.1 → deep-reviewer 修正要（高 3・中 9・低 7）→ v0.2 で反映（2026-11-26）
-- 主な反映: 閉じる経路は台帳から外れたあと `after_idle` で持ち主を選び直して作り直す（同期だと入れ子・App の終了中に作った窓が消える = deep の実測）/ 知らせる口 `set_modal_front_listener` は存在の通知のあと・どの return でも通る / 利用者の閉じ（×・Escape・`close()`）に印 / 初期フォーカスを入れない / 新しいヘルプは持ち主のすぐ下（`focus_force` を使わない・正本の作法に合わせる）/ 戻す順 / 本文はコントローラが保持 / カーソルグリッドの編集窓は対象外（確認事項 4 の提案を変更）/ Mac でヘルプが grab を持つ間の新しいダイアログの親・前の持ち主にヘルプを使わない
-- 閉じる経路の「破棄後に作り直す」と「持ち主のすぐ下に置く」は未実測 → 実装タスクの最初（A0）
-### 【暫定 63】v0.3 の確認事項 1〜4 = 提案どおり確定（2026-11-26・ユーザー）/ Codex 敵対的レビュー needs-attention 7 件 → 推奨どおり v0.4 に反映（2026-11-26・ユーザー）
-- 採用: 2（grab の持ち主がヘルプならその親とみなす共通の規則 = grab_modal の前の持ち主・最小化の預かり・_grab_holder）/ 3（窓の消え方を 4 つに分け、新しい窓ができるまで古い窓と控えを残す）/ 4（止めるのは終了の確定後だけ・確認の間は付け替える）/ 6（付け替えはフォーカスに触らない）/ 7（ヘルプは持ち主のすぐ下・隠れたらダイアログを動かす = 受容・正本 1198〜1202 行付近を §9 に追加）
-- スコープ外（残存リスク）: 1（非 LIFO で閉じると grab が戻らない = 正本の作法どおりの既存挙動・modal.py:375-387 で裏取り）/ 5（choice_dialog の親と前面維持の相手が同じ = 既存の作り）
-### 【task_03】暫定 63 の前提の実測 → フォーカスが奪われる（§11）→ 案 X（持ち主が覚えている入力先へ focus_force で戻す）を実測し有効（§12）→ 暫定 63 v0.5 で §3.6 を改訂（2026-11-27・ユーザー承認「その内容で改訂」）
-- v0.5: 付け替え後、表示を待って lower(持ち主) → 持ち主の最後の入力先（開いた直後は grab_modal の初期の入力先）へ focus_force。持ち主が App・App が前面にない・入力先が無いときは戻さない。modal.py が台帳の窓ごとに最後の入力先を覚える。状態を戻している間は控えへ書き込まない。A14 を強化・A15 を追加。正本の作法「開いた時点では…フォーカス強制は行わない」の例外として昇格時に記す
-- 代案「フォーカスに触らない（v0.4）」→ **除外**（打った文字がどこにも入らない）/「閉じる」へ戻る → **除外**（ユーザーが案 X を選択）
-### 【task_05】Tk 9.1（macOS）の deiconify のクラッシュへの対策 → **採用**（2026-11-27・reviewer 採用）
-- 現象: 新しいコントローラで作ったヘルプに `deiconify` すると `WmDeiconifyCmd` → `TkWmMapWindow` で SIGSEGV。落ちる・落ちないが読み出す値の組み合わせで入れ替わる（Tk の内部の不具合とみる・probe で切り分け）
-- 対策: 表示中の窓に `deiconify` しない / 最小化・非表示のヘルプを前に出すときは控えから同じ持ち主の子として作り直す（§4.6「最小化を解除して前面へ出す」と同じ見た目）/ 窓の状態の控えは `<Map>` / `<Configure>` の中で読まず `after_idle` で 1 回にまとめる。Windows でも最小化からの復帰は作り直しになる（本文の選択範囲・カーソル位置は失われる = 受容）
-- 環境: probe のため `defaults write org.python.python ApplePersistenceIgnoreState -bool YES`（ユーザー承認・検証後に許可を取って戻す）
-### 【task_06】統合レビュー（deep-reviewer 修正要・codex-reviewer 4 件）→ 推奨どおり採用（2026-11-27・ユーザー「推奨どおり進める」）→ 暫定 63 v0.6・task_06a
-- task_06a で直す: H1 / codex P1（付け替えのあとのフォーカスの戻しの判定を「このアプリの窓が前面か」へ・`is_app_foreground` はメイン窓の判定でダイアログの間はいつも偽）/ M1（下に置く・入力先を戻すのは付け替えのときだけ）/ M2 + codex P2（作り始めの持ち主と今の持ち主が違えば成功・失敗とも予約し直す・「?」で明示した親は持ち主が変わらない限り動かさない）/ codex P2（絞り込み・タブ・見出しはその場で控える・窓の位置と状態・スクロールは after_idle）/ codex P3（最小化からの作り直しは成功するまで控えを変えない）/ L2（最小化のテストを本番と同じく transient なしに）/ `tests_ui/test_app_ime_shutdown.py` の仮の App に help を足す（統合の検証のエラー 2）
-- 決定: M3 = Tk の deiconify 対策は Mac（aqua）だけ / M4 = App の最小化中は付け替えを待ち元に戻したときに行う / M5 = 最後のダイアログを閉じたあとの入力先は task_06 の目視 11 で決める
-- task_07 へ: M6（正本 1155「閉じた後の戻り先は規定しない」の例外）/ M7（④の判定）/ 正本の書き換え箇所の一覧（deep Q2・Q4）/ task_05 の Tk 対策の条項
-- 様子見（目視）: L1（Welcome のヘルプ）・L3（最前面 ON のときの重なり）・L5（Cmd+H で隠している間）・L4 は codex P2 の直しに含む
-### 【task_06】実機目視 = Mac・Windows とも 14 項目すべて問題なし（2026-11-28・ユーザー）→ M5 = 最後のダイアログを閉じたあとの入力先は今の動きのまま（App 本体へキー入力が届く）で確定・暫定 63 §3.6 に反映
-- 2026-11-28: ユーザーの許可を得て `defaults delete org.python.python ApplePersistenceIgnoreState` で Python の設定を元に戻した（元は未設定）

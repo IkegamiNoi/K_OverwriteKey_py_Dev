@@ -14,22 +14,20 @@
 - **ユーザーへの提示（応答・報告・文書）は日本語で行う**（2026-09-16 指示・2026-10-05 再確認）。
 
 ## 再開手順
-1. `.claude_data/state/session.md` を読む（最重要・最新状態）。`presence: away` の行があれば消す（再開 = 戻った合図）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 83**〔`instructions/phase/83_help_input_during_modal/phase.md`〕）。
-   主入力 = 暫定仕様 `instructions/history/63_help_follows_front_dialog.md`（v0.5・ユーザー確定済）。
+1. `.claude_data/state/session.md` を読む（最重要・最新状態）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 83 は 2026-11-28 完了〕。次フェーズはユーザー判断で `/phase_start`）。
    次採番 = phase 84 / 暫定 64 / decisions 84 / 提案書 30 / idea 72（暫定 47 は idea_53 で保留中の番号）
-3. 今のタスク = `instructions/phase/83_help_input_during_modal/tasks/task_05_help_follow.md`（末尾の「結果」に経緯と残り）。実測の記録 = 同フォルダの `task01_measurement.md`（§11〜§13 が付け替えの要件）
-4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
+3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
-5. 過去の判断は `.claude_data/state/decisions.md`（phase 83 の節は末尾）・「アーカイブ索引」→ `decisions_archive/<phase>.md`。
+4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md` に従い、`ja.json` と `en.json` の両方にキーを足す**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜62）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜63）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 83 task_05（ヘルプの付け替え本体）は実装・修正済みだが未検証・未コミット。Mac の画面がロックされ GUI テストが止まるため検証できず、ユーザー不在で終了。再開したら画面のロックを解いて verifier を流し直す（task_05 の定義の「結果」の末尾に手順）。**
-phase 83 = ダイアログを開いている間にヘルプを操作できるようにする（idea_60）。task_01（原因 = macOS の Tk 9.1 のローカル grab）・task_02（Mac だけ前面の間 grab をヘルプへ）・task_03（暫定 63 の前提の実測）・task_04（`modal.py` の口と grab の持ち主の解決）は完了・コミット済み（最終 7a8ec77d）。
-暫定 63 = ヘルプを、いちばん手前のダイアログ（なければ App）の子へ作り直して付け替える（状態を引き継ぐ・付け替えたらダイアログの最後の入力先へ `focus_force` で戻す）。
-worktree = `claude/idea-60-be6a81`（Mac・未 push）。直近の実測（Mac・task_05 の最後の修正の前）: compile clean / tests 2247 pass / tests_ui の関連 13 モジュール pass / smoke OK。
+**phase 83 完了（2026-11-28）。アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`。**
+phase 83 = ダイアログを開いている間もヘルプを操作できるようにする（idea_60）。原因 = macOS の Tk 9.1 のローカル grab の間、grab の窓以外にクリックが届かない。対策 = macOS は前面のヘルプへ grab を受け渡す（`help/grab_handoff.py`）・ヘルプをいちばん手前のダイアログ（なければ App）の子へ作り直して付け替える（`help/help_window_controller.py`・`modal.py` の `set_modal_front_listener` / `front_modal` / `last_input` / `resolve_grab_holder`）。Tk 9.1（macOS）はこのヘルプへの `deiconify` で内部が落ちることがあり回避済み。正本 = `features.md` §4.6「ヘルプの窓」の「ダイアログとの関係」。残存リスクは decisions_archive/83。
+worktree = `claude/idea-60-be6a81`（Mac・phase 83 完了までコミット済・未 push）。直近の実測（Mac・task_06a）: tests 2247 pass / tests_ui 84 モジュール 1388 件・失敗 0 / smoke OK。
+**Mac の注意（phase 83 で実測）**: 画面のロック中は Tk が止まる。Python が落ちると次の起動で「ウインドウを再度開きますか？」の確認で止まる（落ちうる probe を流すなら `defaults write org.python.python ApplePersistenceIgnoreState -bool YES` をユーザーの許可を得て入れ、終わったら許可を得て `defaults delete` で戻す）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -57,11 +55,8 @@ skip 9 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザーへ】Mac の画面のロックを解いた状態で再開する**（ロック中は Tk の GUI テストが止まる・AppKit ごと落ちる）。
-- verifier に task_05 の検証を依頼（`tasks/task_05_help_follow.md` の「結果」の末尾の「残り」のとおり。`test_minimize_grab_custody` の既知の 2 件がロック解除後に通るかも見る）→ pass なら reviewer に「指摘 1・2 の反映」を確認依頼 → `/task_commit`（task_05）。
-- そのあと task_06（統合確認と実機目視・暫定 63 §7 A1〜A15・閉じるときの一瞬の消え方の Mac での許容・最後のダイアログを閉じたあとの入力先 = `task01_measurement.md` §13 の 4）を起票 → verifier・deep-reviewer + codex-reviewer → ユーザーの目視（Mac / Windows）→ task_07（正本反映・spike 削除・/refactor_check）。
-- ユーザーはタスクの連続実行を許可済み（2026-11-27）。判断の要る所（仕様の改訂・Codex レビューの採否・目視）では止まる。
-- ブランチ `claude/idea-60-be6a81`（phase 83）ほか（`claude/idea-58-be6d8d`〔phase 82〕・`claude/idea-62-048dd1`〔phase 81〕・`claude/idea-61-e8649d`〔phase 80〕等）の push / merge はユーザー。
+- アクティブなフェーズなし。次フェーズはユーザー判断で `/phase_start`（候補は `instructions/backlog/INDEX.md`）。
+- ブランチ `claude/idea-60-be6a81`（phase 83）・`claude/idea-58-be6d8d`（phase 82）・`claude/idea-62-048dd1`（phase 81）・`claude/idea-61-e8649d`（phase 80）ほかの push / merge はユーザー。
 
 ## 運用インフラ
 

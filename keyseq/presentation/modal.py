@@ -137,7 +137,7 @@ def is_app_foreground(app: tk.Misc) -> bool:
 def is_own_process_foreground() -> bool:
     """OS の前面窓がこのプロセスの窓である場合だけ真を返す。"""
     try:
-        return get_backend().window.is_own_process_foreground()
+        return get_backend().window.foreground_own_window() is not None
     except (AttributeError, OSError, tk.TclError, ValueError):
         # 取得不能ならフォーカスを強制しない。
         return False

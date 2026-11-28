@@ -9,6 +9,10 @@ idea・フェーズへ昇格したものはここから消す（昇格先の ide
 **領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
 idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32 を昇格〕）
 
+### ヘルプの付け替え（phase 83 由来）
+
+- phase 83 の /refactor_check の境界: `keyseq/presentation/help/help_window_controller.py`（296 行）に責務のまとまりが 4 つ（持ち主への付け替え・状態の控え・最小化からの復帰・Tk 9.1 の deiconify の対策）。300 行を超える変更が入ったら、控え（`_save_state` / `_schedule_save` / `_run_scheduled_save`）か Tk の対策を help/ 内の別モジュールへ分けるのを検討（判断 = decisions_archive/83）
+
 ### スクロールの向きの反転（phase 82 由来）
 
 - phase 82 の /refactor_check の境界: M4 = `ScrollInvert(` の全フィールドの組み立てが新しい型のため 0 → 3 か所（`domain/mouse_scroll.py` の `coerce_scroll_invert`・`presentation/app.py` の `set_scroll_invert`・`NO_SCROLL_INVERT`）と `scroll_invert_to_json` の全キーの列挙。フィールド 2 つのため不要と判定。フィールドを足すときは 4 か所をそろえて直す。M3 の参考 = `set_scroll_invert` と `set_ui_language` の「保存済みと同じなら書かない・失敗で変数を戻す」が同型 2 か所（3 か所目が出たら共通化を検討）

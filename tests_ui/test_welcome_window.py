@@ -143,6 +143,42 @@ class WelcomeWindowUiTest(unittest.TestCase):
             window.start_button.invoke()
             self.assertFalse(help_window.winfo_exists())
 
+    def test_visible_help_is_not_deiconified_when_reopened(self):
+        window = self._window()
+        window.help_button.invoke()
+        help_window = window._help_window
+        with patch.object(help_window, "deiconify", wraps=help_window.deiconify) as deiconify:
+            window.help_button.invoke()
+        deiconify.assert_not_called()
+        self.assertEqual(help_window.wm_state(), "normal")
+        self.assertEqual(help_window.notebook.select(), str(help_window.tabs["guide"]))
+
+    def test_minimized_help_reopens_by_platform(self):
+        content = HelpLoadResult(HelpContent(guide=(), faq=()))
+        window = self._window()
+        with patch("keyseq.presentation.welcome.welcome_window.load_help_content", return_value=content):
+            window.help_button.invoke()
+            old_window = window._help_window
+            old_window.iconify()
+            self.root.update()
+            with patch("keyseq.presentation.welcome.welcome_window.tk_platform.is_aqua", return_value=False), \
+                    patch.object(old_window, "deiconify", side_effect=lambda: old_window.wm_state("normal")) as deiconify:
+                window.help_button.invoke()
+            deiconify.assert_called_once_with()
+            self.assertIs(window._help_window, old_window)
+            self.assertEqual(old_window.wm_state(), "normal")
+
+            old_window.iconify()
+            self.root.update()
+            with patch("keyseq.presentation.welcome.welcome_window.tk_platform.is_aqua", return_value=True):
+                window.help_button.invoke()
+            new_window = window._help_window
+            self.assertIsNot(new_window, old_window)
+            self.assertFalse(old_window.winfo_exists())
+            self.assertEqual(new_window.wm_state(), "normal")
+            self.assertEqual(sum(isinstance(child, type(new_window)) for child in window.winfo_children()), 1)
+            self.assertEqual(new_window.notebook.select(), str(new_window.tabs["guide"]))
+
     def test_help_can_reopen_after_being_closed(self):
         content = HelpLoadResult(HelpContent(guide=(), faq=()))
         window = self._window()

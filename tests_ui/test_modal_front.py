@@ -4,6 +4,7 @@ import tkinter as tk
 import unittest
 from unittest.mock import Mock, patch
 
+from keyseq.infrastructure.os_backend import get_backend
 from keyseq.presentation import modal
 
 
@@ -218,6 +219,15 @@ class ModalFrontTest(unittest.TestCase):
         new_modal.destroy()
 
         self.assertIs(self.root.grab_current(), dialog)
+
+    def test_own_process_foreground_uses_foreground_window_handle(self):
+        window_backend = get_backend().window
+        with patch.object(window_backend, "foreground_own_window", return_value=None):
+            self.assertFalse(modal.is_own_process_foreground())
+        with patch.object(window_backend, "foreground_own_window", return_value=123):
+            self.assertTrue(modal.is_own_process_foreground())
+        with patch.object(window_backend, "foreground_own_window", side_effect=OSError):
+            self.assertFalse(modal.is_own_process_foreground())
 
 
 if __name__ == "__main__":
